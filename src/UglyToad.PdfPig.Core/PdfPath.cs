@@ -22,6 +22,11 @@
         /// </summary>
         public bool IsDrawnAsRectangle { get; internal set; }
 
+        /// <summary>
+        /// True if this is a clipping path.
+        /// </summary>
+        public bool IsClipping { get; set; }
+
         private PdfPoint? currentPosition;
 
         private double shoeLaceSum;

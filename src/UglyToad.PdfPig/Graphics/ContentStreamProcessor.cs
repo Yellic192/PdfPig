@@ -564,5 +564,10 @@
 
             TextMatrices.TextMatrix = newMatrix;
         }
+
+        public void ModifyClippingIntersect()
+        {
+            CurrentPath.IsClipping = true;
+        }
     }
 }

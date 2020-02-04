@@ -108,6 +108,12 @@
         void EndMarkedContent();
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="fillingRule"></param>
+        void ModifyClippingIntersect();
+
+        /// <summary>
         /// Update the graphics state to apply the state from the named ExtGState dictionary.
         /// </summary>
         /// <param name="stateName">The name of the state to apply.</param>
