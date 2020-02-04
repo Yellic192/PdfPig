@@ -1,11 +1,10 @@
 ﻿namespace UglyToad.PdfPig.DocumentLayoutAnalysis
 {
+    using Core;
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
-    using Geometry;
-    using Core;
 
     /// <summary>
     /// Clustering Algorithms.
