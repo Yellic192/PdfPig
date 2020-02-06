@@ -4,6 +4,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using UglyToad.PdfPig.Graphics.Colors;
 
     /// <summary>
     /// Contains helpful tools for distance measures.
@@ -75,6 +76,35 @@
         public static double Horizontal(PdfPoint point1, PdfPoint point2)
         {
             return Math.Abs(point2.X - point1.X);
+        }
+
+        /// <summary>
+        /// The Euclidean distance is the "ordinary" straight-line distance between two colors.
+        /// </summary>
+        /// <param name="color1">The first color.</param>
+        /// <param name="color2">The second color.</param>
+        /// <param name="normalise">True to return a distance between 0 and 1 included. A value of 0 means that the two strings are indentical.</param>
+        public static double Euclidean(IColor color1, IColor color2, bool normalise = false)
+        {
+            var rgb1 = color1.ToRGBValues();
+            var rgb2 = color2.ToRGBValues();
+            double dR = (double)(rgb2.r - rgb1.r);
+            double dG = (double)(rgb2.g - rgb1.g);
+            double dB = (double)(rgb2.b - rgb1.b);
+            return normalise ? Math.Round(Math.Sqrt(dR * dR + dG * dG + dB * dB) / 1.73205080757, 7) : Math.Round(Math.Sqrt(dR * dR + dG * dG + dB * dB), 6);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="color1">The first color.</param>
+        /// <param name="color2">The second color.</param>
+        public static double Ciede2000(IColor color1, IColor color2)
+        {
+            var lab1 = color1.ToLabValues();
+            var lab2 = color2.ToLabValues();
+            return Math.Round(ColorExtension.Ciede2000Distance(lab1.Item1, lab1.Item2, lab1.Item3,
+                                                               lab2.Item1, lab2.Item2, lab2.Item3), 6);
         }
 
         /// <summary>
