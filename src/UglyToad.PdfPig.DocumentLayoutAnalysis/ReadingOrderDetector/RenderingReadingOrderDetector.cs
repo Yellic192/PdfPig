@@ -2,6 +2,7 @@
 {
     using System.Collections.Generic;
     using System.Linq;
+    using UglyToad.PdfPig.DocumentLayoutAnalysis.Pipeline;
 
     /// <summary>
     /// Algorithm that retrieve the blocks' reading order using rendering order (TextSequence).
@@ -12,7 +13,7 @@
         /// Create an instance of rendering reading order detector, <see cref="RenderingReadingOrderDetector"/>.
         /// <para>This detector uses the rendering order (TextSequence).</para>
         /// </summary>
-        public static RenderingReadingOrderDetector Instance { get; } = new RenderingReadingOrderDetector();
+        public static IReadingOrderDetector Instance { get; } = new RenderingReadingOrderDetector();
 
         /// <summary>
         /// Gets the blocks in reading order and sets the <see cref="TextBlock.ReadingOrder"/>.
@@ -27,6 +28,17 @@
                 block.SetReadingOrder(readingOrder++);
                 yield return block;
             }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public IReadOnlyList<TextBlock> Get(IReadOnlyList<TextBlock> input, DLAContext context)
+        {
+            return Get(input).ToList();
         }
 
         private double AvgTextSequence(TextBlock textBlock)

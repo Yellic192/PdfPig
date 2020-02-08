@@ -1,17 +1,19 @@
 ﻿namespace UglyToad.PdfPig.DocumentLayoutAnalysis.ReadingOrderDetector
 {
     using System.Collections.Generic;
+    using UglyToad.PdfPig.DocumentLayoutAnalysis.Pipeline;
 
     /// <summary>
     /// Reading order detector determines the page's blocks reading order.
     /// <para>Note: Make sure you use <see cref="TextBlock.SetReadingOrder(int)"/> to set each <see cref="TextBlock"/> reading order when implementing <see cref="IReadingOrderDetector.Get(IReadOnlyList{TextBlock})"/>.</para>
     /// </summary>
-    public interface IReadingOrderDetector
+    public interface IReadingOrderDetector : ILayoutTransformer<IReadOnlyList<TextBlock>, IReadOnlyList<TextBlock>>
     {
         /// <summary>
-        /// Gets the blocks in reading order and sets the <see cref="TextBlock.ReadingOrder"/>.
+        /// 
         /// </summary>
-        /// <param name="textBlocks">The <see cref="TextBlock"/>s to order.</param>
+        /// <param name="textBlocks"></param>
+        /// <returns></returns>
         IEnumerable<TextBlock> Get(IReadOnlyList<TextBlock> textBlocks);
     }
 }

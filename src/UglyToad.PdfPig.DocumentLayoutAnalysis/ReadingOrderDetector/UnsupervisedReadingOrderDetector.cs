@@ -2,6 +2,7 @@
 {
     using System.Collections.Generic;
     using System.Linq;
+    using UglyToad.PdfPig.DocumentLayoutAnalysis.Pipeline;
 
     /// <summary>
     /// Algorithm that retrieve the blocks' reading order using both (spatial) Allen’s interval relations and rendering order (TextSequence).
@@ -13,7 +14,7 @@
         /// Create an instance of unsupervised reading order detector, <see cref="UnsupervisedReadingOrderDetector"/>.
         /// <para>This detector uses the (spatial) Allen’s interval relations and rendering order (TextSequence).</para>
         /// </summary>
-        public static UnsupervisedReadingOrderDetector Instance { get; } = new UnsupervisedReadingOrderDetector();
+        public static IReadingOrderDetector Instance { get; } = new UnsupervisedReadingOrderDetector();
 
         private double T;
 
@@ -363,6 +364,17 @@
         }
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public IReadOnlyList<TextBlock> Get(IReadOnlyList<TextBlock> input, DLAContext context)
+        {
+            return Get(input).ToList();
+        }
+
+        /// <summary>
         /// Allen’s interval thirteen relations.
         /// <para>See https://en.wikipedia.org/wiki/Allen%27s_interval_algebra</para>
         /// </summary>
@@ -389,8 +401,8 @@
 
             /// <summary>
             /// X overlaps with Y.
-            /// <para>|______X______|.................</para>
-            /// <para>.................|______Y______|</para>
+            /// <para>|_______X_______|..............</para>
+            /// <para>..............|_______Y_______|</para>
             /// </summary>
             Overlaps,
 

@@ -1,6 +1,8 @@
 ﻿namespace UglyToad.PdfPig.DocumentLayoutAnalysis.ReadingOrderDetector
 {
     using System.Collections.Generic;
+    using System.Linq;
+    using UglyToad.PdfPig.DocumentLayoutAnalysis.Pipeline;
 
     /// <summary>
     /// This detector does nothing, no ordering takes place.
@@ -20,6 +22,17 @@
         public IEnumerable<TextBlock> Get(IReadOnlyList<TextBlock> textBlocks)
         {
             return textBlocks;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public IReadOnlyList<TextBlock> Get(IReadOnlyList<TextBlock> input, DLAContext context)
+        {
+            return Get(input).ToList();
         }
     }
 }
