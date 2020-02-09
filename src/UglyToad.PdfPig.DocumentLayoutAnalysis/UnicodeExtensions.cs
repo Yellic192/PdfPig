@@ -7,6 +7,24 @@
     /// </summary>
     public static class UnicodeExtensions
     {
+        /*internal static void Test()
+        {
+            // http://www.unicode.org/Public/12.0.0/ucd/UnicodeData.txt
+            string[] lines = System.IO.File.ReadAllLines(System.IO.Path.Combine(folderPath, "UnicodeData12.txt"));
+
+            foreach (var line in lines)
+            {
+                var properties = line.Split(';');
+                bool isRAL = properties[4] == "R" || properties[4] == "AL";
+                int int32 = int.Parse(properties[0], System.Globalization.NumberStyles.AllowHexSpecifier);
+
+                if (IsRorAL(int32) != isRAL)
+                {
+                    System.Console.WriteLine("ERROR: " + int32.ToString() + "\t" + isRAL);
+                }
+            }
+        }*/
+
         /// <summary>
         /// Check if <see cref="Letter"/> contains at least an R (Right-to-Left) or AL (Right-to-Left Arabic) character.
         /// </summary>

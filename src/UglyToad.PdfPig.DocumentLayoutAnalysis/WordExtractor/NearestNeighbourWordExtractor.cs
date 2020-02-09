@@ -109,7 +109,12 @@
             List<Word> words = new List<Word>();
             for (int a = 0; a < groupedIndexes.Count(); a++)
             {
-                words.Add(new Word(groupedIndexes[a].Select(i => letters[i]).ToList()));
+                var wordLetters = groupedIndexes[a].Select(i => letters[i]).ToList();
+                if (wordLetters.All(l => l.IsRorAL()))
+                {
+                    wordLetters.Reverse();
+                }
+                words.Add(new Word(wordLetters));
             }
 
             return words;
