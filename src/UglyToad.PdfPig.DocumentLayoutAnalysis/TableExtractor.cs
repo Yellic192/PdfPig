@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UglyToad.PdfPig.Content;
 using UglyToad.PdfPig.Core;
-using UglyToad.PdfPig.DocumentLayoutAnalysis.PageSegmenter;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.WordExtractor;
 using UglyToad.PdfPig.Geometry;
 using static UglyToad.PdfPig.Core.PdfPath;
@@ -31,6 +30,14 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
 
         // Also see: 
         // https://www.research.manchester.ac.uk/portal/files/70405100/FULL_TEXT.PDF
+
+        /*
+         * - Need to better handle rouding when comparing points / rectangles
+         * because duplicates create problems
+         * 
+         * - Need to consider if rectangles are files, and the color of lines
+         * - Force close filled shapes
+         */
 
         /// <summary>
         /// 
@@ -79,10 +86,11 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
 
         /// <summary>
         /// Remove clipping paths, BezierCurve, etc.
+        /// Normalise lines.
         /// </summary>
         /// <param name="page"></param>
         /// <returns></returns>
-        private static IReadOnlyList<PdfLine> GetProcessLines(Page page)
+        public static IReadOnlyList<PdfLine> GetProcessLines(Page page)
         {
             var modeWidth = page.Letters.Where(x => !string.IsNullOrWhiteSpace(x.Value))
                 .Select(x => x.GlyphRectangle.Width).Mode();
@@ -114,13 +122,13 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
                         if (rect.Value.Height < modeHeight * 0.7)
                         {
                             var centroid = rect.Value.Centroid;
-                            processedLinesSet.Add(ExtendLine(new PdfLine(centroid.X, rect.Value.Bottom, centroid.X, rect.Value.Top), 2));
-                            processedLinesSet.Add(ExtendLine(new PdfLine(rect.Value.Left, centroid.Y, rect.Value.Right, centroid.Y), 2));
+                            processedLinesSet.Add(ExtendLine(Normalise(new PdfLine(centroid.X, rect.Value.Bottom, centroid.X, rect.Value.Top)), 2));
+                            processedLinesSet.Add(ExtendLine(Normalise(new PdfLine(rect.Value.Left, centroid.Y, rect.Value.Right, centroid.Y)), 2));
                         }
                         else
                         {
                             var x = rect.Value.Centroid.X;
-                            processedLinesSet.Add(ExtendLine(new PdfLine(x, rect.Value.Bottom, x, rect.Value.Top), 2));
+                            processedLinesSet.Add(ExtendLine(Normalise(new PdfLine(x, rect.Value.Bottom, x, rect.Value.Top)), 2));
                         }
                         continue;
                     }
@@ -129,13 +137,13 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
                         if (rect.Value.Width < modeWidth * 0.7)
                         {
                             var centroid = rect.Value.Centroid;
-                            processedLinesSet.Add(ExtendLine(new PdfLine(rect.Value.Left, centroid.Y, rect.Value.Right, centroid.Y), 2));
-                            processedLinesSet.Add(ExtendLine(new PdfLine(centroid.X, rect.Value.Bottom, centroid.X, rect.Value.Top), 2));
+                            processedLinesSet.Add(ExtendLine(Normalise(new PdfLine(rect.Value.Left, centroid.Y, rect.Value.Right, centroid.Y)), 2));
+                            processedLinesSet.Add(ExtendLine(Normalise(new PdfLine(centroid.X, rect.Value.Bottom, centroid.X, rect.Value.Top)), 2));
                         }
                         else
                         {
                             var y = rect.Value.Centroid.Y;
-                            processedLinesSet.Add(ExtendLine(new PdfLine(rect.Value.Left, y, rect.Value.Right, y), 2));
+                            processedLinesSet.Add(ExtendLine(Normalise(new PdfLine(rect.Value.Left, y, rect.Value.Right, y)), 2));
                         }
                         continue;
                     }
@@ -218,11 +226,17 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
 
         private static Line Normalise(Line line)
         {
-            return line;
-            //return new Line(new PdfPoint(Math.Round(line.From.X), Math.Round(line.From.Y)),
-            //                new PdfPoint(Math.Round(line.To.X), Math.Round(line.To.Y)));
+            //return line;
+            return new Line(new PdfPoint(Math.Round(line.From.X, 5), Math.Round(line.From.Y, 5)),
+                            new PdfPoint(Math.Round(line.To.X, 5), Math.Round(line.To.Y, 5)));
         }
-
+        
+        private static PdfLine Normalise(PdfLine line)
+        {
+            //return line;
+            return new PdfLine(new PdfPoint(Math.Round(line.Point1.X, 5), Math.Round(line.Point1.Y, 5)),
+                               new PdfPoint(Math.Round(line.Point2.X, 5), Math.Round(line.Point2.Y, 5)));
+        }
 
         private static bool ShouldMerge(PdfLine line1, PdfLine line2)
         {
@@ -247,8 +261,7 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
                 line1.Contains(line2.Point2)) return true;
             return false;
         }
-
-
+        
         private static PdfLine ExtendLine(PdfLine line, double pixel)
         {
             // vertical and horizontal lines only
@@ -281,9 +294,10 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
         /// </summary>
         /// <param name="lines"></param>
         /// <returns></returns>
-        private static Dictionary<PdfPoint, (PdfLine Hor, PdfLine Vert)> GetIntersections(IReadOnlyList<PdfLine> lines)
+        public static Dictionary<PdfPoint, (PdfLine Hor, PdfLine Vert)> GetIntersections(IReadOnlyList<PdfLine> lines)
         {
             var intersectionPoints = new Dictionary<PdfPoint, (PdfLine Hor, PdfLine Vert)>();
+
             for (var b = 0; b < lines.Count; b++)
             {
                 var current1 = lines[b];
@@ -296,13 +310,19 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
                     var intersection = current1.Intersect(current2);
                     if (intersection.HasValue)
                     {
-                        if (current1.Point1.X == current1.Point2.X)
+                        // round coordinates to avoid duplicates
+                        PdfPoint roundedIntersection = new PdfPoint(Math.Round(intersection.Value.X, 5),
+                                                                    Math.Round(intersection.Value.Y, 5));
+
+                        if (intersectionPoints.ContainsKey(roundedIntersection)) continue;
+      
+                        if (Math.Round(current1.Point1.X, 5) == Math.Round(current1.Point2.X, 5))
                         {
-                            intersectionPoints[intersection.Value] = (current2, current1);
+                            intersectionPoints[roundedIntersection] = (current2, current1);
                         }
                         else
                         {
-                            intersectionPoints[intersection.Value] = (current1, current2);
+                            intersectionPoints[roundedIntersection] = (current1, current2);
                         }
                     }
                 }
@@ -315,7 +335,7 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
         /// see pseudo code in 'ANSSI NURMINEN ALGORITHMIC EXTRACTION OF DATA IN TABLES IN PDF DOCUMENTS'
         /// 4.2.4 Finding rectangular areas
         /// </summary>
-        private static IReadOnlyList<PdfRectangle> GetRectangularAreas(Dictionary<PdfPoint, (PdfLine Hor, PdfLine Vert)> intersectionPoints)
+        public static IReadOnlyList<PdfRectangle> GetRectangularAreas(Dictionary<PdfPoint, (PdfLine Hor, PdfLine Vert)> intersectionPoints)
         {
             List<PdfRectangle> foundRectangles = new List<PdfRectangle>();
 
@@ -352,7 +372,8 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
                             EdgeExistsBetween(oppositeCandidate, horizontalCandidate, false))
                         {
                             // Rectangle is confirmed to have 4 sides
-                            foundRectangles.Add(new PdfRectangle(currentCrossingPoint.Key.X, currentCrossingPoint.Key.Y, oppositeIntersection.X, oppositeIntersection.Y));
+                            foundRectangles.Add(new PdfRectangle(currentCrossingPoint.Key.X, currentCrossingPoint.Key.Y, 
+                                                                 oppositeIntersection.X, oppositeIntersection.Y));
 
                             // Each crossing point can be the top left corner of only a single rectangle
                             goto NextCrossingPoint;
@@ -388,7 +409,12 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
                                  .Where(p => p.Key.X > currentCrossingPoint.Key.X).ToList();
         }
 
-        private static IEnumerable<List<PdfRectangle>> GroupRectanglesInTable(IReadOnlyList<PdfRectangle> rectangles)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="rectangles"></param>
+        /// <returns></returns>
+        public static IEnumerable<List<PdfRectangle>> GroupRectanglesInTable(IReadOnlyList<PdfRectangle> rectangles)
         {
             if (rectangles == null || rectangles.Count == 0) yield break;
 

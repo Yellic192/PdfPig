@@ -71,7 +71,6 @@
         /// Returns a value indicating whether this <see cref="PdfLine"/> is equal to a specified <see cref="PdfLine"/> .
         /// </summary>
         /// <param name="obj"></param>
-        /// <returns></returns>
         public override bool Equals(object obj)
         {
             if (obj is PdfLine line)
@@ -84,10 +83,18 @@
         /// <summary>
         /// Returns the hash code for this <see cref="PdfLine"/>.
         /// </summary>
-        /// <returns></returns>
         public override int GetHashCode()
         {
             return (Point1, Point2).GetHashCode();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            return "[" + Point1 + ", " + Point2 + "]";
         }
     }
 }
