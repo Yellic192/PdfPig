@@ -10,9 +10,19 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
     public class TableBlock
     {
         /// <summary>
+        /// The rectangle completely containing the block.
+        /// </summary>
+        public PdfRectangle BoundingBox { get; }
+
+        /// <summary>
         /// 
         /// </summary>
         public TableCell[] Cells { get; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public PdfPoint[] GridPoints => Cells.SelectMany(c => new[] { c.Cell.BottomLeft, c.Cell.BottomRight, c.Cell.TopLeft, c.Cell.TopRight }).Distinct().ToArray();
 
         /// <summary>
         /// 
@@ -21,6 +31,8 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
         public TableBlock(IEnumerable<TableCell> cells)
         {
             Cells = cells.ToArray();
+            BoundingBox = new PdfRectangle(cells.Min(c => c.Cell.BottomLeft.X), cells.Min(c => c.Cell.BottomLeft.Y),
+                                           cells.Max(c => c.Cell.TopRight.X), cells.Max(c => c.Cell.TopRight.Y));
         }
     }
 

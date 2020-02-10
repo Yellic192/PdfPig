@@ -195,8 +195,31 @@
                 }
             }
 
+            var tables = TableExtractor.GetTables(page);
+
+            regions.AddRange(tables.Select(t => ToPageXmlTableRegion(t, page.Height)));
+
             pageXmlPage.Items = regions.ToArray();
             return pageXmlPage;
+        }
+
+        private PageXmlDocument.PageXmlTableRegion ToPageXmlTableRegion(TableBlock tableBlock, double height)
+        {
+            regionCount++;
+            return new PageXmlDocument.PageXmlTableRegion()
+            {
+                Grid = tableBlock.Cells.Select(c => ToGridPoints(c.Cell, height)).ToArray(),
+                Coords = ToCoords(tableBlock.BoundingBox, height),
+                Id = "r" + regionCount
+            };
+        }
+
+        private PageXmlDocument.PageXmlGridPoints ToGridPoints(PdfRectangle rect, double height)
+        {
+            return new PageXmlDocument.PageXmlGridPoints()
+            {
+                Points = ToPoints(rect, height)
+            };
         }
 
         private PageXmlDocument.PageXmlLineDrawingRegion ToPageXmlLineDrawingRegion(PdfPath pdfPath, double height)
