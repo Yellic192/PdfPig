@@ -10,7 +10,7 @@
     {
         /// <summary>
         /// Tabular data in any form is represented with a table
-        /// region.Rows and columns may or may not have separator
+        /// region. Rows and columns may or may not have separator
         /// lines; these lines are not separator regions.
         /// </summary>
         [EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]

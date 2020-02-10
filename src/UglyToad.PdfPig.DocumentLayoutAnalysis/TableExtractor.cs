@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using UglyToad.PdfPig.Content;
 using UglyToad.PdfPig.Core;
+using UglyToad.PdfPig.DocumentLayoutAnalysis.PageSegmenter;
+using UglyToad.PdfPig.DocumentLayoutAnalysis.WordExtractor;
 using UglyToad.PdfPig.Geometry;
 using static UglyToad.PdfPig.Core.PdfPath;
 
@@ -13,25 +15,82 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
     /// </summary>
     public static class TableExtractor
     {
+        /*
+         * The table is defined as
+         * having one of the following grid styles: full, supportive, outline, none. A full
+         * grid means that the cellular structure of the table is completely defined by
+         * the rectangular areas and no further processing of the table body is needed,
+         * and the algorithm skips to Step 11, Finding the header. All elements outside
+         * a full or an outline style grid are set as being a part of the title or the caption.
+         * A Supportive grid helps to determine cell row- and column spans, but otherwise
+         * the elements are processed just like the grid would not exist at all. For
+         * fully gridded tables, the performance of the edge detection algorithm is critical.
+         * Any mistakes, or missed borderlines, directly show up as errors in the
+         * row and column definitions.
+         */
+
+        // Also see: 
+        // https://www.research.manchester.ac.uk/portal/files/70405100/FULL_TEXT.PDF
+
         /// <summary>
         /// 
         /// </summary>
         /// <param name="page"></param>
+        /// <param name="minCellsInTable"></param>
         /// <returns></returns>
-        public static IEnumerable<List<PdfRectangle>> GetCandidates(Page page)
+        public static IEnumerable<TableBlock> GetTables(Page page, int minCellsInTable = 4)
+        {
+            var candidates = GetCandidates(page, minCellsInTable);
+            var letters = page.Letters;
+            var words = NearestNeighbourWordExtractor.Instance.GetWords(letters);
+
+            foreach (var candidate in candidates)
+            {
+                var cells = new List<TableCell>();
+                foreach (var cell in candidate)
+                {
+                    var containedWords = words.Where(w => cell.Contains(w.BoundingBox, true));
+                    if (containedWords.Count() > 0)
+                    {
+                        cells.Add(new TableCell(cell, new TextBlock(containedWords.Select(w => new TextLine(new[] { w })).ToList())));
+                    }
+                    else
+                    {
+                        cells.Add(new TableCell(cell, null));
+                    }
+                }
+                yield return new TableBlock(cells);
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="minCellsInTable"></param>
+        /// <returns></returns>
+        public static IEnumerable<List<PdfRectangle>> GetCandidates(Page page, int minCellsInTable = 4)
         {
             var processedLines = GetProcessLines(page);
             var intersectionPoints = GetIntersections(processedLines);
             var foundRectangles = GetRectangularAreas(intersectionPoints);
-            return GroupRectanglesInTable(foundRectangles).ToList();
+            return GroupRectanglesInTable(foundRectangles).Where(c => c.Count > minCellsInTable);
         }
 
+        /// <summary>
+        /// Remove clipping paths, BezierCurve, etc.
+        /// </summary>
+        /// <param name="page"></param>
+        /// <returns></returns>
         private static IReadOnlyList<PdfLine> GetProcessLines(Page page)
         {
             var modeWidth = page.Letters.Where(x => !string.IsNullOrWhiteSpace(x.Value))
                 .Select(x => x.GlyphRectangle.Width).Mode();
             var modeHeight = page.Letters.Where(x => !string.IsNullOrWhiteSpace(x.Value))
                 .Select(x => x.GlyphRectangle.Height).Mode();
+
+            Console.WriteLine("modeWidth=" + modeWidth.ToString());
+            Console.WriteLine("modeHeight=" + modeHeight.ToString());
 
             // See 'Configurable Table Structure Recognition in Untagged PDF Documents' by Alexey Shigarov
             // 2.1 Preprocessing
@@ -40,6 +99,7 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
             foreach (var pdfPath in page.ExperimentalAccess.Paths)
             {
                 if (pdfPath.IsClipping) continue;
+                if (pdfPath.Commands.Any(c => c is BezierCurve)) continue; // filter out any path containing a bezier curve
 
                 // handle filled rectale to check if they are in fact lines
                 if (pdfPath.IsDrawnAsRectangle) // also isFilled + force closure of filled
@@ -47,7 +107,7 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
                     var rect = pdfPath.GetBoundingRectangle();
                     if (!rect.HasValue) continue;
 
-                    if (rect.Equals(page.CropBox.Bounds)) continue;
+                    if (rect.Equals(page.CropBox.Bounds)) continue; // ignore rectangle that are the size of the page
 
                     if (rect.Value.Width < modeWidth * 0.7)
                     {
@@ -80,18 +140,18 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
                         continue;
                     }
                 }
-
-                if (pdfPath.Commands.Any(c => c is BezierCurve)) continue; // filter out any path containing a bezier curve
+                
                 foreach (var command in pdfPath.Commands)
                 {
                     if (command is Line line)
                     {
                         line = Normalise(line);
+
                         // vertical and horizontal lines only  
                         if (line.From.X != line.To.X && line.From.Y != line.To.Y) continue;
 
                         PdfLine pdfLine = ExtendLine(new PdfLine(line.From, line.To), 2);
-                        if (!processedLinesSet.Contains(pdfLine)) processedLinesSet.Add(pdfLine);
+                        processedLinesSet.Add(pdfLine); // if (!processedLinesSet.Contains(pdfLine)) 
                     }
                 }
             }
@@ -153,10 +213,7 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis
                     valid.Add(mergedLine);
                 }
             }
-
-            //var valid = processedLines.Where(l => l.HasValue).Select(l => l.Value).ToList();
-            //.Where(l => l.Length > Math.Max(modeWidth * 2, modeHeight * 2)).ToList();
-            return valid;
+            return valid; //.Where(l => l.Length > Math.Max(modeWidth * 2, modeHeight * 2)).ToList();
         }
 
         private static Line Normalise(Line line)

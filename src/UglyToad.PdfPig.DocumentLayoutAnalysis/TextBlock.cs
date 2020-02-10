@@ -56,7 +56,7 @@
 
             TextLines = lines;
 
-            Text = string.Join(" ", lines.Select(x => x.Text));
+            Text = string.Join(" ", lines.Select(x => x.Text).Where(t => !string.IsNullOrWhiteSpace(t)));
 
             var minX = lines.Min(x => x.BoundingBox.Left);
             var minY = lines.Min(x => x.BoundingBox.Bottom);
