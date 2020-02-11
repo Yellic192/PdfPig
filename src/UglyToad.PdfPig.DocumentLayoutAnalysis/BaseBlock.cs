@@ -4,7 +4,7 @@
     using UglyToad.PdfPig.Core;
 
     /// <summary>
-    /// 
+    /// Abstract class that represents a block with its bounding box and reading order.
     /// </summary>
     public abstract class BaseBlock
     {
