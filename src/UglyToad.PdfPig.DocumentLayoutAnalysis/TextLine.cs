@@ -9,7 +9,7 @@
     /// <summary>
     /// A line of text.
     /// </summary>
-    public class TextLine
+    public class TextLine : BaseBlock
     {
         /// <summary>
         /// The text of the line.
@@ -20,11 +20,6 @@
         /// The text direction of the line.
         /// </summary>
         public TextDirection TextDirection { get; }
-
-        /// <summary>
-        /// The rectangle completely containing the line.
-        /// </summary>
-        public PdfRectangle BoundingBox { get; }
 
         /// <summary>
         /// The words contained in the line.

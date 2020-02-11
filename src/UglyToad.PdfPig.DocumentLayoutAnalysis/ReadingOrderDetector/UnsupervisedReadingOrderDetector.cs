@@ -2,6 +2,7 @@
 {
     using System.Collections.Generic;
     using System.Linq;
+    using UglyToad.PdfPig.DocumentLayoutAnalysis.Export;
 
     /// <summary>
     /// Algorithm that retrieve the blocks' reading order using both (spatial) Allen’s interval relations and rendering order (TextSequence).
@@ -29,7 +30,7 @@
         }
 
         /// <summary>
-        /// Gets the blocks in reading order and sets the <see cref="TextBlock.ReadingOrder"/>.
+        /// Gets the blocks in reading order and sets the <see cref="BaseBlock.ReadingOrder"/>.
         /// </summary>
         /// <param name="textBlocks">The <see cref="TextBlock"/>s to order.</param>
         public IEnumerable<TextBlock> Get(IReadOnlyList<TextBlock> textBlocks)

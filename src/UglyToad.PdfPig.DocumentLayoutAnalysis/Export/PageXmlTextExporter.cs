@@ -209,7 +209,7 @@
             string regionId = "r" + regionCount;
             return new PageXmlDocument.PageXmlTableRegion()
             {
-                Grid = tableBlock.Cells.Select(c => ToGridPoints(c.Cell, height)).ToArray(),
+                Grid = tableBlock.Cells.Select(c => ToGridPoints(c.BoundingBox, height)).ToArray(),
                 EmbText = true,
                 Items = tableBlock.Cells.Select(c => ToPageXmlTextRegion(c, height)).ToArray(),
                 Coords = ToCoords(tableBlock.BoundingBox, height),
@@ -222,7 +222,7 @@
             regionCount++;
             return new PageXmlDocument.PageXmlTextRegion()
             {
-                Coords = ToCoords(tableCell.Cell, height),
+                Coords = ToCoords(tableCell.BoundingBox, height),
                 Type = PageXmlDocument.PageXmlTextSimpleType.Paragraph,
                 TextLines = tableCell.Content?.TextLines.Select(l => ToPageXmlTextLine(l, height)).ToArray(),
                 TextEquivs = new[] { new PageXmlDocument.PageXmlTextEquiv() { Unicode = tableCell.Content?.Text } },

@@ -14,7 +14,7 @@
         public static DefaultReadingOrderDetector Instance { get; } = new DefaultReadingOrderDetector();
 
         /// <summary>
-        /// Gets the blocks in reading order and sets the <see cref="TextBlock.ReadingOrder"/>.
+        /// Gets the blocks in reading order and sets the <see cref="BaseBlock.ReadingOrder"/>.
         /// </summary>
         /// <param name="textBlocks">The <see cref="TextBlock"/>s to order.</param>
         public IEnumerable<TextBlock> Get(IReadOnlyList<TextBlock> textBlocks)

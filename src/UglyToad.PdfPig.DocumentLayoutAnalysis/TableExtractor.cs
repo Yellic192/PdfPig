@@ -1,14 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using UglyToad.PdfPig.Content;
-using UglyToad.PdfPig.Core;
-using UglyToad.PdfPig.DocumentLayoutAnalysis.WordExtractor;
-using UglyToad.PdfPig.Geometry;
-using static UglyToad.PdfPig.Core.PdfPath;
-
-namespace UglyToad.PdfPig.DocumentLayoutAnalysis
+﻿namespace UglyToad.PdfPig.DocumentLayoutAnalysis
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using UglyToad.PdfPig.Content;
+    using UglyToad.PdfPig.Core;
+    using UglyToad.PdfPig.DocumentLayoutAnalysis.WordExtractor;
+    using UglyToad.PdfPig.Geometry;
+    using static UglyToad.PdfPig.Core.PdfPath;
+
     /// <summary>
     /// 
     /// </summary>

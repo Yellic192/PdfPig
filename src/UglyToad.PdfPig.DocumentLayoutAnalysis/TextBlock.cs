@@ -9,7 +9,7 @@
     /// <summary>
     /// A block of text.
     /// </summary>
-    public class TextBlock
+    public class TextBlock : BaseBlock
     {
         /// <summary>
         /// The text of the block.
@@ -22,19 +22,9 @@
         public TextDirection TextDirection { get; }
 
         /// <summary>
-        /// The rectangle completely containing the block.
-        /// </summary>
-        public PdfRectangle BoundingBox { get; }
-
-        /// <summary>
         /// The text lines contained in the block.
         /// </summary>
         public IReadOnlyList<TextLine> TextLines { get; }
-
-        /// <summary>
-        /// The reading order index. Starts at 0. A value of -1 means the block is not ordered.
-        /// </summary>
-        public int ReadingOrder { get; private set; }
 
         /// <summary>
         /// Create a new <see cref="TextBlock"/>.
@@ -52,8 +42,6 @@
                 throw new ArgumentException("Empty lines provided.", nameof(lines));
             }
 
-            ReadingOrder = -1;
-
             TextLines = lines;
 
             Text = string.Join(" ", lines.Select(x => x.Text).Where(t => !string.IsNullOrWhiteSpace(t)));
@@ -65,19 +53,6 @@
             BoundingBox = new PdfRectangle(minX, minY, maxX, maxY);
 
             TextDirection = lines[0].TextDirection;
-        }
-
-        /// <summary>
-        /// Sets the <see cref="TextBlock"/>'s reading order.
-        /// </summary>
-        /// <param name="readingOrder"></param>
-        public void SetReadingOrder(int readingOrder)
-        {
-            if (readingOrder < -1)
-            {
-                throw new ArgumentException("The reading order should be more or equal to -1. A value of -1 means the block is not ordered.", nameof(readingOrder));
-            }
-            this.ReadingOrder = readingOrder;
         }
 
         /// <inheritdoc />
