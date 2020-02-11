@@ -206,10 +206,26 @@
         private PageXmlDocument.PageXmlTableRegion ToPageXmlTableRegion(TableBlock tableBlock, double height)
         {
             regionCount++;
+            string regionId = "r" + regionCount;
             return new PageXmlDocument.PageXmlTableRegion()
             {
                 Grid = tableBlock.Cells.Select(c => ToGridPoints(c.Cell, height)).ToArray(),
+                EmbText = true,
+                Items = tableBlock.Cells.Select(c => ToPageXmlTextRegion(c, height)).ToArray(),
                 Coords = ToCoords(tableBlock.BoundingBox, height),
+                Id = regionId
+            };
+        }
+        
+        private PageXmlDocument.PageXmlTextRegion ToPageXmlTextRegion(TableCell tableCell, double height)
+        {
+            regionCount++;
+            return new PageXmlDocument.PageXmlTextRegion()
+            {
+                Coords = ToCoords(tableCell.Cell, height),
+                Type = PageXmlDocument.PageXmlTextSimpleType.Paragraph,
+                TextLines = tableCell.Content?.TextLines.Select(l => ToPageXmlTextLine(l, height)).ToArray(),
+                TextEquivs = new[] { new PageXmlDocument.PageXmlTextEquiv() { Unicode = tableCell.Content?.Text } },
                 Id = "r" + regionCount
             };
         }
@@ -240,10 +256,9 @@
         private PageXmlDocument.PageXmlImageRegion ToPageXmlImageRegion(IPdfImage pdfImage, double height)
         {
             regionCount++;
-            var bbox = pdfImage.Bounds;
             return new PageXmlDocument.PageXmlImageRegion()
             {
-                Coords = ToCoords(bbox, height),
+                Coords = ToCoords(pdfImage.Bounds, height),
                 Id = "r" + regionCount
             };
         }
@@ -251,13 +266,11 @@
         private PageXmlDocument.PageXmlTextRegion ToPageXmlTextRegion(TextBlock textBlock, double height)
         {
             regionCount++;
-            string regionId = "r" + regionCount;
-
             if (readingOrderDetector != null && textBlock.ReadingOrder > -1)
             {
                 orderedRegions.Add(new PageXmlDocument.PageXmlRegionRefIndexed()
                 {
-                    RegionRef = regionId,
+                    RegionRef = "r" + regionCount,
                     Index = textBlock.ReadingOrder
                 });
             }
@@ -268,7 +281,7 @@
                 Type = PageXmlDocument.PageXmlTextSimpleType.Paragraph,
                 TextLines = textBlock.TextLines.Select(l => ToPageXmlTextLine(l, height)).ToArray(),
                 TextEquivs = new[] { new PageXmlDocument.PageXmlTextEquiv() { Unicode = textBlock.Text } },
-                Id = regionId
+                Id = "r" + regionCount
             };
         }
 
