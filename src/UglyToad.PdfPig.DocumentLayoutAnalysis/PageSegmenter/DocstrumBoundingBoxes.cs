@@ -251,7 +251,7 @@
                 (pivot, candidate) =>
                 {
                     // Compare bottom right with bottom left for angle
-                    var withinLineAngle = Distances.Angle(pivot.BoundingBox.BottomRight, candidate.BoundingBox.BottomLeft);
+                    var withinLineAngle = Distances.Angle(pivot.BoundingBox.BottomRight, candidate.BoundingBox.BottomLeft) - pivot.BoundingBox.Rotation;
 
                     return (withinLineAngle >= withinLine.Lower && withinLineAngle <= withinLine.Upper);
                 },
@@ -294,9 +294,8 @@
 
                 if (d < 0) return double.MaxValue; // not overlapping -> max distance
 
-                return Distances.Euclidean(
-            new PdfPoint(left + d / 2, l1.Point1.Y),
-            new PdfPoint(left + d / 2, l2.Point1.Y));
+                return Distances.Euclidean(new PdfPoint(left + d / 2.0, l1.Point1.Y),
+                                           new PdfPoint(left + d / 2.0, l2.Point1.Y));
             };
 
             var groupedIndexes = ClusteringAlgorithms.ClusterNearestNeighbours(lines,
