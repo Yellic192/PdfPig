@@ -10,6 +10,7 @@
     using System.Xml;
     using System.Xml.Serialization;
     using UglyToad.PdfPig.DocumentLayoutAnalysis.PageSegmenter;
+    using UglyToad.PdfPig.DocumentLayoutAnalysis.Pipeline;
     using Util;
 
     /// <inheritdoc />
@@ -352,6 +353,17 @@
             {
                 return (AltoDocument)serializer.Deserialize(reader);
             }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public string Get(Page input, DLAContext context)
+        {
+            throw new NotImplementedException();
         }
     }
 }

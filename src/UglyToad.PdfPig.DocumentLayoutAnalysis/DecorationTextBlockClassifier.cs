@@ -18,10 +18,10 @@
     /// left or right edge of the page.</para>
     /// <para>See section 4.1 of 'Unsupervised document structure analysis of digital scientific articles' by S. Klampfl, M. Granitzer, K. Jack, R. Kern.</para>
     /// </summary>
-    public static class DecorationTextBlockClassifier
+    public class DecorationTextBlockClassifier
     {
-        private static readonly Regex NumbersPattern = new Regex(@"(\d+)|(\b([MDCLXVI]+)\b)", RegexOptions.IgnoreCase);
-        private static string replacementChar = "@";
+        private readonly Regex NumbersPattern = new Regex(@"(\d+)|(\b([MDCLXVI]+)\b)", RegexOptions.IgnoreCase);
+        private const string replacementChar = "@";
 
         /// <summary>
         /// Get blocks that are labelled as decoration for each page in the document, using a content and a geometric similarity measure.
@@ -37,7 +37,7 @@
         /// <param name="maxDegreeOfParallelism">Sets the maximum number of concurrent tasks enabled. 
         /// <para>A positive property value limits the number of concurrent operations to the set value. 
         /// If it is -1, there is no limit on the number of concurrently running operations.</para></param>
-        public static IReadOnlyList<IReadOnlyList<TextBlock>> Get(IReadOnlyList<Page> pages,
+        public IReadOnlyList<IReadOnlyList<TextBlock>> Get(IReadOnlyList<Page> pages,
             IWordExtractor wordExtractor, IPageSegmenter pageSegmenter,
             double similarityThreshold = 0.25, int n = 5, int maxDegreeOfParallelism = -1)
         {
@@ -59,7 +59,7 @@
         /// <param name="maxDegreeOfParallelism">Sets the maximum number of concurrent tasks enabled. 
         /// <para>A positive property value limits the number of concurrent operations to the set value. 
         /// If it is -1, there is no limit on the number of concurrently running operations.</para></param>
-        public static IReadOnlyList<IReadOnlyList<TextBlock>> Get(IReadOnlyList<Page> pages,
+        public IReadOnlyList<IReadOnlyList<TextBlock>> Get(IReadOnlyList<Page> pages,
             IWordExtractor wordExtractor, IPageSegmenter pageSegmenter, Func<string, string, double> minimumEditDistanceNormalised,
             double similarityThreshold = 0.25, int n = 5, int maxDegreeOfParallelism = -1)
         {
@@ -101,7 +101,7 @@
         /// <param name="maxDegreeOfParallelism">Sets the maximum number of concurrent tasks enabled. 
         /// <para>A positive property value limits the number of concurrent operations to the set value. 
         /// If it is -1, there is no limit on the number of concurrently running operations.</para></param>
-        public static IReadOnlyList<IReadOnlyList<TextBlock>> Get(IReadOnlyList<IReadOnlyList<TextBlock>> pagesTextBlocks,
+        public IReadOnlyList<IReadOnlyList<TextBlock>> Get(IReadOnlyList<IReadOnlyList<TextBlock>> pagesTextBlocks,
             double similarityThreshold = 0.25, int n = 5, int maxDegreeOfParallelism = -1)
         {
             return Get(pagesTextBlocks, Distances.MinimumEditDistanceNormalised, similarityThreshold, n, maxDegreeOfParallelism);
@@ -120,7 +120,7 @@
         /// <param name="maxDegreeOfParallelism">Sets the maximum number of concurrent tasks enabled. 
         /// <para>A positive property value limits the number of concurrent operations to the set value. 
         /// If it is -1, there is no limit on the number of concurrently running operations.</para></param>
-        public static IReadOnlyList<IReadOnlyList<TextBlock>> Get(IReadOnlyList<IReadOnlyList<TextBlock>> pagesTextBlocks,
+        public IReadOnlyList<IReadOnlyList<TextBlock>> Get(IReadOnlyList<IReadOnlyList<TextBlock>> pagesTextBlocks,
             Func<string, string, double> minimumEditDistanceNormalised, double similarityThreshold = 0.25, int n = 5, int maxDegreeOfParallelism = -1)
         {
             if (pagesTextBlocks.Count < 2)
@@ -223,7 +223,7 @@
         /// distance between the two content strings, where digits are replaced with “@” chars.
         /// A content similarity of 1 is reached when both strings are exactly equal.
         /// </summary>
-        private static double ContentSimilarity(TextBlock b1, TextBlock b2, Func<string, string, double> minimumEditDistanceNormalised)
+        private double ContentSimilarity(TextBlock b1, TextBlock b2, Func<string, string, double> minimumEditDistanceNormalised)
         {
             double similarity = 1.0 - minimumEditDistanceNormalised(
                 NumbersPattern.Replace(b1.Text, replacementChar),
@@ -235,7 +235,7 @@
         /// <summary>
         /// The geometric similarity is the area of the intersection between the two boundingbox rectangles divided by the larger of the two boundingboxes.
         /// </summary>
-        private static double GeomSimilarity(TextBlock b1, TextBlock b2)
+        private double GeomSimilarity(TextBlock b1, TextBlock b2)
         {
             double similarity = 0;
             var intersect = b1.BoundingBox.Intersect(b2.BoundingBox);
@@ -251,17 +251,17 @@
         /// This similarity score is a value in the range [0,1] and given 
         /// by the product between the content and the geometric similarity.
         /// </summary>
-        private static double Similarity(TextBlock b1, TextBlock b2, Func<string, string, double> minimumEditDistanceNormalised)
+        private double Similarity(TextBlock b1, TextBlock b2, Func<string, string, double> minimumEditDistanceNormalised)
         {
             return ContentSimilarity(b1, b2, minimumEditDistanceNormalised) * GeomSimilarity(b1, b2);
         }
 
-        private static double ScoreI(TextBlock current, TextBlock previous, TextBlock next, Func<string, string, double> minimumEditDistanceNormalised)
+        private double ScoreI(TextBlock current, TextBlock previous, TextBlock next, Func<string, string, double> minimumEditDistanceNormalised)
         {
             return 0.5 * (Similarity(current, next, minimumEditDistanceNormalised) + Similarity(current, previous, minimumEditDistanceNormalised));
         }
 
-        private static double Score(TextBlock current, IReadOnlyList<TextBlock> previous, IReadOnlyList<TextBlock> next,
+        private double Score(TextBlock current, IReadOnlyList<TextBlock> previous, IReadOnlyList<TextBlock> next,
             Func<string, string, double> minimumEditDistanceNormalised, double threshold, int n)
         {
             n = Math.Min(n, Math.Min(previous.Count, next.Count));
@@ -282,7 +282,7 @@
         /// </summary>
         /// <param name="currentPage">Current page number.</param>
         /// <param name="pagesCount">Total number of pages in the document.</param>
-        private static int GetPreviousPageNumber(int currentPage, int pagesCount)
+        private int GetPreviousPageNumber(int currentPage, int pagesCount)
         {
             int pMinus1 = currentPage - 1 >= 0 ? currentPage - 1 : pagesCount - 1;
             if (pagesCount > 3)
@@ -298,7 +298,7 @@
         /// </summary>
         /// <param name="currentPage">Current page number.</param>
         /// <param name="pagesCount">Total number of pages in the document.</param>
-        private static int GetNextPageNumber(int currentPage, int pagesCount)
+        private int GetNextPageNumber(int currentPage, int pagesCount)
         {
             int pPlus1 = currentPage + 1 < pagesCount ? currentPage + 1 : 0;
             if (pagesCount > 3)

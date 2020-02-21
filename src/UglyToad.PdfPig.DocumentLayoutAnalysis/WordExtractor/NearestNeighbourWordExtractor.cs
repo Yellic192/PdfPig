@@ -12,7 +12,7 @@
     /// Nearest Neighbour Word Extractor, using the <see cref="Distances.Manhattan"/> distance.
     /// This implementation leverages bounding boxes.
     /// </summary>
-    public class NearestNeighbourWordExtractor : IWordExtractor, ILayoutTransformer<IReadOnlyList<Letter>, IReadOnlyList<Word>>
+    public class NearestNeighbourWordExtractor : IWordExtractor, ILayoutProcessor<IReadOnlyList<Letter>, IReadOnlyList<Word>>
     {
         /// <summary>
         /// Create an instance of Nearest Neighbour Word Extractor, <see cref="NearestNeighbourWordExtractor"/>.

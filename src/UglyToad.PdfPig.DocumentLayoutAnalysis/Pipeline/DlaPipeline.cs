@@ -1,24 +1,8 @@
-﻿using System;
-
-namespace UglyToad.PdfPig.DocumentLayoutAnalysis.Pipeline
+﻿namespace UglyToad.PdfPig.DocumentLayoutAnalysis.Pipeline
 {
-    /// <summary>
-    /// 
-    /// </summary>
-    public static class DlaPipeline
-    {
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <typeparam name="InputType"></typeparam>
-        /// <typeparam name="OutputType"></typeparam>
-        /// <param name="processor"></param>
-        /// <returns></returns>
-        public static DlaPipeline<InputType, InputType, OutputType> Create<InputType, OutputType>(ILayoutTransformer<InputType, OutputType> processor)
-        {
-            return new DlaPipeline<InputType, InputType, OutputType>(processor);
-        }
-    }
+    using System;
+    using System.Collections;
+    using System.Diagnostics;
 
     /// <summary>
     /// 
@@ -34,19 +18,25 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis.Pipeline
         /// 
         /// </summary>
         /// <param name="processor"></param>
-        internal DlaPipeline(ILayoutTransformer<ProcessorInputType, OutputType> processor) : base(processor)
+        /// <param name="context"></param>
+        internal DlaPipeline(ILayoutProcessor<ProcessorInputType, OutputType> processor, DLAContext context)
+            : base(processor, context)
         {
+            context.description += "\n\t" + processor.GetType().Name;
             this.previousPipeline = null;
         }
-
+        
         /// <summary>
         /// 
         /// </summary>
         /// <param name="processor"></param>
         /// <param name="previousPipeline"></param>
-        internal DlaPipeline(ILayoutTransformer<ProcessorInputType, OutputType> processor, IDlaPipeline<InputType, ProcessorInputType> previousPipeline)
-            : base(processor)
+        /// <param name="context"></param>
+        internal DlaPipeline(ILayoutProcessor<ProcessorInputType, OutputType> processor, 
+                             IDlaPipeline<InputType, ProcessorInputType> previousPipeline, DLAContext context)
+            : base(processor, context)
         {
+            context.description += "\n\t" + processor.GetType().Name;
             this.previousPipeline = previousPipeline;
         }
 
@@ -58,13 +48,60 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis.Pipeline
         /// <returns></returns>
         public override OutputType GetSubPipeline(InputType input, DLAContext context)
         {
+            Stopwatch stopwatch = new Stopwatch();
+
             if (previousPipeline == null)
             {
-                return currentProcessor.Get((ProcessorInputType)(object)input, context);
+                int inputCount = CountElements(input);
+
+                try
+                {
+                    stopwatch.Start();
+                    var output1 = currentProcessor.Get((ProcessorInputType)(object)input, context);
+                    stopwatch.Stop();
+
+                    int outputCount1 = CountElements(output1);
+                    context.ProcessorPerformances.Add(currentProcessor.GetType().Name,
+                        new ProcessorPerformance(stopwatch.ElapsedMilliseconds, inputCount, outputCount1));
+                    return output1;
+                }
+                catch (Exception ex)
+                {
+                    context.ProcessorPerformances.Add(currentProcessor.GetType().Name,
+                        new ProcessorPerformance(stopwatch.ElapsedMilliseconds, inputCount, -1, ex));
+                    return default; // ?????????
+                }
             }
 
             var previousPipelineResult = previousPipeline.GetSubPipeline(input, context);
-            return currentProcessor.Get(previousPipelineResult, context);
+            int inputCountP = CountElements(previousPipelineResult);
+
+            try
+            {
+                stopwatch.Start();
+                var output = currentProcessor.Get(previousPipelineResult, context);
+                stopwatch.Stop();
+
+                int outputCountP = CountElements(output);
+                context.ProcessorPerformances.Add(currentProcessor.GetType().Name,
+                    new ProcessorPerformance(stopwatch.ElapsedMilliseconds, inputCountP, outputCountP));
+                return output;
+            }
+            catch (Exception ex)
+            {
+                context.ProcessorPerformances.Add(currentProcessor.GetType().Name,
+                    new ProcessorPerformance(stopwatch.ElapsedMilliseconds, inputCountP, -1, ex));
+                return default; // ?????????
+            }
+        }
+
+        private int CountElements(object input)
+        {
+            if (input is ICollection list)
+            {
+                return list.Count;
+            }
+            return 1;
         }
     }
 }

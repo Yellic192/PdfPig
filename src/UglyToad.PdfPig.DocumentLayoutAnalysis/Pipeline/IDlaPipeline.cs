@@ -11,9 +11,8 @@
         /// 
         /// </summary>
         /// <param name="input"></param>
-        /// <param name="context"></param>
         /// <returns></returns>
-        Output Get(Input input, out DLAContext context);
+        Output Get(Input input);
 
         /// <summary>
         /// 

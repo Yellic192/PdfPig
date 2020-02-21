@@ -1,6 +1,8 @@
 ﻿namespace UglyToad.PdfPig.DocumentLayoutAnalysis.Export
 {
     using Content;
+    using System.Collections.Generic;
+    using UglyToad.PdfPig.DocumentLayoutAnalysis.Pipeline;
 
     /// <summary>
     /// Exports the page's text into the desired format.

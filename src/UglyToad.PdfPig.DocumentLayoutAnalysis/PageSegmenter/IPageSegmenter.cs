@@ -8,7 +8,7 @@
     /// Page segmentation divides a page into areas, each consisting of a layout structure (blocks, lines, etc.).
     /// <para> See 'Performance Comparison of Six Algorithms for Page Segmentation' by Faisal Shafait, Daniel Keysers, and Thomas M. Breuel.</para>
     /// </summary>
-    public interface IPageSegmenter : ILayoutTransformer<IReadOnlyList<Word>, IReadOnlyList<TextBlock>>
+    public interface IPageSegmenter : ILayoutProcessor<IReadOnlyList<Word>, IReadOnlyList<TextBlock>>
     {
         /// <summary>
         /// 

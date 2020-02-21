@@ -5,7 +5,7 @@
     /// </summary>
     /// <typeparam name="Input"></typeparam>
     /// <typeparam name="Output"></typeparam>
-    public interface ILayoutTransformer<Input, Output>
+    public interface ILayoutProcessor<Input, Output>
     {
         /// <summary>
         /// 

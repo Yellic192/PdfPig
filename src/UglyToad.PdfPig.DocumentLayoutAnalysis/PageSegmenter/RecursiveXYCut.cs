@@ -98,7 +98,7 @@
             }
             else
             {
-                var leafs = node.GetLeafs();
+                var leafs = node.GetLeaves();
 
                 if (leafs.Count > 0)
                 {
@@ -312,15 +312,7 @@
         /// <returns></returns>
         public IReadOnlyList<TextBlock> Get(IReadOnlyList<Word> input, DLAContext context)
         {
-            try
-            {
-                return GetBlocks(input);
-            }
-            catch (Exception ex)
-            {
-                context.Logs.Add(this.GetType() + ": " + ex.Message);
-                return new List<TextBlock>();
-            }
+            return GetBlocks(input);
         }
     }
 }

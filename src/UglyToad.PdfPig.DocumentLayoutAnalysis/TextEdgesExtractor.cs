@@ -12,12 +12,12 @@
     /// Text edges extractor. Text edges are where words have either their BoundingBox's left, right or mid coordinates aligned on the same vertical line.
     /// <para>Useful to detect text columns, tables, justified text, lists, etc.</para>
     /// </summary>
-    public static class TextEdgesExtractor
+    public class TextEdgesExtractor
     {
         /// <summary>
         /// Functions used to define left, middle and right edges.
         /// </summary>
-        private static readonly Tuple<EdgeType, Func<PdfRectangle, double>>[] edgesFuncs = new Tuple<EdgeType, Func<PdfRectangle, double>>[]
+        private readonly Tuple<EdgeType, Func<PdfRectangle, double>>[] edgesFuncs = new Tuple<EdgeType, Func<PdfRectangle, double>>[]
         {
             Tuple.Create<EdgeType, Func<PdfRectangle, double>>(EdgeType.Left,   x => Math.Round(x.Left, 0)),                // use BoundingBox's left coordinate
             Tuple.Create<EdgeType, Func<PdfRectangle, double>>(EdgeType.Mid, x => Math.Round(x.Left + x.Width / 2, 0)),     // use BoundingBox's mid coordinate
@@ -32,7 +32,7 @@
         /// <param name="maxDegreeOfParallelism">Sets the maximum number of concurrent tasks enabled. 
         /// <para>A positive property value limits the number of concurrent operations to the set value. 
         /// If it is -1, there is no limit on the number of concurrently running operations.</para></param>
-        public static IReadOnlyDictionary<EdgeType, List<PdfLine>> GetEdges(IEnumerable<Word> pageWords, int minimumElements = 4,
+        public IReadOnlyDictionary<EdgeType, List<PdfLine>> GetEdges(IEnumerable<Word> pageWords, int minimumElements = 4,
             int maxDegreeOfParallelism = -1)
         {
             if (minimumElements < 0)
@@ -53,7 +53,7 @@
             return dictionary.ToDictionary(x => x.Key, x => x.Value);
         }
 
-        private static List<PdfLine> GetVerticalEdges(IEnumerable<Word> pageWords, Func<PdfRectangle, double> func, int minimumElements)
+        private List<PdfLine> GetVerticalEdges(IEnumerable<Word> pageWords, Func<PdfRectangle, double> func, int minimumElements)
         {
             Dictionary<double, List<Word>> edges = pageWords.GroupBy(x => func(x.BoundingBox))
                 .Where(x => x.Count() >= minimumElements).ToDictionary(gdc => gdc.Key, gdc => gdc.ToList());

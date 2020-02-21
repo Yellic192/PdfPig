@@ -6,6 +6,7 @@
     using System;
     using System.Linq;
     using UglyToad.PdfPig.DocumentLayoutAnalysis.PageSegmenter;
+    using UglyToad.PdfPig.DocumentLayoutAnalysis.Pipeline;
     using Util;
 
     /// <summary>
@@ -346,6 +347,17 @@
                             + (top > 0 ? top : 0) + " "
                             + (right > 0 ? right : 0) + " "
                             + (bottom > 0 ? bottom : 0);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public string Get(Page input, DLAContext context)
+        {
+            throw new NotImplementedException();
         }
     }
 }

@@ -10,9 +10,7 @@
     using System.Linq;
     using System.Xml;
     using System.Xml.Serialization;
-    using UglyToad.PdfPig.DocumentLayoutAnalysis.PageSegmenter;
-    using UglyToad.PdfPig.DocumentLayoutAnalysis.ReadingOrderDetector;
-    using Util;
+    using UglyToad.PdfPig.DocumentLayoutAnalysis.Pipeline;
 
     /// <summary>
     /// PAGE-XML 2019-07-15 (XML) text exporter.
@@ -20,9 +18,7 @@
     /// </summary>
     public class PageXmlTextExporter : ITextExporter
     {
-        private readonly IPageSegmenter pageSegmenter;
-        private readonly IWordExtractor wordExtractor;
-        private readonly IReadingOrderDetector readingOrderDetector;
+        private readonly IDlaPipeline<Page, IReadOnlyList<TextBlock>> pipeline;
 
         private readonly double scale;
         private readonly string indentChar;
@@ -35,20 +31,18 @@
 
         private List<PageXmlDocument.PageXmlRegionRefIndexed> orderedRegions;
 
+
+
         /// <summary>
         /// PAGE-XML 2019-07-15 (XML) text exporter.
         /// <para>See https://github.com/PRImA-Research-Lab/PAGE-XML </para>
         /// </summary>
-        /// <param name="wordExtractor"></param>
-        /// <param name="pageSegmenter"></param>
-		/// <param name="readingOrderDetector"></param>
+        /// <param name="pipeline"></param>
         /// <param name="scale"></param>
         /// <param name="indent">Indent character.</param>
-        public PageXmlTextExporter(IWordExtractor wordExtractor, IPageSegmenter pageSegmenter, IReadingOrderDetector readingOrderDetector = null, double scale = 1.0, string indent = "\t")
+        public PageXmlTextExporter(IDlaPipeline<Page, IReadOnlyList<TextBlock>> pipeline, double scale = 1.0, string indent = "\t")
         {
-            this.wordExtractor = wordExtractor;
-            this.pageSegmenter = pageSegmenter;
-            this.readingOrderDetector = readingOrderDetector;
+            this.pipeline = pipeline;
             this.scale = scale;
             this.indentChar = indent;
         }
@@ -93,7 +87,7 @@
                     Created = DateTime.UtcNow,
                     LastChange = DateTime.UtcNow,
                     Creator = "PdfPig",
-                    Comments = pageSegmenter.GetType().Name + "|" + wordExtractor.GetType().Name,
+                    Comments = "dla pipeline" // pageSegmenter.GetType().Name + "|" + wordExtractor.GetType().Name,
                 },
                 PcGtsId = "pc-" + page.GetHashCode()
             };
@@ -155,30 +149,23 @@
 
             var regions = new List<PageXmlDocument.PageXmlRegion>();
 
-            var words = page.GetWords(wordExtractor).ToList();
-            if (words.Count > 0)
+            var blocks = pipeline.Get(page);
+
+            regions.AddRange(blocks.Select(b => ToPageXmlTextRegion(b, page.Height)));
+
+            if (orderedRegions.Any())
             {
-                var blocks = pageSegmenter.GetBlocks(words);
-
-                if (readingOrderDetector != null)
+                pageXmlPage.ReadingOrder = new PageXmlDocument.PageXmlReadingOrder()
                 {
-                    blocks = readingOrderDetector.Get(blocks).ToList();
-                }
-
-                regions.AddRange(blocks.Select(b => ToPageXmlTextRegion(b, page.Height)));
-
-                if (orderedRegions.Any())
-                {
-                    pageXmlPage.ReadingOrder = new PageXmlDocument.PageXmlReadingOrder()
+                    Item = new PageXmlDocument.PageXmlOrderedGroup()
                     {
-                        Item = new PageXmlDocument.PageXmlOrderedGroup()
-                        {
-                            Items = orderedRegions.ToArray(),
-                            Id = "g" + groupOrderCount++
-                        }
-                    };
-                }
+                        Items = orderedRegions.ToArray(),
+                        Id = "g" + groupOrderCount++
+                    }
+                };
             }
+            
+
 
             var images = page.GetImages().ToList();
             if (images.Count > 0)
@@ -230,7 +217,7 @@
             regionCount++;
             string regionId = "r" + regionCount;
 
-            if (readingOrderDetector != null && textBlock.ReadingOrder > -1)
+            if (textBlock.ReadingOrder > -1)
             {
                 orderedRegions.Add(new PageXmlDocument.PageXmlRegionRefIndexed()
                 {

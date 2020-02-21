@@ -6,20 +6,24 @@
     /// <typeparam name="Input"></typeparam>
     /// <typeparam name="ProcessorInput"></typeparam>
     /// <typeparam name="Output"></typeparam>
-    public abstract class DlaPipelineBase<Input, ProcessorInput, Output> : IDlaPipeline<Input, Output>
+    public abstract class DlaPipelineBase<Input, ProcessorInput, Output> : IDlaPipeline<Input, Output>, ILayoutProcessor<Input, Output>
     {
+        private DLAContext context;
+
         /// <summary>
         /// 
         /// </summary>
-        protected ILayoutTransformer<ProcessorInput, Output> currentProcessor;
+        protected ILayoutProcessor<ProcessorInput, Output> currentProcessor;
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="processor"></param>
-        internal DlaPipelineBase(ILayoutTransformer<ProcessorInput, Output> processor)
+        /// <param name="context"></param>
+        internal DlaPipelineBase(ILayoutProcessor<ProcessorInput, Output> processor, DLAContext context)
         {
             currentProcessor = processor;
+            this.context = context;
         }
 
         /// <summary>
@@ -27,21 +31,19 @@
         /// </summary>
         /// <typeparam name="ProcessorOutput"></typeparam>
         /// <param name="processor"></param>
-        /// <returns></returns>
-        public DlaPipeline<Input, Output, ProcessorOutput> Append<ProcessorOutput>(ILayoutTransformer<Output, ProcessorOutput> processor)
+        public DlaPipeline<Input, Output, ProcessorOutput> Append<ProcessorOutput>(ILayoutProcessor<Output, ProcessorOutput> processor)
         {
-            return new DlaPipeline<Input, Output, ProcessorOutput>(processor, this);
+            return new DlaPipeline<Input, Output, ProcessorOutput>(processor, this, context);
         }
-
+        
         /// <summary>
         /// 
         /// </summary>
         /// <param name="input"></param>
-        /// <param name="context"></param>
-        /// <returns></returns>
-        public Output Get(Input input, out DLAContext context)
+        public Output Get(Input input)
         {
-            context = new DLAContext();
+            context.Reset();
+            context.Stopwatch.Reset();
             context.Stopwatch.Start();
             var result = GetSubPipeline(input, context);
             context.Stopwatch.Stop();
@@ -53,7 +55,16 @@
         /// </summary>
         /// <param name="input"></param>
         /// <param name="context"></param>
-        /// <returns></returns>
+        public Output Get(Input input, DLAContext context)
+        {
+            return Get(input);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="context"></param>
         public abstract Output GetSubPipeline(Input input, DLAContext context);
     }
 }

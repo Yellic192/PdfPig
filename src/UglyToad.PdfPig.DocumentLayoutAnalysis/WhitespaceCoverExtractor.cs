@@ -11,7 +11,7 @@
     /// A top-down algorithm that finds a cover of the background whitespace of a document in terms of maximal empty rectangles.
     /// <para>See Section 3.2 of 'High precision text extraction from PDF documents' by Øyvind Raddum Berg and Section 2 of 'Two geometric algorithms for layout analysis' by Thomas M. Breuel.</para>
     /// </summary>
-    public static class WhitespaceCoverExtractor
+    public class WhitespaceCoverExtractor
     {
         /// <summary>
         /// Gets the cover of the background whitespace of a page in terms of maximal empty rectangles.
@@ -21,7 +21,7 @@
         /// <param name="maxRectangleCount">The maximum number of rectangles to find.</param>
         /// <param name="maxBoundQueueSize">The maximum size of the queue used in the algorithm.</param>
         /// <returns>The identified whitespace rectangles.</returns>
-        public static IReadOnlyList<PdfRectangle> GetWhitespaces(IEnumerable<Word> words, IEnumerable<IPdfImage> images = null, int maxRectangleCount = 40, int maxBoundQueueSize = 0)
+        public IReadOnlyList<PdfRectangle> GetWhitespaces(IEnumerable<Word> words, IEnumerable<IPdfImage> images = null, int maxRectangleCount = 40, int maxBoundQueueSize = 0)
         {
             return GetWhitespaces(words,
                                   images,
@@ -43,7 +43,7 @@
         /// surrounding obstacles by some percent. Default value is 15%.</param>
         /// <param name="maxBoundQueueSize">The maximum size of the queue used in the algorithm.</param>
         /// <returns>The identified whitespace rectangles.</returns>
-        public static IReadOnlyList<PdfRectangle> GetWhitespaces(IEnumerable<Word> words, IEnumerable<IPdfImage> images,
+        public IReadOnlyList<PdfRectangle> GetWhitespaces(IEnumerable<Word> words, IEnumerable<IPdfImage> images,
             double minWidth, double minHeight, int maxRectangleCount = 40, double whitespaceFuzziness = 0.15, int maxBoundQueueSize = 0)
         {
             var bboxes = words.Where(w => w.BoundingBox.Width > 0 && w.BoundingBox.Height > 0)
@@ -73,7 +73,7 @@
         /// surrounding obstacles by some percent. Default value is 15%.</param>
         /// <param name="maxBoundQueueSize">The maximum size of the queue used in the algorithm.</param>
         /// <returns>The identified whitespace rectangles.</returns>
-        public static IReadOnlyList<PdfRectangle> GetWhitespaces(IEnumerable<PdfRectangle> boundingboxes,
+        public IReadOnlyList<PdfRectangle> GetWhitespaces(IEnumerable<PdfRectangle> boundingboxes,
             double minWidth, double minHeight, int maxRectangleCount = 40, double whitespaceFuzziness = 0.15, int maxBoundQueueSize = 0)
         {
             if (boundingboxes.Count() == 0) return EmptyArray<PdfRectangle>.Instance;
@@ -89,7 +89,7 @@
                                         maxBoundQueueSize: maxBoundQueueSize);
         }
 
-        private static IReadOnlyList<PdfRectangle> GetMaximalRectangles(PdfRectangle bound,
+        private IReadOnlyList<PdfRectangle> GetMaximalRectangles(PdfRectangle bound,
             HashSet<PdfRectangle> obstacles, double minWidth, double minHeight, int maxRectangleCount,
             double whitespaceFuzziness, int maxBoundQueueSize)
         {
@@ -185,7 +185,7 @@
             return selected.ToList();
         }
 
-        private static bool IsAdjacentTo(PdfRectangle rectangle1, PdfRectangle rectangle2)
+        private bool IsAdjacentTo(PdfRectangle rectangle1, PdfRectangle rectangle2)
         {
             if (rectangle1.Left > rectangle2.Right ||
                 rectangle2.Left > rectangle1.Right ||
@@ -205,7 +205,7 @@
             return false;
         }
 
-        private static bool IsAdjacentToPageBounds(PdfRectangle pageBound, PdfRectangle rectangle)
+        private bool IsAdjacentToPageBounds(PdfRectangle pageBound, PdfRectangle rectangle)
         {
             if (rectangle.Bottom == pageBound.Bottom ||
                 rectangle.Top == pageBound.Top ||
@@ -218,7 +218,7 @@
             return false;
         }
 
-        private static bool OverlapsHard(PdfRectangle rectangle1, PdfRectangle rectangle2)
+        private bool OverlapsHard(PdfRectangle rectangle1, PdfRectangle rectangle2)
         {
             if (rectangle1.Left >= rectangle2.Right ||
                 rectangle2.Left >= rectangle1.Right ||
@@ -231,7 +231,7 @@
             return true;
         }
 
-        private static bool Inside(PdfRectangle rectangle1, PdfRectangle rectangle2)
+        private bool Inside(PdfRectangle rectangle1, PdfRectangle rectangle2)
         {
             if (rectangle2.Right <= rectangle1.Right && rectangle2.Left >= rectangle1.Left &&
                 rectangle2.Top <= rectangle1.Top && rectangle2.Bottom >= rectangle1.Bottom)
@@ -242,7 +242,7 @@
             return false;
         }
 
-        private static PdfRectangle GetBound(IEnumerable<PdfRectangle> obstacles)
+        private PdfRectangle GetBound(IEnumerable<PdfRectangle> obstacles)
         {
             return new PdfRectangle(
                 obstacles.Min(b => b.Left),

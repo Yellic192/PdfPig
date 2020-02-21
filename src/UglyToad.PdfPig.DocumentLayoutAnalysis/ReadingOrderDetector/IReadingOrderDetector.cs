@@ -7,7 +7,7 @@
     /// Reading order detector determines the page's blocks reading order.
     /// <para>Note: Make sure you use <see cref="TextBlock.SetReadingOrder(int)"/> to set each <see cref="TextBlock"/> reading order when implementing <see cref="IReadingOrderDetector.Get(IReadOnlyList{TextBlock})"/>.</para>
     /// </summary>
-    public interface IReadingOrderDetector : ILayoutTransformer<IReadOnlyList<TextBlock>, IReadOnlyList<TextBlock>>
+    public interface IReadingOrderDetector : ILayoutProcessor<IReadOnlyList<TextBlock>, IReadOnlyList<TextBlock>>
     {
         /// <summary>
         /// 
