@@ -242,7 +242,7 @@
                 return null;
             }
 
-            var closestWordIndex = pointR.FindIndexNearest(wordsWithinAngleBoundDistancePoints, p => p,
+            var closestWordIndex = Distances.FindIndexNearest(pointR, wordsWithinAngleBoundDistancePoints, p => p,
                 p => p, Distances.Euclidean, out _);
 
             if (closestWordIndex < 0 || closestWordIndex >= wordsWithinAngleBoundDistancePoints.Count)

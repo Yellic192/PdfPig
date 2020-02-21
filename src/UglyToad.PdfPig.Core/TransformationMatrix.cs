@@ -385,6 +385,29 @@
         }
 
         /// <summary>
+        /// Get the inverse of the current matrix.
+        /// </summary>
+        public TransformationMatrix Inverse()
+        {
+            var a = (D * row3 - row2 * F);
+            var c = -(C * row3 - row2 * E);
+            var e = (C * F - D * E);
+
+            var b = -(B * row3 - row1 * F);
+            var d = (A * row3 - row1 * E);
+            var f = -(A * F - B * E);
+
+            var r1 = (B * row2 - row1 * D);
+            var r2 = -(A * row2 - row1 * C);
+            var r3 = (A * D - B * C);
+            var det = A * a + B * c + row1 * e;
+
+            return new TransformationMatrix(a / det, b / det, r1 / det,
+                c / det, d / det, r2 / det,
+                e / det, f / det, r3 / det);
+        }
+
+        /// <summary>
         /// Get the X scaling component of the current matrix.
         /// </summary>
         /// <returns>The scaling factor for the x dimension in this matrix.</returns>
