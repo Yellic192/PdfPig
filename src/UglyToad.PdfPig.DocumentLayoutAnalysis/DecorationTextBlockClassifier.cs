@@ -76,7 +76,7 @@
             {
                 var words = pages[p].GetWords(wordExtractor);
                 var blocks = pageSegmenter.GetBlocks(words);
-                if (!pagesBlocks.TryAdd(p, blocks))
+                if (!pagesBlocks.TryAdd(p, blocks.ToList()))
                 {
                     throw new ArgumentException("Cannot add element with index " + p + " in ConcurrentDictionary.");
                 }

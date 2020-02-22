@@ -165,8 +165,6 @@
                 };
             }
             
-
-
             var images = page.GetImages().ToList();
             if (images.Count > 0)
             {
@@ -205,11 +203,39 @@
         {
             regionCount++;
             var bbox = pdfImage.Bounds;
+
             return new PageXmlDocument.PageXmlImageRegion()
             {
                 Coords = ToCoords(bbox, height),
+                ColourDepth = ToColourDepthSimpleType(pdfImage.ColorSpace),
                 Id = "r" + regionCount
             };
+        }
+
+        private PageXmlDocument.PageXmlColourDepthSimpleType ToColourDepthSimpleType(ColorSpace? colorSpace)
+        {
+            if (!colorSpace.HasValue) return PageXmlDocument.PageXmlColourDepthSimpleType.Other;
+
+            switch (colorSpace.Value)
+            {
+                case ColorSpace.Indexed: // not sure
+                    //return PageXmlDocument.PageXmlColourDepthSimpleType.BiLevel;
+                    return PageXmlDocument.PageXmlColourDepthSimpleType.Colour;
+
+                case ColorSpace.CalGray:
+                case ColorSpace.DeviceGray:
+                    return PageXmlDocument.PageXmlColourDepthSimpleType.GreyScale;
+
+                case ColorSpace.CalRGB:
+                case ColorSpace.DeviceCMYK:
+                case ColorSpace.DeviceRGB:
+                case ColorSpace.ICCBased:
+                case ColorSpace.Lab:
+                    return PageXmlDocument.PageXmlColourDepthSimpleType.Colour;
+
+                default:
+                    return PageXmlDocument.PageXmlColourDepthSimpleType.Other;
+            }
         }
 
         private PageXmlDocument.PageXmlTextRegion ToPageXmlTextRegion(TextBlock textBlock, double height)

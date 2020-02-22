@@ -5,7 +5,7 @@
     /// </summary>
     /// <typeparam name="Input"></typeparam>
     /// <typeparam name="Output"></typeparam>
-    public interface IDlaPipeline<Input, Output>
+    public interface IDlaPipeline<Input, Output> : ILayoutProcessor<Input, Output>
     {
         /// <summary>
         /// 

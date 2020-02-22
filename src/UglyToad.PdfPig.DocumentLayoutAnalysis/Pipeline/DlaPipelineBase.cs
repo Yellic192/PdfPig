@@ -6,7 +6,7 @@
     /// <typeparam name="Input"></typeparam>
     /// <typeparam name="ProcessorInput"></typeparam>
     /// <typeparam name="Output"></typeparam>
-    public abstract class DlaPipelineBase<Input, ProcessorInput, Output> : IDlaPipeline<Input, Output>, ILayoutProcessor<Input, Output>
+    public abstract class DlaPipelineBase<Input, ProcessorInput, Output> : IDlaPipeline<Input, Output>
     {
         private DLAContext context;
 
@@ -43,10 +43,11 @@
         public Output Get(Input input)
         {
             context.Reset();
-            context.Stopwatch.Reset();
+
             context.Stopwatch.Start();
             var result = GetSubPipeline(input, context);
             context.Stopwatch.Stop();
+
             return result;
         }
 
@@ -57,7 +58,7 @@
         /// <param name="context"></param>
         public Output Get(Input input, DLAContext context)
         {
-            return Get(input);
+            return GetSubPipeline(input, context); // Get or GetSubPipeline, that is the question
         }
 
         /// <summary>

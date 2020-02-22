@@ -9,7 +9,7 @@
     /// <summary>
     /// A block of text.
     /// </summary>
-    public class TextBlock
+    public class TextBlock : ContentBlock
     {
         /// <summary>
         /// The text of the block.
@@ -20,11 +20,6 @@
         /// The text direction of the block.
         /// </summary>
         public TextDirection TextDirection { get; }
-
-        /// <summary>
-        /// The rectangle completely containing the block.
-        /// </summary>
-        public PdfRectangle BoundingBox { get; }
 
         /// <summary>
         /// The text lines contained in the block.
@@ -58,11 +53,10 @@
 
             Text = string.Join(" ", lines.Select(x => x.Text));
 
-            var minX = lines.Min(x => x.BoundingBox.Left);
-            var minY = lines.Min(x => x.BoundingBox.Bottom);
-            var maxX = lines.Max(x => x.BoundingBox.Right);
-            var maxY = lines.Max(x => x.BoundingBox.Top);
-            BoundingBox = new PdfRectangle(minX, minY, maxX, maxY);
+            BoundingBox = new PdfRectangle(lines.Min(x => x.BoundingBox.Left), 
+                                           lines.Min(x => x.BoundingBox.Bottom), 
+                                           lines.Max(x => x.BoundingBox.Right), 
+                                           lines.Max(x => x.BoundingBox.Top));
 
             TextDirection = lines[0].TextDirection;
         }

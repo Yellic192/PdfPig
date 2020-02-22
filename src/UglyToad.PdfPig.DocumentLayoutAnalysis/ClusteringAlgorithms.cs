@@ -146,7 +146,7 @@
         /// </summary>
         /// <param name="edges">The graph. edges[i] = j indicates that there is an edge between i and j.</param>
         /// <returns>A List of HashSets containing containing the grouped indexes.</returns>
-        internal static List<HashSet<int>> GroupIndexes(int[] edges)
+        internal static IEnumerable<HashSet<int>> GroupIndexes(int[] edges)
         {
             int[][] adjacency = new int[edges.Length][];
             for (int i = 0; i < edges.Length; i++)
@@ -160,15 +160,12 @@
                 adjacency[i] = matches.ToArray();
             }
 
-            List<HashSet<int>> groupedIndexes = new List<HashSet<int>>();
             bool[] isDone = new bool[edges.Length];
-
             for (int p = 0; p < edges.Length; p++)
             {
                 if (isDone[p]) continue;
-                groupedIndexes.Add(DfsIterative(p, adjacency, ref isDone));
+                yield return DfsIterative(p, adjacency, ref isDone);
             }
-            return groupedIndexes;
         }
 
         /// <summary>
@@ -177,7 +174,7 @@
         /// </summary>
         /// <param name="edges">The graph. edges[i] = [j, k, l, ...] indicates that there is an edge between i and each element j, k, l, ...</param>
         /// <returns>A List of HashSets containing containing the grouped indexes.</returns>
-        internal static List<HashSet<int>> GroupIndexes(int[][] edges)
+        internal static IEnumerable<HashSet<int>> GroupIndexes(int[][] edges)
         {
             int[][] adjacency = new int[edges.Length][];
             for (int i = 0; i < edges.Length; i++)
@@ -198,15 +195,12 @@
                 adjacency[i] = matches.ToArray();
             }
 
-            List<HashSet<int>> groupedIndexes = new List<HashSet<int>>();
             bool[] isDone = new bool[edges.Length];
-
             for (int p = 0; p < edges.Length; p++)
             {
                 if (isDone[p]) continue;
-                groupedIndexes.Add(DfsIterative(p, adjacency, ref isDone));
+                yield return DfsIterative(p, adjacency, ref isDone);
             }
-            return groupedIndexes;
         }
 
         /// <summary>

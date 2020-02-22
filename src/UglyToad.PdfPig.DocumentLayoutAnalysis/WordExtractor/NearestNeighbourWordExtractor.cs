@@ -12,7 +12,7 @@
     /// Nearest Neighbour Word Extractor, using the <see cref="Distances.Manhattan"/> distance.
     /// This implementation leverages bounding boxes.
     /// </summary>
-    public class NearestNeighbourWordExtractor : IWordExtractor, ILayoutProcessor<IReadOnlyList<Letter>, IReadOnlyList<Word>>
+    public class NearestNeighbourWordExtractor : IWordExtractor, ILayoutProcessor<IEnumerable<Letter>, IEnumerable<Word>>
     {
         /// <summary>
         /// Create an instance of Nearest Neighbour Word Extractor, <see cref="NearestNeighbourWordExtractor"/>.
@@ -121,17 +121,29 @@
         }
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="letters"></param>
+        /// <returns></returns>
+        public IEnumerable<Word> GetWords(IReadOnlyList<Letter> letters)
+        {
+            return GetWords(letters);
+        }
+
+        /// <summary>
         /// Gets the words.
         /// </summary>
         /// <param name="letters">The letters in the page.</param>
-        public IEnumerable<Word> GetWords(IReadOnlyList<Letter> letters)
+        public IEnumerable<Word> GetWords(IEnumerable<Letter> letters)
         {
-            List<Word> words = GetWords(letters.Where(l => l.TextDirection == TextDirection.Horizontal), maxDistanceFunctionH, distMeasureH, MaxDegreeOfParallelism);
-            words.AddRange(GetWords(letters.Where(l => l.TextDirection == TextDirection.Rotate270), maxDistanceFunction270, distMeasure270, MaxDegreeOfParallelism));
-            words.AddRange(GetWords(letters.Where(l => l.TextDirection == TextDirection.Rotate180), maxDistanceFunction180, distMeasure180, MaxDegreeOfParallelism));
-            words.AddRange(GetWords(letters.Where(l => l.TextDirection == TextDirection.Rotate90), maxDistanceFunction90, distMeasure90, MaxDegreeOfParallelism));
-            words.AddRange(GetWords(letters.Where(l => l.TextDirection == TextDirection.Other), maxDistanceFunctionOther, distMeasureOther, MaxDegreeOfParallelism));
-            return words;
+            foreach (var word in GetWords(letters.Where(l => l.TextDirection == TextDirection.Horizontal), maxDistanceFunctionH, distMeasureH, MaxDegreeOfParallelism)
+                         .Concat(GetWords(letters.Where(l => l.TextDirection == TextDirection.Rotate270), maxDistanceFunction270, distMeasure270, MaxDegreeOfParallelism))
+                         .Concat(GetWords(letters.Where(l => l.TextDirection == TextDirection.Rotate180), maxDistanceFunction180, distMeasure180, MaxDegreeOfParallelism))
+                         .Concat(GetWords(letters.Where(l => l.TextDirection == TextDirection.Rotate90), maxDistanceFunction90, distMeasure90, MaxDegreeOfParallelism))
+                         .Concat(GetWords(letters.Where(l => l.TextDirection == TextDirection.Other), maxDistanceFunctionOther, distMeasureOther, MaxDegreeOfParallelism)))
+            {
+                yield return word;
+            }
         }
 
         /// <summary>
@@ -146,11 +158,12 @@
         /// <param name="maxDegreeOfParallelism">Sets the maximum number of concurrent tasks enabled. 
         /// <para>A positive property value limits the number of concurrent operations to the set value. 
         /// If it is -1, there is no limit on the number of concurrently running operations.</para></param>
-        private List<Word> GetWords(IEnumerable<Letter> pageLetters,
+        private IEnumerable<Word> GetWords(IEnumerable<Letter> pageLetters,
             Func<Letter, Letter, double> maxDistanceFunction, Func<PdfPoint, PdfPoint, double> distMeasure,
             int maxDegreeOfParallelism)
         {
-            if (pageLetters == null || pageLetters.Count() == 0) return new List<Word>();
+            if (pageLetters == null || !pageLetters.Any()) yield break;
+
             TextDirection textDirection = pageLetters.ElementAt(0).TextDirection;
 
             if (pageLetters.Any(x => textDirection != x.TextDirection))
@@ -159,21 +172,17 @@
             }
 
             Letter[] letters = pageLetters.ToArray();
-
             var groupedIndexes = ClusteringAlgorithms.ClusterNearestNeighbours(letters,
                 distMeasure, maxDistanceFunction,
                 l => l.EndBaseLine, l => l.StartBaseLine,
                 l => !string.IsNullOrWhiteSpace(l.Value),
                 (l1, l2) => !string.IsNullOrWhiteSpace(l2.Value),
-                maxDegreeOfParallelism).ToList();
+                maxDegreeOfParallelism);
 
-            List<Word> words = new List<Word>();
-            for (int a = 0; a < groupedIndexes.Count(); a++)
+            foreach (var grouped in groupedIndexes)
             {
-                words.Add(new Word(groupedIndexes[a].Select(i => letters[i]).ToList()));
+                yield return new Word(grouped.Select(i => letters[i]).ToList());
             }
-
-            return words;
         }
 
         /// <summary>
@@ -182,9 +191,9 @@
         /// <param name="input"></param>
         /// <param name="context"></param>
         /// <returns></returns>
-        public IReadOnlyList<Word> Get(IReadOnlyList<Letter> input, DLAContext context)
+        public IEnumerable<Word> Get(IEnumerable<Letter> input, DLAContext context)
         {
-            return GetWords(input).ToList();
+            return GetWords(input);
         }
     }
 }

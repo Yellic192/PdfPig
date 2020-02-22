@@ -20,7 +20,7 @@
         /// Get the blocks.
         /// </summary>
         /// <param name="pageWords">The words in the page.</param>
-        public IReadOnlyList<TextBlock> GetBlocks(IEnumerable<Word> pageWords)
+        public IEnumerable<TextBlock> GetBlocks(IEnumerable<Word> pageWords)
         {
             if (pageWords.Count() == 0) return EmptyArray<TextBlock>.Instance;
 
@@ -33,7 +33,7 @@
         /// <param name="input"></param>
         /// <param name="context"></param>
         /// <returns></returns>
-        public IReadOnlyList<TextBlock> Get(IReadOnlyList<Word> input, DLAContext context)
+        public IEnumerable<TextBlock> Get(IEnumerable<Word> input, DLAContext context)
         {
             return GetBlocks(input);
         }
