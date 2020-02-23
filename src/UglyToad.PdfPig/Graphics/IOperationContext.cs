@@ -3,6 +3,7 @@
     using PdfPig.Core;
     using System.Collections.Generic;
     using Tokens;
+    using UglyToad.PdfPig.Graphics.Operations.ClippingPaths;
     using Util.JetBrains.Annotations;
 
     /// <summary>
@@ -131,6 +132,6 @@
         /// <summary>
         /// 
         /// </summary>
-        void ModifyClippingIntersect();
+        void ModifyClippingIntersect(ClippingRule clippingRule);
     }
 }

@@ -1,9 +1,5 @@
 ﻿namespace UglyToad.PdfPig.Graphics
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.Linq;
     using Colors;
     using Content;
     using Core;
@@ -14,8 +10,13 @@
     using Parser;
     using PdfFonts;
     using PdfPig.Core;
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Linq;
     using Tokenization.Scanner;
     using Tokens;
+    using UglyToad.PdfPig.Graphics.Operations.ClippingPaths;
     using XObjects;
 
     internal class ContentStreamProcessor : IOperationContext
@@ -557,9 +558,9 @@
             }
         }
 
-        public void ModifyClippingIntersect()
+        public void ModifyClippingIntersect(ClippingRule clippingRule)
         {
-            CurrentPath.IsClipping = true;
+            CurrentPath.SetClipping(clippingRule);
         }
 
         private void AdjustTextMatrix(double tx, double ty)

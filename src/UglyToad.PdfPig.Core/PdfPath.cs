@@ -25,7 +25,12 @@
         /// <summary>
         /// True if this is a clipping path.
         /// </summary>
-        public bool IsClipping { get; set; }
+        public bool IsClipping { get; private set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public ClippingRule ClippingRule { get; private set; }
 
         private PdfPoint? currentPosition;
 
@@ -81,6 +86,16 @@
             var points = filtered.Select(GetStartPoint).ToList();
             points.AddRange(filtered.Select(GetEndPoint));
             return new PdfPoint(points.Average(p => p.X), points.Average(p => p.Y));
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="clippingRule"></param>
+        public void SetClipping(ClippingRule clippingRule)
+        {
+            IsClipping = true;
+            ClippingRule = clippingRule;
         }
 
         internal static PdfPoint GetStartPoint(IPathCommand command)

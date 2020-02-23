@@ -1,6 +1,7 @@
 ﻿namespace UglyToad.PdfPig.Graphics.Operations.ClippingPaths
 {
     using System.IO;
+    using UglyToad.PdfPig.Core;
 
     /// <inheritdoc />
     /// <summary>
@@ -29,7 +30,7 @@
         /// <inheritdoc />
         public void Run(IOperationContext operationContext)
         {
-            operationContext.ModifyClippingIntersect();
+            operationContext.ModifyClippingIntersect(ClippingRule.EvenOdd);
         }
 
         /// <inheritdoc />
