@@ -101,6 +101,11 @@
 
         }
 
+        public void ModifyClippingIntersect()
+        {
+      
+        }
+
         private class TestFontFactory : IFontFactory
         {
             public IFont Get(DictionaryToken dictionary, bool isLenientParsing)

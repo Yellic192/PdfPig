@@ -557,6 +557,11 @@
             }
         }
 
+        public void ModifyClippingIntersect()
+        {
+            CurrentPath.IsClipping = true;
+        }
+
         private void AdjustTextMatrix(double tx, double ty)
         {
             var matrix = TransformationMatrix.GetTranslationMatrix(tx, ty);
