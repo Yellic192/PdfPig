@@ -767,7 +767,9 @@ namespace UglyToad.PdfPig.Fonts.CompactFontFormat.CharStrings
         {
             if (b == 28)
             {
-                return bytes[++i] << 8 | bytes[++i];
+                var num = bytes[++i] << 8 | bytes[++i];
+                // Next 2 bytes are a 16-bit two's complement number.
+                return (short) (num);
             }
 
             if (b >= 32 && b <= 246)

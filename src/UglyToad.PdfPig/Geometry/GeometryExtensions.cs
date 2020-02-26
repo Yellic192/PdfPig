@@ -345,11 +345,11 @@
         }
 
         /// <summary>
-        /// Whether the rectangle contains the point.
+        /// Whether the rectangle contains the rectangle.
         /// </summary>
-        /// <param name="rectangle">The rectangle that should contain the point.</param>
-        /// <param name="point">The point that should be contained within the rectangle.</param>
-        /// <param name="includeBorder">If set to false, will return false if the point belongs to the border.</param>
+        /// <param name="rectangle">The rectangle that should contain the other rectangle.</param>
+        /// <param name="other">The other rectangle that should be contained within the rectangle.</param>
+        /// <param name="includeBorder">If set to false, will return false if the rectangles share side(s).</param>
         public static bool Contains(this PdfRectangle rectangle, PdfRectangle other, bool includeBorder = false)
         {
             if (!rectangle.Contains(other.BottomLeft, includeBorder)) return false;

@@ -571,5 +571,15 @@
 
             TextMatrices.TextMatrix = newMatrix;
         }
+
+        public void ModifyClippingIntersect(ClippingRule clippingRule)
+        {
+            if (CurrentPath == null)
+            {
+                return;
+            }
+
+            CurrentPath.SetClipping(clippingRule);
+        }
     }
 }

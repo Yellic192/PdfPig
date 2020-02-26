@@ -1577,7 +1577,7 @@
         {
             Assert.Equal(expected, source.Contains(other));
         }
-        
+
         [Theory]
         [MemberData(nameof(ContainsRectangleData))]
         public void ContainsRectangle(PdfRectangle source, PdfRectangle other, bool expected)

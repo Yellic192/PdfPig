@@ -3,7 +3,6 @@
     using PdfPig.Core;
     using System.Collections.Generic;
     using Tokens;
-    using UglyToad.PdfPig.Graphics.Operations.ClippingPaths;
     using Util.JetBrains.Annotations;
 
     /// <summary>
@@ -130,7 +129,7 @@
         void EndInlineImage(IReadOnlyList<byte> bytes);
 
         /// <summary>
-        /// 
+        /// Modify the clipping rule of the current path.
         /// </summary>
         void ModifyClippingIntersect(ClippingRule clippingRule);
     }
