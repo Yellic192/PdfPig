@@ -558,11 +558,6 @@
             }
         }
 
-        public void ModifyClippingIntersect(ClippingRule clippingRule)
-        {
-            CurrentPath.SetClipping(clippingRule);
-        }
-
         private void AdjustTextMatrix(double tx, double ty)
         {
             var matrix = TransformationMatrix.GetTranslationMatrix(tx, ty);
