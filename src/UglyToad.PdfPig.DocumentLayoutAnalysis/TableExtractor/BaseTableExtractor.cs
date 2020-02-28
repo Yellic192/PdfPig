@@ -229,15 +229,15 @@
         private static Line Normalise(Line line)
         {
             //return line;
-            return new Line(new PdfPoint(Math.Round(line.From.X, 5), Math.Round(line.From.Y, 5)),
-            new PdfPoint(Math.Round(line.To.X, 5), Math.Round(line.To.Y, 5)));
+            return new Line(new PdfPoint(Math.Round(line.From.X, 1), Math.Round(line.From.Y, 1)),
+                            new PdfPoint(Math.Round(line.To.X, 1), Math.Round(line.To.Y, 1)));
         }
 
         private static PdfLine Normalise(PdfLine line)
         {
             //return line;
-            return new PdfLine(new PdfPoint(Math.Round(line.Point1.X, 5), Math.Round(line.Point1.Y, 5)),
-                               new PdfPoint(Math.Round(line.Point2.X, 5), Math.Round(line.Point2.Y, 5)));
+            return new PdfLine(new PdfPoint(Math.Round(line.Point1.X, 1), Math.Round(line.Point1.Y, 1)),
+                               new PdfPoint(Math.Round(line.Point2.X, 1), Math.Round(line.Point2.Y, 1)));
         }
 
         private static bool ShouldMerge(PdfLine line1, PdfLine line2)
