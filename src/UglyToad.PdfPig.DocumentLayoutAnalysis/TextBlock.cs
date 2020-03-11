@@ -5,6 +5,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using UglyToad.PdfPig.Geometry;
 
     /// <summary>
     /// A block of text.
@@ -58,11 +59,42 @@
 
             Text = string.Join(" ", lines.Select(x => x.Text));
 
-            var minX = lines.Min(x => x.BoundingBox.Left);
-            var minY = lines.Min(x => x.BoundingBox.Bottom);
-            var maxX = lines.Max(x => x.BoundingBox.Right);
-            var maxY = lines.Max(x => x.BoundingBox.Top);
-            BoundingBox = new PdfRectangle(minX, minY, maxX, maxY);
+            var tempTextDirection = lines[0].TextDirection;
+            if (tempTextDirection != TextDirection.Other)
+            {
+                foreach (var line in lines)
+                {
+                    if (line.TextDirection != tempTextDirection)
+                    {
+                        tempTextDirection = TextDirection.Other;
+                        break;
+                    }
+                }
+            }
+
+            switch (tempTextDirection)
+            {
+                case TextDirection.Horizontal:
+                    BoundingBox = GetBoundingBoxH(lines);
+                    break;
+
+                case TextDirection.Rotate180:
+                    BoundingBox = GetBoundingBox180(lines);
+                    break;
+
+                case TextDirection.Rotate90:
+                    BoundingBox = GetBoundingBox90(lines);
+                    break;
+
+                case TextDirection.Rotate270:
+                    BoundingBox = GetBoundingBox270(lines);
+                    break;
+
+                case TextDirection.Other:
+                default:
+                    BoundingBox = GetBoundingBoxOther(lines);
+                    break;
+            }
 
             TextDirection = lines[0].TextDirection;
         }
@@ -79,6 +111,171 @@
             }
             this.ReadingOrder = readingOrder;
         }
+
+
+        #region Bounding box
+        private PdfRectangle GetBoundingBoxH(IReadOnlyList<TextLine> lines)
+        {
+            var minX = double.MaxValue;
+            var maxX = double.MinValue;
+            var minY = double.MaxValue;
+            var maxY = double.MinValue;
+
+            for (var i = 0; i < lines.Count; i++)
+            {
+                var line = lines[i];
+
+                if (line.BoundingBox.BottomLeft.X < minX)
+                {
+                    minX = line.BoundingBox.BottomLeft.X;
+                }
+
+                if (line.BoundingBox.BottomLeft.Y < minY)
+                {
+                    minY = line.BoundingBox.BottomLeft.Y;
+                }
+
+                var right = line.BoundingBox.BottomLeft.X + line.BoundingBox.Width;
+                if (right > maxX)
+                {
+                    maxX = right;
+                }
+
+                if (line.BoundingBox.Top > maxY)
+                {
+                    maxY = line.BoundingBox.Top;
+                }
+            }
+
+            return new PdfRectangle(minX, minY, maxX, maxY);
+        }
+
+        private PdfRectangle GetBoundingBox180(IReadOnlyList<TextLine> lines)
+        {
+            var minX = double.MaxValue;
+            var maxX = double.MinValue;
+            var maxY = double.MinValue;
+            var minY = double.MaxValue;
+
+            for (var i = 0; i < lines.Count; i++)
+            {
+                var line = lines[i];
+
+                if (line.BoundingBox.BottomLeft.X > maxX)
+                {
+                    maxX = line.BoundingBox.BottomLeft.X;
+                }
+
+                if (line.BoundingBox.BottomLeft.Y > maxY)
+                {
+                    maxY = line.BoundingBox.BottomLeft.Y;
+                }
+
+                var right = line.BoundingBox.BottomLeft.X + line.BoundingBox.Width;
+                if (right < minX)
+                {
+                    minX = right;
+                }
+
+                if (line.BoundingBox.Top < minY)
+                {
+                    minY = line.BoundingBox.Top;
+                }
+            }
+
+            return new PdfRectangle(maxX, maxY, minX, minY);
+        }
+
+        private PdfRectangle GetBoundingBox90(IReadOnlyList<TextLine> lines)
+        {
+            var minX = double.MaxValue;
+            var maxX = double.MinValue;
+            var minY = double.MaxValue;
+            var maxY = double.MinValue;
+
+            for (var i = 0; i < lines.Count; i++)
+            {
+                var line = lines[i];
+
+                if (line.BoundingBox.BottomLeft.X < minX)
+                {
+                    minX = line.BoundingBox.BottomLeft.X;
+                }
+
+                if (line.BoundingBox.BottomRight.Y < minY)
+                {
+                    minY = line.BoundingBox.BottomRight.Y;
+                }
+
+                var right = line.BoundingBox.BottomLeft.X - line.BoundingBox.Height;
+                if (right > maxX)
+                {
+                    maxX = right;
+                }
+
+                if (line.BoundingBox.Top > maxY)
+                {
+                    maxY = line.BoundingBox.Top;
+                }
+            }
+
+            return new PdfRectangle(new PdfPoint(maxX, maxY),
+                                    new PdfPoint(maxX, minY),
+                                    new PdfPoint(minX, maxY),
+                                    new PdfPoint(minX, minY));
+        }
+
+        private PdfRectangle GetBoundingBox270(IReadOnlyList<TextLine> lines)
+        {
+            var minX = double.MaxValue;
+            var maxX = double.MinValue;
+            var minY = double.MaxValue;
+            var maxY = double.MinValue;
+
+            for (var i = 0; i < lines.Count; i++)
+            {
+                var line = lines[i];
+
+                if (line.BoundingBox.BottomLeft.X > maxX)
+                {
+                    maxX = line.BoundingBox.BottomLeft.X;
+                }
+
+                if (line.BoundingBox.BottomLeft.Y < minY)
+                {
+                    minY = line.BoundingBox.BottomLeft.Y;
+                }
+
+                var right = line.BoundingBox.BottomLeft.X - line.BoundingBox.Height;
+                if (right < minX)
+                {
+                    minX = right;
+                }
+
+                if (line.BoundingBox.Bottom > maxY)
+                {
+                    maxY = line.BoundingBox.Bottom;
+                }
+            }
+
+            return new PdfRectangle(new PdfPoint(minX, minY),
+                                    new PdfPoint(minX, maxY),
+                                    new PdfPoint(maxX, minY),
+                                    new PdfPoint(maxX, maxY));
+        }
+
+        private PdfRectangle GetBoundingBoxOther(IReadOnlyList<TextLine> lines)
+        {
+            return GeometryExtensions.MinimumAreaBoundingBox(lines.SelectMany(r => new[]
+            {
+                r.BoundingBox.BottomLeft,
+                r.BoundingBox.BottomRight,
+                r.BoundingBox.TopLeft,
+                r.BoundingBox.TopRight
+            }));
+        }
+        #endregion
+
 
         /// <inheritdoc />
         public override string ToString()

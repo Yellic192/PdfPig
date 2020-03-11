@@ -69,9 +69,9 @@
         public T FindNearestNeighbours(T pivot, Func<T, PdfPoint> pivotPointFunc, Func<PdfPoint, PdfPoint, double> distanceMeasure, out int index, out double distance)
         {
             var result = FindNearestNeighbours(Root, pivot, pivotPointFunc, distanceMeasure);
-            index = result.Item1.Index;
-            distance = result.Item2.Value;
-            return result.Item1.Element;
+            index = result.Item1 != null ? result.Item1.Index : -1;
+            distance = result.Item2.HasValue ? result.Item2.Value : double.NaN;
+            return result.Item1 != null ? result.Item1.Element : default;
         }
 
         private static (KdTreeNode<T>, double?) FindNearestNeighbours(KdTreeNode<T> node, T pivot, Func<T, PdfPoint> pivotPointFunc, Func<PdfPoint, PdfPoint, double> distance)

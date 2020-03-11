@@ -54,7 +54,7 @@
         /// <param name="point2">The second point.</param>
         public static double Angle(PdfPoint point1, PdfPoint point2)
         {
-            return Math.Atan2(point2.Y - point1.Y, point2.X - point1.X) * 57.29577951;
+            return Math.Atan2(point2.Y - point1.Y, point2.X - point1.X) * 180 / Math.PI;
         }
 
         /// <summary>

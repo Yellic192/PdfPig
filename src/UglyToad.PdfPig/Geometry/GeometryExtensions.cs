@@ -65,7 +65,7 @@
         /// The vertices of P are assumed to be in strict cyclic sequential order, either clockwise or 
         /// counter-clockwise relative to the origin P0. 
         /// </param>
-        internal static PdfRectangle ParametricPerpendicularProjection(IReadOnlyList<PdfPoint> polygon)
+        public static PdfRectangle ParametricPerpendicularProjection(IReadOnlyList<PdfPoint> polygon)
         {
             if (polygon == null || polygon.Count == 0)
             {
@@ -90,51 +90,72 @@
             }
 
             PdfPoint[] MBR = new PdfPoint[0];
-            
-            double Amin = double.MaxValue;
-            double tmin = 1;
-            double tmax = 0;
-            double smax = 0;
+
+            // Step 1
+            double Amin = double.PositiveInfinity;
             int j = 1;
             int k = 0;
-            int l = -1;
-
+     
             PdfPoint Q = new PdfPoint();
             PdfPoint R0 = new PdfPoint();
             PdfPoint R1 = new PdfPoint();
+            PdfPoint R2 = new PdfPoint();
+            PdfPoint R3 = new PdfPoint();
             PdfPoint u = new PdfPoint();
 
             int nv = polygon.Count;
-            
+
             while (true)
-            {
+            {      
+                if (j == k) continue;
+
+                // Step 2
                 var Pk = polygon[k];
-                
                 PdfPoint v = polygon[j].Subtract(Pk);
                 double r = 1.0 / v.DotProduct(v);
 
+                // from Step 1
+                double tmin = 1;
+                double tmax = 0;
+                double smax = 0;
+                int l = -1;
+                
+                // Step 3
                 for (j = 0; j < nv; j++)
                 {
                     if (j == k) continue;
+
+                    // Step 3.a
                     PdfPoint Pj = polygon[j];
                     u = Pj.Subtract(Pk);
+
+                    // Step 3.b
                     double t = u.DotProduct(v) * r;
+
+                    // Step 3.c
                     PdfPoint Pt = new PdfPoint(t * v.X + Pk.X, t * v.Y + Pk.Y);
+
+                    // Step 3.d
                     u = Pt.Subtract(Pj);
+
+                    // Step 3.e
                     double s = u.DotProduct(u);
 
+                    // Step 3.f
                     if (t < tmin)
                     {
                         tmin = t;
                         R0 = Pt;
                     }
 
+                    // Step 3.g
                     if (t > tmax)
                     {
                         tmax = t;
                         R1 = Pt;
                     }
 
+                    // Step 3.h
                     if (s > smax)
                     {
                         smax = s;
@@ -143,31 +164,35 @@
                     }
                 }
 
-                if (l == -1)
+                if (l != -1)
                 {
-                    // All points are colinear - rectangle has no area (need more tests)
-                    var bottomLeft = polygon.OrderBy(p => p.X).ThenBy(p => p.Y).First();
-                    var topRight = polygon.OrderByDescending(p => p.Y).OrderByDescending(p => p.X).First();
-                    return new PdfRectangle(bottomLeft, topRight, bottomLeft, topRight);
+                    // Step 4
+                    PdfPoint PlMinusQ = polygon[l].Subtract(Q);
+                    R2 = R1.Add(PlMinusQ);
+
+                    // Step 5
+                    R3 = R0.Add(PlMinusQ);
+
+                    // Step 6
+                    u = R1.Subtract(R0);
+
+                    // Step 7
+                    double A = u.DotProduct(u) * smax;
+
+                    // Step 8
+                    if (A < Amin)
+                    {
+                        Amin = A;
+                        MBR = new[] { R0, R1, R2, R3 };
+                    }
                 }
 
-                PdfPoint PlMinusQ = polygon[l].Subtract(Q);
-                PdfPoint R2 = R1.Add(PlMinusQ);
-                PdfPoint R3 = R0.Add(PlMinusQ);
-                u = R1.Subtract(R0);
-                double A = u.DotProduct(u) * smax;
-
-                if (A < Amin)
-                {
-                    Amin = A;
-                    MBR = new[] { R0, R1, R2, R3 };
-                }
-
-                k++;
-                j = k;
-
+                // Step 9
+                k = k + 1;
+                j = k + 1;
                 if (j == nv) j = 0;
 
+                // Step 10
                 if (k == nv) break;
             }
 
@@ -175,11 +200,21 @@
         }
 
         /// <summary>
+        /// Algorithm to find the (oriented) minimum area bounding box by first finding the convex hull of the points
+        /// and then applying the parametric perpendicular projection.
+        /// </summary>
+        /// <param name="points">The points.</param>
+        public static PdfRectangle MinimumAreaBoundingBox(IEnumerable<PdfPoint> points)
+        {
+            return ParametricPerpendicularProjection(GrahamScan(points.Distinct()).ToList());
+        }
+
+        /// <summary>
         /// Algorithm to find the oriented bounding box (OBB) by first fitting a line through the points to get the slope,
         /// then rotating the points to obtain the axis-aligned bounding box (AABB), and then rotating back the AABB.
         /// </summary>
         /// <param name="points">The points.</param>
-        internal static PdfRectangle OrientedBoundingBox(IReadOnlyList<PdfPoint> points)
+        public static PdfRectangle OrientedBoundingBox(IReadOnlyList<PdfPoint> points)
         {
             if (points == null || points.Count < 2)
             {
