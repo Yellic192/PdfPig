@@ -4,7 +4,6 @@
     using System.Collections.Generic;
     using Core;
     using CrossReference;
-    using Exceptions;
     using Logging;
     using Parts.CrossReference;
     using Tokenization.Scanner;
@@ -15,19 +14,13 @@
         private readonly ILog log;
         private readonly XrefOffsetValidator offsetValidator;
         private readonly CrossReferenceStreamParser crossReferenceStreamParser;
-        private readonly CrossReferenceTableParser crossReferenceTableParser;
-        private readonly XrefCosOffsetChecker xrefCosChecker;
 
         public CrossReferenceParser(ILog log, XrefOffsetValidator offsetValidator,
-            XrefCosOffsetChecker xrefCosChecker,
-            CrossReferenceStreamParser crossReferenceStreamParser,
-            CrossReferenceTableParser crossReferenceTableParser)
+            CrossReferenceStreamParser crossReferenceStreamParser)
         {
             this.log = log;
             this.offsetValidator = offsetValidator;
             this.crossReferenceStreamParser = crossReferenceStreamParser;
-            this.crossReferenceTableParser = crossReferenceTableParser;
-            this.xrefCosChecker = xrefCosChecker;
         }
         
         public CrossReferenceTable Parse(IInputBytes bytes, bool isLenientParsing, long crossReferenceLocation,
@@ -70,7 +63,7 @@
                     missedAttempts = 0;
                     log.Debug("Element was cross reference table.");
 
-                    CrossReferenceTablePart tablePart = crossReferenceTableParser.Parse(tokenScanner,
+                    CrossReferenceTablePart tablePart = CrossReferenceTableParser.Parse(tokenScanner,
                         previousCrossReferenceLocation, isLenientParsing);
 
                     var nextOffset = tablePart.GetPreviousOffset();
@@ -217,7 +210,10 @@
             var resolved = table.Build(crossReferenceLocation, log);
             
             // check the offsets of all referenced objects
-            xrefCosChecker.CheckCrossReferenceOffsets(bytes, resolved, isLenientParsing);
+            if (!CrossReferenceObjectOffsetValidator.ValidateCrossReferenceOffsets(bytes, resolved, log, out var actualOffsets))
+            {
+                resolved = new CrossReferenceTable(resolved.Type, actualOffsets, resolved.Trailer, resolved.CrossReferenceOffsets);
+            }
             
             return resolved;
         }

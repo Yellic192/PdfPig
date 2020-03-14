@@ -44,7 +44,6 @@
         private readonly IResourceStore resourceStore;
         private readonly UserSpaceUnit userSpaceUnit;
         private readonly PageRotationDegrees rotation;
-        private readonly bool isLenientParsing;
         private readonly IPdfTokenScanner pdfScanner;
         private readonly IPageContentParser pageContentParser;
         private readonly IFilterProvider filterProvider;
@@ -83,7 +82,6 @@
         };
 
         public ContentStreamProcessor(PdfRectangle cropBox, IResourceStore resourceStore, UserSpaceUnit userSpaceUnit, PageRotationDegrees rotation,
-            bool isLenientParsing,
             IPdfTokenScanner pdfScanner,
             IPageContentParser pageContentParser,
             IFilterProvider filterProvider,
@@ -92,7 +90,6 @@
             this.resourceStore = resourceStore;
             this.userSpaceUnit = userSpaceUnit;
             this.rotation = rotation;
-            this.isLenientParsing = isLenientParsing;
             this.pdfScanner = pdfScanner ?? throw new ArgumentNullException(nameof(pdfScanner));
             this.pageContentParser = pageContentParser ?? throw new ArgumentNullException(nameof(pageContentParser));
             this.filterProvider = filterProvider ?? throw new ArgumentNullException(nameof(filterProvider));
@@ -363,7 +360,7 @@
             var hasResources = formStream.StreamDictionary.TryGet<DictionaryToken>(NameToken.Resources, pdfScanner, out var formResources);
             if (hasResources)
             {
-                resourceStore.LoadResourceDictionary(formResources, isLenientParsing);
+                resourceStore.LoadResourceDictionary(formResources);
             }
 
             // 1. Save current state.
@@ -485,15 +482,15 @@
             {
                 currentGraphicsState.FontState.FromExtendedGraphicsState = true;
                 currentGraphicsState.FontState.FontSize = (double)sizeToken.Data;
-                activeExtendedGraphicsStateFont = resourceStore.GetFontDirectly(fontReference, isLenientParsing);
+                activeExtendedGraphicsStateFont = resourceStore.GetFontDirectly(fontReference);
             }
         }
 
         public void BeginInlineImage()
         {
-            if (inlineImageBuilder != null && !isLenientParsing)
+            if (inlineImageBuilder != null)
             {
-                throw new PdfDocumentFormatException("Begin inline image (BI) command encountered while another inline image was active.");
+                log?.Error("Begin inline image (BI) command encountered while another inline image was active.");
             }
 
             inlineImageBuilder = new InlineImageBuilder();
@@ -503,12 +500,8 @@
         {
             if (inlineImageBuilder == null)
             {
-                if (isLenientParsing)
-                {
-                    return;
-                }
-
-                throw new PdfDocumentFormatException("Begin inline image data (ID) command encountered without a corresponding begin inline image (BI) command.");
+                log?.Error("Begin inline image data (ID) command encountered without a corresponding begin inline image (BI) command.");
+                return;
             }
 
             inlineImageBuilder.Properties = properties;
@@ -518,12 +511,8 @@
         {
             if (inlineImageBuilder == null)
             {
-                if (isLenientParsing)
-                {
-                    return;
-                }
-
-                throw new PdfDocumentFormatException("End inline image (EI) command encountered without a corresponding begin inline image (BI) command.");
+                log?.Error("End inline image (EI) command encountered without a corresponding begin inline image (BI) command.");
+                return;
             }
 
             inlineImageBuilder.Bytes = bytes;

@@ -24,53 +24,45 @@
 
         public KdTree(IReadOnlyList<T> candidates, Func<T, PdfPoint> candidatesPointFunc)
         {
-            var pointsIndex = Enumerable.Range(0, candidates.Count).Zip(candidates, (e, p) => (e, candidatesPointFunc(p), p)).ToList();
-            if (candidates != null && candidates.Count > 0)
+            if (candidates == null || candidates.Count == 0)
             {
-                Root = BuildTree(pointsIndex, 0);
+                throw new ArgumentException("KdTree(): candidates cannot be null or empty.", nameof(candidates));
             }
+
+            Root = BuildTree(Enumerable.Range(0, candidates.Count).Zip(candidates, (e, p) => (e, candidatesPointFunc(p), p)).ToArray(), 0);
         }
 
-        private KdTreeNode<T> BuildTree(IReadOnlyList<(int, PdfPoint, T)> P, int depth)
+        private KdTreeNode<T> BuildTree((int, PdfPoint, T)[] P, int depth)
         {
-            var median = P.Count / 2;
-            if (depth % 2 == 0) // depth is even
+            if (P.Length == 0)
             {
-                P = P.OrderBy(p => p.Item2.X).ToArray();
+                return null;
+            }
+            else if (P.Length == 1)
+            {
+                return new KdTreeLeaf<T>(P[0], depth);
+            }
+
+            if (depth % 2 == 0)
+            {
+                Array.Sort(P, (p0, p1) => p0.Item2.X.CompareTo(p1.Item2.X));
             }
             else
             {
-                P = P.OrderBy(p => p.Item2.Y).ToArray();
+                Array.Sort(P, (p0, p1) => p0.Item2.Y.CompareTo(p1.Item2.Y));
             }
 
-            // left side
-            var P1 = P.Take(median).ToArray();
-            KdTreeNode<T> vLeft = null;
-            if (P1.Length == 1)
+            if (P.Length == 2)
             {
-                var item = P1[0];
-                vLeft = new KdTreeLeaf<T>(item.Item2, item.Item3, depth, item.Item1);
-            }
-            else if (P1.Length > 1)
-            {
-                vLeft = BuildTree(P1, depth + 1);
+                return new KdTreeNode<T>(new KdTreeLeaf<T>(P[0], depth + 1), null, P[1], depth);
             }
 
-            // right side
-            var P2 = P.Skip(median + 1).ToArray();
-            KdTreeNode<T> vRight = null;
-            if (P2.Length == 1)
-            {
-                var item = P2[0];
-                vRight = new KdTreeLeaf<T>(item.Item2, item.Item3, depth, item.Item1);
-            }
-            else if (P2.Length > 1)
-            {
-                vRight = BuildTree(P2, depth + 1);
-            }
+            int median = P.Length / 2;
 
-            var medianItem = P[median];
-            return new KdTreeNode<T>(vLeft, vRight, medianItem.Item2, medianItem.Item3, depth, medianItem.Item1);
+            KdTreeNode<T> vLeft = BuildTree(P.Take(median).ToArray(), depth + 1);
+            KdTreeNode<T> vRight = BuildTree(P.Skip(median + 1).ToArray(), depth + 1);
+
+            return new KdTreeNode<T>(vLeft, vRight, P[median], depth);
         }
 
         #region NN
@@ -105,7 +97,7 @@
                 KdTreeNode<T> newNode = null;
                 double? newDist = null;
 
-                var pointValue = node.Depth == 0 ? point.X : point.Y;
+                var pointValue = node.IsAxisCutX ? point.X : point.Y;
 
                 if (pointValue < node.L)
                 {
@@ -155,8 +147,8 @@
         {
             public override bool IsLeaf => true;
 
-            public KdTreeLeaf(PdfPoint l, Q element, int depth, int index)
-                : base(null, null, l, element, depth, index)
+            public KdTreeLeaf((int, PdfPoint, Q) point, int depth)
+                : base(null, null, point, depth)
             { }
 
             public override string ToString()
@@ -170,7 +162,7 @@
             /// <summary>
             /// Split value.
             /// </summary>
-            public double L => Depth == 0 ? Value.X : Value.Y;
+            public double L => IsAxisCutX ? Value.X : Value.Y;
 
             public PdfPoint Value { get; }
 
@@ -181,43 +173,46 @@
             public Q Element { get; }
 
             /// <summary>
-            /// 0 is even (x), 1 is odd (y).
+            /// True if this cuts with X axis, false if cuts with Y axis.
             /// </summary>
+            public bool IsAxisCutX { get; }
+
             public int Depth { get; }
 
             public virtual bool IsLeaf => false;
 
             public int Index { get; }
 
-            public KdTreeNode(KdTreeNode<Q> leftChild, KdTreeNode<Q> rightChild, PdfPoint l, Q element, int depth, int index)
+            public KdTreeNode(KdTreeNode<Q> leftChild, KdTreeNode<Q> rightChild, (int, PdfPoint, Q) point, int depth)
             {
                 LeftChild = leftChild;
                 RightChild = rightChild;
-                Value = l;
-                Element = element;
-                Depth = depth % 2;
-                Index = index;
+                Value = point.Item2;
+                Element = point.Item3;
+                Depth = depth;
+                IsAxisCutX = depth % 2 == 0;
+                Index = point.Item1;
             }
 
             public IEnumerable<KdTreeLeaf<Q>> GetLeaves()
             {
-                var leafs = new List<KdTreeLeaf<Q>>();
-                RecursiveGetLeaves(LeftChild, ref leafs);
-                RecursiveGetLeaves(RightChild, ref leafs);
-                return leafs;
+                var leaves = new List<KdTreeLeaf<Q>>();
+                RecursiveGetLeaves(LeftChild, ref leaves);
+                RecursiveGetLeaves(RightChild, ref leaves);
+                return leaves;
             }
 
-            private void RecursiveGetLeaves(KdTreeNode<Q> leaf, ref List<KdTreeLeaf<Q>> leafs)
+            private void RecursiveGetLeaves(KdTreeNode<Q> leaf, ref List<KdTreeLeaf<Q>> leaves)
             {
                 if (leaf == null) return;
                 if (leaf is KdTreeLeaf<Q> lLeaf)
                 {
-                    leafs.Add(lLeaf);
+                    leaves.Add(lLeaf);
                 }
                 else
                 {
-                    RecursiveGetLeaves(leaf.LeftChild, ref leafs);
-                    RecursiveGetLeaves(leaf.RightChild, ref leafs);
+                    RecursiveGetLeaves(leaf.LeftChild, ref leaves);
+                    RecursiveGetLeaves(leaf.RightChild, ref leaves);
                 }
             }
 

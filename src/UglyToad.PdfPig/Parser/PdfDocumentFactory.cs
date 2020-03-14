@@ -84,17 +84,15 @@
 
             CrossReferenceTable crossReferenceTable = null;
 
-            var bruteForceSearcher = new BruteForceSearcher(inputBytes);
             var xrefValidator = new XrefOffsetValidator(log);
-            var objectChecker = new XrefCosOffsetChecker(log, bruteForceSearcher);
 
             // We're ok with this since our intent is to lazily load the cross reference table.
             // ReSharper disable once AccessToModifiedClosure
-            var locationProvider = new ObjectLocationProvider(() => crossReferenceTable, bruteForceSearcher);
+            var locationProvider = new ObjectLocationProvider(() => crossReferenceTable, inputBytes);
             var pdfScanner = new PdfTokenScanner(inputBytes, locationProvider, filterProvider, NoOpEncryptionHandler.Instance);
 
             var crossReferenceStreamParser = new CrossReferenceStreamParser(filterProvider);
-            var crossReferenceParser = new CrossReferenceParser(log, xrefValidator, objectChecker, crossReferenceStreamParser, new CrossReferenceTableParser());
+            var crossReferenceParser = new CrossReferenceParser(log, xrefValidator, crossReferenceStreamParser);
             
             var version = FileHeaderParser.Parse(scanner, isLenientParsing, log);
             
@@ -112,8 +110,6 @@
                 pdfScanner, 
                 scanner);
             
-            var fontDescriptorFactory = new FontDescriptorFactory();
-            
             var (rootReference, rootDictionary) = ParseTrailer(crossReferenceTable, isLenientParsing, 
                 pdfScanner, 
                 out var encryptionDictionary);
@@ -124,14 +120,14 @@
 
             pdfScanner.UpdateEncryptionHandler(encryptionHandler);
 
-            var cidFontFactory = new CidFontFactory(pdfScanner, fontDescriptorFactory, filterProvider);
+            var cidFontFactory = new CidFontFactory(pdfScanner, filterProvider);
             var encodingReader = new EncodingReader(pdfScanner);
 
-            var type1Handler = new Type1FontHandler(pdfScanner, filterProvider, fontDescriptorFactory, encodingReader);
+            var type1Handler = new Type1FontHandler(pdfScanner, filterProvider, encodingReader);
 
             var fontFactory = new FontFactory(log, new Type0FontHandler(cidFontFactory,
                 filterProvider, pdfScanner),
-                new TrueTypeFontHandler(log, pdfScanner, filterProvider, fontDescriptorFactory, encodingReader, new SystemFontFinder(),
+                new TrueTypeFontHandler(log, pdfScanner, filterProvider, encodingReader, new SystemFontFinder(),
                     type1Handler),
                 type1Handler,
                 new Type3FontHandler(pdfScanner, filterProvider, encodingReader));
@@ -146,12 +142,12 @@
                 new PageContentParser(new ReflectionGraphicsStateOperationFactory()), 
                 log);
 
-            var caching = new ParsingCachingProviders(bruteForceSearcher, resourceContainer);
+            var caching = new ParsingCachingProviders(resourceContainer);
 
-            var acroFormFactory = new AcroFormFactory(pdfScanner, filterProvider);
-            var bookmarksProvider = new BookmarksProvider(log, pdfScanner, isLenientParsing);
+            var acroFormFactory = new AcroFormFactory(pdfScanner, filterProvider, crossReferenceTable);
+            var bookmarksProvider = new BookmarksProvider(log, pdfScanner);
             
-            return new PdfDocument(log, inputBytes, version, crossReferenceTable, isLenientParsing, caching, pageFactory, catalog, information,
+            return new PdfDocument(log, inputBytes, version, crossReferenceTable, caching, pageFactory, catalog, information,
                 encryptionDictionary,
                 pdfScanner,
                 filterProvider,

@@ -25,7 +25,7 @@
             this.scanner = scanner;
         }
 
-        public IFont Generate(DictionaryToken dictionary, bool isLenientParsing)
+        public IFont Generate(DictionaryToken dictionary)
         {
             var boundingBox = GetBoundingBox(dictionary);
 
@@ -33,9 +33,9 @@
 
             var firstCharacter = FontDictionaryAccessHelper.GetFirstCharacter(dictionary);
             var lastCharacter = FontDictionaryAccessHelper.GetLastCharacter(dictionary);
-            var widths = FontDictionaryAccessHelper.GetWidths(scanner, dictionary, isLenientParsing);
+            var widths = FontDictionaryAccessHelper.GetWidths(scanner, dictionary);
             
-            Encoding encoding = encodingReader.Read(dictionary, isLenientParsing);
+            Encoding encoding = encodingReader.Read(dictionary);
 
             CMap toUnicodeCMap = null;
             if (dictionary.TryGet(NameToken.ToUnicode, out var toUnicodeObj))
@@ -46,7 +46,7 @@
 
                 if (decodedUnicodeCMap != null)
                 {
-                    toUnicodeCMap = CMapCache.Parse(new ByteArrayInputBytes(decodedUnicodeCMap), isLenientParsing);
+                    toUnicodeCMap = CMapCache.Parse(new ByteArrayInputBytes(decodedUnicodeCMap));
                 }
             }
             

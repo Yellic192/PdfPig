@@ -8,15 +8,12 @@
     using Filters;
     using Fonts;
     using Fonts.AdobeFontMetrics;
-    using Fonts.CompactFontFormat;
     using Fonts.Encodings;
     using Fonts.Standard14Fonts;
     using Fonts.SystemFonts;
     using Fonts.TrueType;
     using Fonts.TrueType.Parser;
-    using Fonts.Type1;
     using Logging;
-    using Parts;
     using PdfPig.Parser.Parts;
     using Simple;
     using Tokenization.Scanner;
@@ -28,27 +25,24 @@
         private readonly ILog log;
         private readonly IPdfTokenScanner pdfScanner;
         private readonly IFilterProvider filterProvider;
-        private readonly FontDescriptorFactory fontDescriptorFactory;
         private readonly IEncodingReader encodingReader;
         private readonly ISystemFontFinder systemFontFinder;
         private readonly IFontHandler type1FontHandler;
 
         public TrueTypeFontHandler(ILog log, IPdfTokenScanner pdfScanner, IFilterProvider filterProvider,
-            FontDescriptorFactory fontDescriptorFactory,
             IEncodingReader encodingReader,
             ISystemFontFinder systemFontFinder,
             IFontHandler type1FontHandler)
         {
             this.log = log;
             this.filterProvider = filterProvider;
-            this.fontDescriptorFactory = fontDescriptorFactory;
             this.encodingReader = encodingReader;
             this.systemFontFinder = systemFontFinder;
             this.type1FontHandler = type1FontHandler;
             this.pdfScanner = pdfScanner;
         }
 
-        public IFont Generate(DictionaryToken dictionary, bool isLenientParsing)
+        public IFont Generate(DictionaryToken dictionary)
         {
             if (!dictionary.TryGetOptionalTokenDirect(NameToken.FirstChar, pdfScanner, out NumericToken firstCharacterToken)
                 || !dictionary.TryGet<IToken>(NameToken.FontDescriptor, pdfScanner, out _)
@@ -69,7 +63,7 @@
 
                 var fileSystemFont = systemFontFinder.GetTrueTypeFont(baseFont.Data);
 
-                var thisEncoding = encodingReader.Read(dictionary, isLenientParsing);
+                var thisEncoding = encodingReader.Read(dictionary);
 
                 if (thisEncoding == null)
                 {
@@ -96,18 +90,18 @@
 
             var firstCharacter = firstCharacterToken.Int;
 
-            var widths = FontDictionaryAccessHelper.GetWidths(pdfScanner, dictionary, isLenientParsing);
+            var widths = FontDictionaryAccessHelper.GetWidths(pdfScanner, dictionary);
 
-            var descriptor = FontDictionaryAccessHelper.GetFontDescriptor(pdfScanner, fontDescriptorFactory, dictionary, isLenientParsing);
+            var descriptor = FontDictionaryAccessHelper.GetFontDescriptor(pdfScanner, dictionary);
 
             var font = ParseTrueTypeFont(descriptor, out var actualHandler);
 
             if (font == null && actualHandler != null)
             {
-                return actualHandler.Generate(dictionary, isLenientParsing);
+                return actualHandler.Generate(dictionary);
             }
 
-            var name = FontDictionaryAccessHelper.GetName(pdfScanner, dictionary, descriptor, isLenientParsing);
+            var name = FontDictionaryAccessHelper.GetName(pdfScanner, dictionary, descriptor);
 
             CMap toUnicodeCMap = null;
             if (dictionary.TryGet(NameToken.ToUnicode, out var toUnicodeObj))
@@ -118,11 +112,11 @@
 
                 if (decodedUnicodeCMap != null)
                 {
-                    toUnicodeCMap = CMapCache.Parse(new ByteArrayInputBytes(decodedUnicodeCMap), isLenientParsing);
+                    toUnicodeCMap = CMapCache.Parse(new ByteArrayInputBytes(decodedUnicodeCMap));
                 }
             }
 
-            Encoding encoding = encodingReader.Read(dictionary, isLenientParsing, descriptor);
+            Encoding encoding = encodingReader.Read(dictionary, descriptor);
             
             if (encoding == null && font?.TableRegister?.CMapTable != null
                                  && font.TableRegister.PostScriptTable?.GlyphNames != null)

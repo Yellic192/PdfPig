@@ -39,9 +39,16 @@
                     return false;
                 }
 
-                path = Run(sequence);
+                try
+                {
+                    path = Run(sequence);
 
-                glyphs[name] = path;
+                    glyphs[name] = path;
+                }
+                catch
+                {
+                    return false;
+                }
             }
 
             return true;
@@ -92,8 +99,14 @@
 
             foreach (var command in sequence.Commands)
             {
-                command.Match(x => context.Stack.Push(x),
-                    x => x.Run(context));
+                if (command.TryGetFirst(out var num))
+                {
+                    context.Stack.Push(num);
+                }
+                else if (command.TryGetSecond(out var lazyCommand))
+                {
+                    lazyCommand.Run(context);
+                }
             }
 
             return context.Path;
