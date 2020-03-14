@@ -39,11 +39,12 @@
                     throw new ArgumentOutOfRangeException();
                 }
 
-                var candidates = Cells.Where(cell => cell.RowSpan.Contains(r) && cell.ColumnSpan.Contains(c));
+                var candidates = Cells.Where(cell => cell.RowSpan.IsIn(r) && cell.ColumnSpan.IsIn(c));
                 if (candidates.Count() > 1)
                 {
                     throw new ArgumentException();
                 }
+
                 return candidates.FirstOrDefault();
             }
         }
@@ -57,6 +58,8 @@
             Cells = cells.ToList();
             BoundingBox = new PdfRectangle(cells.Min(c => c.BoundingBox.BottomLeft.X), cells.Min(c => c.BoundingBox.BottomLeft.Y),
                                            cells.Max(c => c.BoundingBox.TopRight.X), cells.Max(c => c.BoundingBox.TopRight.Y));
+            Rows = cells.Select(c => c.RowSpan.End).Max();
+            Columns = cells.Select(c => c.ColumnSpan.End).Max();
         }
     }
 
@@ -83,12 +86,71 @@
         /// <summary>
         /// 
         /// </summary>
-        public int[] RowSpan { get; }
+        public CellSpan RowSpan { get; }
 
         /// <summary>
         /// 
         /// </summary>
-        public int[] ColumnSpan { get; }
+        public CellSpan ColumnSpan { get; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="row"></param>
+        public void UpdateRowSpan(int row)
+        {
+            if (RowSpan.Start == -1)
+            {
+                RowSpan.Start = row;
+            }
+            else if (row < RowSpan.Start)
+            {
+                RowSpan.Start = row;
+            }
+
+            if (RowSpan.End == -1)
+            {
+                RowSpan.End = row;
+            }
+            else if (row > RowSpan.End)
+            {
+                RowSpan.End = row;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="content"></param>
+        public void SetContent(TextBlock content)
+        {
+            Children = new[] { content };
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="column"></param>
+        public void UpdateColumnSpan(int column)
+        {
+            if (ColumnSpan.Start == -1)
+            {
+                ColumnSpan.Start = column;
+            }
+            else if (column < ColumnSpan.Start)
+            {
+                ColumnSpan.Start = column;
+            }
+
+            if (ColumnSpan.End == -1)
+            {
+                ColumnSpan.End = column;
+            }
+            else if (column > ColumnSpan.End)
+            {
+                ColumnSpan.End = column;
+            }
+        }
 
         /// <summary>
         /// 
@@ -96,13 +158,27 @@
         /// <param name="boundingBox"></param>
         /// <param name="content"></param>
         /// <param name="index"></param>
-        public TableCell(PdfRectangle boundingBox, TextBlock content, int index) // int[] rowSpan, int[] columnSpan)
+        /// <param name="rowSpan"></param>
+        /// <param name="columnSpan"></param>
+        public TableCell(PdfRectangle boundingBox, TextBlock content, int index, CellSpan rowSpan, CellSpan columnSpan)
         {
             BoundingBox = boundingBox;
             Children = new[] { content };
             Index = index;
-            //RowSpan = rowSpan;
-            //ColumnSpan = columnSpan;
+            RowSpan = rowSpan;
+            ColumnSpan = columnSpan;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="boundingBox"></param>
+        /// <param name="content"></param>
+        /// <param name="index"></param>
+        public TableCell(PdfRectangle boundingBox, TextBlock content, int index)
+            : this(boundingBox, content, index, new CellSpan(), new CellSpan())
+        {
+
         }
 
         /// <summary>
@@ -111,7 +187,7 @@
         /// <returns></returns>
         public override string ToString()
         {
-            return "TableCell #" + Index;
+            return Index + ", r=" + RowSpan.ToString() + ", c=" + ColumnSpan.ToString();
         }
 
         /// <summary>
@@ -150,6 +226,114 @@
             /// headers, sub-headers and stub.
             /// </summary>
             Body
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public class CellSpan
+        {
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="start"></param>
+            /// <param name="end"></param>
+            public CellSpan(int start, int end)
+            {
+                if (start > end)
+                {
+                    throw new ArgumentException();
+                }
+
+                Start = start;
+                End = end;
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            public CellSpan()
+            {
+                Start = -1;
+                End = -1;
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            public int Start { get; internal set; }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            public int End { get; internal set; }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            public int Length => End - Start + 1;
+
+            /// <summary>
+            /// 
+            /// </summary>
+            public void Decrease()
+            {
+                Start--;
+                End--;
+            }
+
+            /// <summary>
+            /// Return true if the cell is present at the given index.
+            /// </summary>
+            /// <param name="cellIndex"></param>
+            /// <returns></returns>
+            public bool IsIn(int cellIndex)
+            {
+                return (cellIndex >= Start && cellIndex <= End);
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="cellSpan"></param>
+            /// <returns></returns>
+            public bool Contains(CellSpan cellSpan)
+            {
+                return this.End >= cellSpan.End && this.Start <= cellSpan.Start;
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="obj"></param>
+            /// <returns></returns>
+            public override bool Equals(object obj)
+            {
+                if (obj is CellSpan span)
+                {
+                    return Start == span.Start && End == span.End;
+                }
+                return false;
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <returns></returns>
+            public override int GetHashCode()
+            {
+                return (Start, End).GetHashCode();
+            }
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <returns></returns>
+            public override string ToString()
+            {
+                if (Start == End) return "[" + Start + "]";
+                return "[" + Start + "," + End + "]";
+            }
         }
     }
 }

@@ -48,29 +48,133 @@
         /// <returns></returns>
         public static IEnumerable<TableBlock> GetTables(Page page, int minCellsInTable = 4)
         {
-            var candidates = GetCandidates(page, minCellsInTable);
+            var candidates = BaseTableExtractor.GetCandidates(page, minCellsInTable).ToList();
             var letters = page.Letters;
             var words = NearestNeighbourWordExtractor.Instance.GetWords(letters);
 
             foreach (var candidate in candidates)
             {
-                var cells = new List<TableCell>();
-                foreach (var cell in candidate)
-                {
-                    var containedWords = words.Where(w => cell.Item2.Contains(w.BoundingBox));
 
-                    if (containedWords.Count() > 0)
+                List<TableCell> cells = candidate.Select(c => new TableCell(c.Item2, null, c.Item1)).ToList();
+                cells = cells.OrderByDescending(x => x.BoundingBox.Top).ThenBy(x => x.BoundingBox.Left).ToList();
+
+                // merge rows
+                int[] shouldMerge = Enumerable.Repeat(-1, cells.Count).ToArray();
+                for (var b = 0; b < cells.Count; b++)
+                {
+                    var current1 = cells[b];
+                    var centroid = current1.BoundingBox.Centroid;
+
+                    for (var c = 0; c < cells.Count; c++)
                     {
-                        cells.Add(new TableCell(cell.Item2, new TextBlock(containedWords.Select(w => new TextLine(new[] { w })).ToList()), cell.Item1));
-                    }
-                    else
-                    {
-                        cells.Add(new TableCell(cell.Item2, null, cell.Item1));
+                        if (b == c) continue;
+                        var current2 = cells[c];
+
+                        if (Math.Abs(centroid.Y - current2.BoundingBox.Centroid.Y) < 1e-5)
+                        {
+                            if (shouldMerge[c] != b)
+                            {
+                                shouldMerge[b] = c;
+                                break;
+                            }
+                        }
                     }
                 }
+
+                var merged = ClusteringAlgorithms.GroupIndexes(shouldMerge);
+                for (int row = 0; row < merged.Count; row++)
+                {
+                    foreach (var r in merged[row].Select(i => cells[i]))
+                    {
+                        r.UpdateRowSpan(row);
+                    }
+                }
+
+                // merge columns
+                cells = cells.OrderBy(x => x.BoundingBox.Left).ToList();
+                shouldMerge = Enumerable.Repeat(-1, cells.Count).ToArray();
+                for (var b = 0; b < cells.Count; b++)
+                {
+                    var current1 = cells[b];
+                    var centroid = current1.BoundingBox.Centroid;
+
+                    for (var c = 0; c < cells.Count; c++)
+                    {
+                        if (b == c) continue;
+                        var current2 = cells[c];
+
+                        if (Math.Abs(centroid.X - current2.BoundingBox.Centroid.X) < 1e-5)
+                        {
+                            if (shouldMerge[c] != b)
+                            {
+                                shouldMerge[b] = c;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                merged = ClusteringAlgorithms.GroupIndexes(shouldMerge);
+                for (int col = 0; col < merged.Count; col++)
+                {
+                    foreach (var c in merged[col].Select(i => cells[i]))
+                    {
+                        c.UpdateColumnSpan(col);
+                    }
+                }
+
+                // TO DO: The final index is still wrong!
+
+                // handle spaned rows
+                for (int i = 0; i < cells.Count; i++)
+                {
+                    var currentCell = cells[i];
+                    for (int j = 0; j < cells.Count; j++)
+                    {
+                        if (i == j) continue;
+                        var otherCell = cells[j];
+                        if (currentCell.RowSpan.Equals(otherCell.RowSpan)) continue;
+
+                        if (currentCell.BoundingBox.Top >= otherCell.BoundingBox.Centroid.Y &&
+                            currentCell.BoundingBox.Bottom <= otherCell.BoundingBox.Centroid.Y &&
+                            currentCell.BoundingBox.Height > otherCell.BoundingBox.Height)
+                        {
+                            currentCell.UpdateRowSpan(otherCell.RowSpan.Start);
+                            currentCell.UpdateRowSpan(otherCell.RowSpan.End);
+                        }
+                    }
+                }
+
+                // handle spaned columns
+                for (int i = 0; i < cells.Count; i++)
+                {
+                    var currentCell = cells[i];
+                    for (int j = 0; j < cells.Count; j++)
+                    {
+                        if (i == j) continue;
+                        var otherCell = cells[j];
+                        if (currentCell.ColumnSpan.Equals(otherCell.ColumnSpan)) continue;
+
+                        if (currentCell.BoundingBox.Right >= otherCell.BoundingBox.Centroid.X &&
+                            currentCell.BoundingBox.Left <= otherCell.BoundingBox.Centroid.X &&
+                            currentCell.BoundingBox.Width > otherCell.BoundingBox.Width)
+                        {
+                            currentCell.UpdateColumnSpan(otherCell.ColumnSpan.Start);
+                            currentCell.UpdateColumnSpan(otherCell.ColumnSpan.End);
+                        }
+                    }
+                }
+
+                foreach (var cell in cells)
+                {
+                    var containedWords = words.Where(w => cell.BoundingBox.Contains(w.BoundingBox));
+                    cell.SetContent(new TextBlock(containedWords.Select(w => new TextLine(new[] { w })).ToList()));
+                }
+
                 yield return new TableBlock(cells);
             }
         }
+
 
         /// <summary>
         /// 
