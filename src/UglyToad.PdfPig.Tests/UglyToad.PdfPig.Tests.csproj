@@ -107,7 +107,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Dla\" />
+    <None Update="Dla\Documents\one block rotated.pdf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Dla\Documents\one block.pdf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
