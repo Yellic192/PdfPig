@@ -197,8 +197,9 @@
                 sin, cos, 0,
                 0, 0, 1);
 
-            width = inverseRotation.Transform(BottomRight).X - inverseRotation.Transform(BottomLeft).X;
-            height = inverseRotation.Transform(TopLeft).Y - inverseRotation.Transform(BottomLeft).Y;
+            var blInverse = inverseRotation.Transform(BottomLeft);
+            width = inverseRotation.Transform(BottomRight).X - blInverse.X;
+            height = inverseRotation.Transform(TopLeft).Y - blInverse.Y;
         }
 
         /// <inheritdoc />
