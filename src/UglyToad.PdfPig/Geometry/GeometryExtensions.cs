@@ -887,12 +887,12 @@
             return new[] {x1, x2, x3};
         }
 
-        internal static string ToSvg(this PdfPath p)
+        internal static string ToSvg(this PdfPath p, double height)
         {
             var builder = new StringBuilder();
             foreach (var pathCommand in p.Commands)
             {
-                pathCommand.WriteSvg(builder);
+                pathCommand.WriteSvg(builder, height);
             }
 
             if (builder.Length == 0)
@@ -908,7 +908,13 @@
             return builder.ToString();
         }
 
-        internal static string ToFullSvg(this PdfPath p)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="p"></param>
+        /// <param name="height"></param>
+        /// <returns></returns>
+        internal static string ToFullSvg(this PdfPath p, double height)
         {
             string BboxToRect(PdfRectangle box, string stroke)
             {
@@ -916,7 +922,7 @@
                 return overallBbox;
             }
 
-            var glyph = p.ToSvg();
+            var glyph = p.ToSvg(height);
             var bbox = p.GetBoundingRectangle();
             var bboxes = new List<PdfRectangle>();
 
