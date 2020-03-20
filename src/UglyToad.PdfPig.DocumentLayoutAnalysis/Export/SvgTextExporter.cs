@@ -39,6 +39,7 @@
                 {
                     builder.Append(PathToSvg(path, page.Height));
                 }
+                //builder.Append(PathToSvg(path, page.Height));
             }
 
             foreach (var letter in page.Letters)
@@ -139,13 +140,14 @@
                     }
                 }
             }
-            
+
             if (_fonts.ContainsKey(fontName)) fontName = _fonts[fontName];
             return fontName;
         }
 
         private static string ColorToSvg(IColor color)
         {
+            if (color == null) return ""; // not sure what to return here
             var (r, g, b) = color.ToRGBValues();
             return $"rgb({Math.Ceiling(r * 255)},{Math.Ceiling(g * 255)},{Math.Ceiling(b * 255)})";
         }
@@ -170,43 +172,57 @@
 
             var glyph = builder.ToString();
 
-            var strokeColor = p.IsStroked ? ColorToSvg(p.StrokeColor) : "yellow"; // "black"; // none
-            var lineWidth = double.IsNaN(p.LineWidth) ? 1 : p.LineWidth; // 0
-            var fillColor = p.IsFilled ? ColorToSvg(p.FillColor) : "none"; // none
-
             string dashArray = "";
-            if (p.LineDashPattern.HasValue && p.LineDashPattern.Value.Array.Count > 0)
-            {
-                dashArray = $" stroke-dasharray='{string.Join(" ", p.LineDashPattern.Value.Array)}'";
-            }
-
             string capStyle = "";
-            if (p.LineCapStyle != Core.Graphics.LineCapStyle.Butt)
-            {
-                if (p.LineCapStyle == Core.Graphics.LineCapStyle.Round)
-                {
-                    capStyle = " stroke-linecap='round'";
-                }
-                else
-                {
-                    capStyle = " stroke-linecap='square'";
-                }
-            }
-
             string jointStyle = "";
-            if (p.LineJoinStyle != Core.Graphics.LineJoinStyle.Miter)
+            string strokeColor = " stroke='none'";
+            string strokeWidth = "";
+
+            if (p.IsStroked)
             {
-                if (p.LineJoinStyle == Core.Graphics.LineJoinStyle.Round)
+                strokeColor = $" stroke='{ColorToSvg(p.StrokeColor)}'";
+                strokeWidth = double.IsNaN(p.LineWidth) ? "" : $" stroke-width='{p.LineWidth}'";
+
+                if (p.LineDashPattern.HasValue && p.LineDashPattern.Value.Array.Count > 0)
                 {
-                    jointStyle = " stroke-linejoin='round'";
+                    dashArray = $" stroke-dasharray='{string.Join(" ", p.LineDashPattern.Value.Array)}'";
                 }
-                else
+
+                if (p.LineCapStyle != Core.Graphics.LineCapStyle.Butt)
                 {
-                    jointStyle = " stroke-linejoin='bevel'";
+                    if (p.LineCapStyle == Core.Graphics.LineCapStyle.Round)
+                    {
+                        capStyle = " stroke-linecap='round'";
+                    }
+                    else
+                    {
+                        capStyle = " stroke-linecap='square'";
+                    }
+                }
+                
+                if (p.LineJoinStyle != Core.Graphics.LineJoinStyle.Miter)
+                {
+                    if (p.LineJoinStyle == Core.Graphics.LineJoinStyle.Round)
+                    {
+                        jointStyle = " stroke-linejoin='round'";
+                    }
+                    else
+                    {
+                        jointStyle = " stroke-linejoin='bevel'";
+                    }
                 }
             }
 
-            var path = $"<path d='{glyph}' stroke='{strokeColor}' stroke-width='{lineWidth}'{dashArray}{capStyle}{jointStyle} fill='{fillColor}'></path>";
+            string fillColor = " fill='none'";
+            string fillRule = "";
+
+            if (p.IsFilled)
+            {
+                fillColor = $" fill='{ColorToSvg(p.FillColor)}'";
+                //if (p.FillingRule == FillingRule.EvenOdd) fillRule = " fill-rule='evenodd'";
+            }
+
+            var path = $"<path d='{glyph}'{strokeColor}{strokeWidth}{dashArray}{capStyle}{jointStyle}{fillColor}{fillRule}></path>";
             return path;
         }
     }
