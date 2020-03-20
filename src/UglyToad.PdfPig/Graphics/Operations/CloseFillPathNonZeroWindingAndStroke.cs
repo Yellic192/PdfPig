@@ -28,7 +28,8 @@
         /// <inheritdoc />
         public void Run(IOperationContext operationContext)
         {
-            operationContext.FillPath(true);
+            // TODO: set NonZeroWinding
+            operationContext.FillStrokePath(true);
         }
 
         /// <inheritdoc />

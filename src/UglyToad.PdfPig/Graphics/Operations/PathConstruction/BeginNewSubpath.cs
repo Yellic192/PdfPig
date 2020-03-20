@@ -41,11 +41,23 @@
         /// <inheritdoc />
         public void Run(IOperationContext operationContext)
         {
+            // store previous 
+            var stroked = false;
+            var filled = false;
+            if (operationContext.CurrentPath != null)
+            {
+                stroked = operationContext.CurrentPath.IsStroked;
+                filled = operationContext.CurrentPath.IsFilled;
+            }
+
             var point = new PdfPoint(X, Y);
             operationContext.BeginSubpath();
             var pointTransform = operationContext.CurrentTransformationMatrix.Transform(point);
             operationContext.CurrentPosition = pointTransform;
             operationContext.CurrentPath.MoveTo(pointTransform.X, pointTransform.Y);
+
+            operationContext.CurrentPath.IsStroked = stroked;
+            operationContext.CurrentPath.IsFilled = filled;
         }
 
         /// <inheritdoc />

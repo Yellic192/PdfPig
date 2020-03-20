@@ -1,4 +1,4 @@
-﻿namespace UglyToad.PdfPig.Graphics.Core
+﻿namespace UglyToad.PdfPig.Core.Graphics
 {
     using System;
     using System.Collections.Generic;

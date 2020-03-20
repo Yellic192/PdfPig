@@ -1,10 +1,5 @@
 ﻿namespace UglyToad.PdfPig.Graphics
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.Linq;
-    using Colors;
     using Content;
     using Core;
     using Filters;
@@ -14,8 +9,14 @@
     using Parser;
     using PdfFonts;
     using PdfPig.Core;
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Linq;
     using Tokenization.Scanner;
     using Tokens;
+    using UglyToad.PdfPig.Core.Graphics;
+    using UglyToad.PdfPig.Core.Graphics.Colors;
     using XObjects;
 
     internal class ContentStreamProcessor : IOperationContext
@@ -400,12 +401,32 @@
         {
             if (CurrentPath != null && CurrentPath.Commands.Count > 0 && !currentPathAdded)
             {
-                paths.Add(CurrentPath);
-                markedContentStack.AddPath(CurrentPath);
+                AddPath(CurrentPath);
             }
 
             CurrentPath = new PdfPath();
             currentPathAdded = false;
+        }
+        
+        public void FillStrokePath(bool close)
+        {
+            if (CurrentPath == null)
+            {
+                return;
+            }
+
+            CurrentPath.IsFilled = true;
+            CurrentPath.IsStroked = true;
+
+            if (close)
+            {
+                ClosePath();
+            }
+            else
+            {
+                AddPath(CurrentPath);
+                currentPathAdded = true;
+            }
         }
 
         public void StrokePath(bool close)
@@ -415,14 +436,15 @@
                 return;
             }
 
+            CurrentPath.IsStroked = true;
+
             if (close)
             {
                 ClosePath();
             }
             else
             {
-                paths.Add(CurrentPath);
-                markedContentStack.AddPath(CurrentPath);
+                AddPath(CurrentPath);
                 currentPathAdded = true;
             }
         }
@@ -434,14 +456,15 @@
                 return;
             }
 
+            CurrentPath.IsFilled = true;
+
             if (close)
             {
                 ClosePath();
             }
             else
             {
-                paths.Add(CurrentPath);
-                markedContentStack.AddPath(CurrentPath);
+                AddPath(CurrentPath);
                 currentPathAdded = true;
             }
         }
@@ -449,10 +472,40 @@
         public void ClosePath()
         {
             CurrentPath.ClosePath();
-            paths.Add(CurrentPath);
-            markedContentStack.AddPath(CurrentPath);
+            AddPath(CurrentPath);
             CurrentPath = null;
             currentPathAdded = false;
+        }
+
+        public void EndPath()
+        {
+            /*
+             * End the path object without filling or stroking it. This operator shall be a path-painting no-op, 
+             * used primarily for the side effect of changing the current clipping path (see 8.5.4, "Clipping Path Operators").
+             */
+
+            paths.Add(CurrentPath);
+            markedContentStack.AddPath(CurrentPath);
+        }
+        
+        private void AddPath(PdfPath path)
+        {
+            var currentState = this.GetCurrentState();
+
+            if (CurrentPath.IsStroked)
+            {
+                CurrentPath.LineDashPattern = currentState.LineDashPattern;
+                CurrentPath.StrokeColor = currentState.CurrentStrokingColor;
+                CurrentPath.LineWidth = currentState.LineWidth;
+            }
+
+            if (CurrentPath.IsFilled)
+            {
+                CurrentPath.FillColor = currentState.CurrentNonStrokingColor;
+            }
+
+            paths.Add(CurrentPath);
+            markedContentStack.AddPath(CurrentPath);
         }
 
         public void SetNamedGraphicsState(NameToken stateName)
@@ -463,7 +516,7 @@
 
             if (state.TryGet(NameToken.Lw, pdfScanner, out NumericToken lwToken))
             {
-                currentGraphicsState.LineWidth = lwToken.Data;
+                currentGraphicsState.LineWidth = lwToken.Double;
             }
 
             if (state.TryGet(NameToken.Lc, pdfScanner, out NumericToken lcToken))
@@ -480,7 +533,7 @@
                 && fontArray.Data[0] is IndirectReferenceToken fontReference && fontArray.Data[1] is NumericToken sizeToken)
             {
                 currentGraphicsState.FontState.FromExtendedGraphicsState = true;
-                currentGraphicsState.FontState.FontSize = (double)sizeToken.Data;
+                currentGraphicsState.FontState.FontSize = sizeToken.Double;
                 activeExtendedGraphicsStateFont = resourceStore.GetFontDirectly(fontReference);
             }
         }

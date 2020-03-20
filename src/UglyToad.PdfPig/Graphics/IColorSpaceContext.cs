@@ -1,7 +1,7 @@
 ﻿namespace UglyToad.PdfPig.Graphics
 {
-    using Colors;
     using Tokens;
+    using UglyToad.PdfPig.Core.Graphics.Colors;
 
     /// <summary>
     /// Methods for manipulating and retrieving the current color state for a PDF content stream.

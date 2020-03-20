@@ -28,7 +28,8 @@
         /// <inheritdoc />
         public void Run(IOperationContext operationContext)
         {
-            operationContext.FillPath(true);
+            // TODO: set EvenOdd
+            operationContext.FillStrokePath(true);
         }
 
         /// <inheritdoc />

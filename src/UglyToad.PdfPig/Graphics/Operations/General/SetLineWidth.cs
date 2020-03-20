@@ -19,13 +19,13 @@
         /// <summary>
         /// The line width.
         /// </summary>
-        public decimal Width { get; }
+        public double Width { get; }
 
         /// <summary>
         /// Create a new <see cref="SetLineWidth"/>.
         /// </summary>
         /// <param name="width">The line width.</param>
-        public SetLineWidth(decimal width)
+        public SetLineWidth(double width)
         {
             Width = width;
         }
@@ -41,7 +41,7 @@
         /// <inheritdoc />
         public void Write(Stream stream)
         {
-            stream.WriteNumberText(Width, Symbol);
+            stream.WriteNumberText((decimal)Width, Symbol);
         }
 
         /// <inheritdoc />

@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using UglyToad.PdfPig.Core.Graphics.Colors;
 
     /// <summary>
     /// A color with red, green and blue components.

@@ -1,4 +1,4 @@
-﻿namespace UglyToad.PdfPig.Graphics.Colors
+﻿namespace UglyToad.PdfPig.Core.Graphics.Colors
 {
     /// <summary>
     /// A color used for text or paths in a PDF.

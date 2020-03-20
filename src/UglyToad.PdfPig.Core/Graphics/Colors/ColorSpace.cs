@@ -1,4 +1,4 @@
-﻿namespace UglyToad.PdfPig.Graphics.Colors
+﻿namespace UglyToad.PdfPig.Core.Graphics.Colors
 {
     /// <summary>
     /// Color values in a PDF are interpreted according to the current color space.

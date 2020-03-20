@@ -64,7 +64,7 @@
         /// <param name="from">The first point on the line.</param>
         /// <param name="to">The last point on the line.</param>
         /// <param name="lineWidth">The width of the line in user space units.</param>
-        public void DrawLine(PdfPoint from, PdfPoint to, decimal lineWidth = 1)
+        public void DrawLine(PdfPoint from, PdfPoint to, double lineWidth = 1)
         {
             if (lineWidth != 1)
             {
@@ -88,7 +88,7 @@
         /// <param name="width">The width of the rectangle.</param>
         /// <param name="height">The height of the rectangle.</param>
         /// <param name="lineWidth">The width of the line border of the rectangle.</param>
-        public void DrawRectangle(PdfPoint position, decimal width, decimal height, decimal lineWidth = 1)
+        public void DrawRectangle(PdfPoint position, decimal width, decimal height, double lineWidth = 1)
         {
             if (lineWidth != 1)
             {

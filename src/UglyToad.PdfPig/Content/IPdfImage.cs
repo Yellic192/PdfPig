@@ -1,9 +1,9 @@
 ﻿namespace UglyToad.PdfPig.Content
 {
-    using System.Collections.Generic;
     using Core;
-    using Graphics.Colors;
     using Graphics.Core;
+    using System.Collections.Generic;
+    using UglyToad.PdfPig.Core.Graphics.Colors;
     using XObjects;
 
     /// <summary>
@@ -29,9 +29,9 @@
         /// <summary>
         /// The <see cref="ColorSpace"/> used to interpret the image.
         /// This defines the number of color components per sample, e.g.
-        /// 1 component for <see cref="Graphics.Colors.ColorSpace.DeviceGray"/>,
-        /// 3 components for <see cref="Graphics.Colors.ColorSpace.DeviceRGB"/>,
-        /// 4 components for <see cref="Graphics.Colors.ColorSpace.DeviceCMYK"/>,
+        /// 1 component for <see cref="ColorSpace.DeviceGray"/>,
+        /// 3 components for <see cref="ColorSpace.DeviceRGB"/>,
+        /// 4 components for <see cref="ColorSpace.DeviceCMYK"/>,
         /// etc.
         /// This is not defined where <see cref="IsImageMask"/> is <see langword="true"/> and is optional where the image is JPXEncoded for <see cref="XObjectImage"/>.
         /// </summary>

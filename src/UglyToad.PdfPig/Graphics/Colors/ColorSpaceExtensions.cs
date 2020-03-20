@@ -2,6 +2,7 @@
 {
     using System;
     using Tokens;
+    using UglyToad.PdfPig.Core.Graphics.Colors;
 
     /// <summary>
     /// Provides utility extension methods for dealing with <see cref="ColorSpace"/>s.

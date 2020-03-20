@@ -2,7 +2,7 @@
 {
     using System;
     using System.IO;
-    using Core;
+    using UglyToad.PdfPig.Core.Graphics;
 
     /// <inheritdoc />
     public class SetLineJoin : IGraphicsStateOperation

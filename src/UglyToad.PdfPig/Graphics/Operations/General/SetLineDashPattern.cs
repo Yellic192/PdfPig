@@ -1,7 +1,7 @@
 ﻿namespace UglyToad.PdfPig.Graphics.Operations.General
 {
     using System.IO;
-    using Core;
+    using UglyToad.PdfPig.Core.Graphics;
 
     /// <inheritdoc />
     /// <summary>

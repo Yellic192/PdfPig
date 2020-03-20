@@ -93,6 +93,12 @@
         void FillPath(bool close);
 
         /// <summary>
+        /// Fill and stroke the current path.
+        /// </summary>
+        /// <param name="close">Whether to also close the path.</param>
+        void FillStrokePath(bool close);
+
+        /// <summary>
         /// Close the current path.
         /// </summary>
         void ClosePath();

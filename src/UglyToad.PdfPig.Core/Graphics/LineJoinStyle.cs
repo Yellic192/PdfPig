@@ -1,4 +1,4 @@
-﻿namespace UglyToad.PdfPig.Graphics.Core
+﻿namespace UglyToad.PdfPig.Core.Graphics
 {
     /// <summary>
     /// The line join style specifies the shape to be used at the corners of paths that are stroked.

@@ -1,16 +1,17 @@
 ﻿namespace UglyToad.PdfPig.XObjects
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using Content;
     using Core;
     using Filters;
     using Graphics;
     using Graphics.Colors;
     using Graphics.Core;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using Tokenization.Scanner;
     using Tokens;
+    using UglyToad.PdfPig.Core.Graphics.Colors;
 
     internal static class XObjectFactory
     {

@@ -2,6 +2,7 @@
 {
     using Core;
     using Graphics.Colors;
+    using UglyToad.PdfPig.Core.Graphics.Colors;
 
     /// <summary>
     /// A glyph or combination of glyphs (characters) drawn by a PDF content stream.

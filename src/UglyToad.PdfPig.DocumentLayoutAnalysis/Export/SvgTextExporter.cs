@@ -6,8 +6,7 @@
     using System.Text;
     using UglyToad.PdfPig.Content;
     using UglyToad.PdfPig.Core;
-    using UglyToad.PdfPig.Fonts.Type1.Parser;
-    using UglyToad.PdfPig.Graphics.Colors;
+    using UglyToad.PdfPig.Core.Graphics.Colors;
 
     // https://www.sarasoueidan.com/blog/svg-coordinate-systems/
 
@@ -148,7 +147,7 @@
         private static string ColorToSvg(IColor color)
         {
             var (r, g, b) = color.ToRGBValues();
-            return $"rgb({Math.Round(r * 255, 0)},{Math.Round(g * 255, 0)},{Math.Round(b * 255, 0)})";
+            return $"rgb({Math.Ceiling(r * 255)},{Math.Ceiling(g * 255)},{Math.Ceiling(b * 255)})";
         }
 
         private static string PathToSvg(PdfPath p, double height)
@@ -156,10 +155,8 @@
             var builder = new StringBuilder();
             foreach (var pathCommand in p.Commands)
             {
-                //Console.WriteLine(pathCommand.GetType().ToString());
                 pathCommand.WriteSvg(builder, height);
             }
-            //Console.WriteLine();
 
             if (builder.Length == 0)
             {
@@ -173,7 +170,14 @@
 
             var glyph = builder.ToString();
 
-            var path = $"<path d='{glyph}' stroke='black' stroke-width='1' fill='none'></path>";
+            var strokeColor = p.StrokeColor != null ? ColorToSvg(p.StrokeColor) : "none"; // none
+            var lineWidth = double.IsNaN(p.LineWidth) ? 1 : p.LineWidth; // 0
+            var fillColor = p.FillColor != null ? ColorToSvg(p.FillColor) : "none"; // none
+
+            string dashArray = "";
+            //if (p.LineDashPattern.HasValue) dashArray = $" stroke-dasharray='{string.Join(" ", p.LineDashPattern.Value.Array)}'";
+
+            var path = $"<path d='{glyph}' stroke='{strokeColor}' stroke-width='{lineWidth}'{dashArray} fill='{fillColor}'></path>";
             return path;
         }
     }

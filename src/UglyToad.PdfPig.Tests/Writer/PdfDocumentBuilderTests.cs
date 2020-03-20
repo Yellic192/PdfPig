@@ -127,8 +127,8 @@
             page.SetStrokeColor(250, 132, 131);
             page.DrawLine(new PdfPoint(25, 70), new PdfPoint(100, 70), 3);
             page.ResetColor();
-            page.DrawRectangle(new PdfPoint(30, 200), 250, 100, 0.5m);
-            page.DrawRectangle(new PdfPoint(30, 100), 250, 100, 0.5m);
+            page.DrawRectangle(new PdfPoint(30, 200), 250, 100, 0.5);
+            page.DrawRectangle(new PdfPoint(30, 100), 250, 100, 0.5);
 
             var file = TrueTypeTestHelper.GetFileBytes("Andada-Regular.ttf");
 

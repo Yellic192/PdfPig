@@ -1,9 +1,10 @@
 ﻿// ReSharper disable RedundantDefaultMemberInitializer
 namespace UglyToad.PdfPig.Graphics
 {
-    using Colors;
     using Core;
     using PdfPig.Core;
+    using UglyToad.PdfPig.Core.Graphics;
+    using UglyToad.PdfPig.Core.Graphics.Colors;
 
     /// <summary>
     /// The state of the current graphics control parameters set by operations in the content stream.
@@ -21,7 +22,7 @@ namespace UglyToad.PdfPig.Graphics
         /// <summary>
         /// Thickness in user space units of path to be stroked.
         /// </summary>
-        public decimal LineWidth { get; set; } = 1;
+        public double LineWidth { get; set; } = 1;
 
         /// <summary>
         /// Specifies the shape of line ends for open stroked paths.

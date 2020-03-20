@@ -1,4 +1,4 @@
-﻿namespace UglyToad.PdfPig.Graphics.Core
+﻿namespace UglyToad.PdfPig.Core.Graphics
 {
     /// <summary>
     /// The line cap style specifies the shape to be used at the ends of open subpaths (and dashes, if any) when they are stroked.

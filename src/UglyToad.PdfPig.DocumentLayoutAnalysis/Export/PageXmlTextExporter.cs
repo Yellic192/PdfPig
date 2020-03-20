@@ -3,13 +3,13 @@
     using Content;
     using Core;
     using DocumentLayoutAnalysis;
-    using Graphics.Colors;
     using PAGE;
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Xml;
     using System.Xml.Serialization;
+    using UglyToad.PdfPig.Core.Graphics.Colors;
     using UglyToad.PdfPig.DocumentLayoutAnalysis.PageSegmenter;
     using UglyToad.PdfPig.DocumentLayoutAnalysis.ReadingOrderDetector;
     using Util;

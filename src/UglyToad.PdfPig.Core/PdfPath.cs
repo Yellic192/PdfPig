@@ -4,6 +4,8 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
+    using UglyToad.PdfPig.Core.Graphics;
+    using UglyToad.PdfPig.Core.Graphics.Colors;
 
     /// <summary>
     /// A path in a PDF document, used by glyphs and page content. Can contain multiple sub-paths.
@@ -28,9 +30,39 @@
         public ClippingRule ClippingRule { get; private set; }
 
         /// <summary>
+        /// 
+        /// </summary>
+        public IColor FillColor { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public IColor StrokeColor { get; set; }
+
+        /// <summary>
+        /// Thickness in user space units of path to be stroked.
+        /// </summary>
+        public double LineWidth { get; set; } = double.NaN;
+
+        /// <summary>
+        /// The pattern to be used for stroked lines.
+        /// </summary>
+        public LineDashPattern? LineDashPattern { get; set; }
+        
+        /// <summary>
         /// Returns true if this is a clipping path.
         /// </summary>
         public bool IsClipping { get; private set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public bool IsFilled { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public bool IsStroked { get; set; }
 
         private PdfPoint? currentPosition;
 

@@ -126,7 +126,7 @@ namespace UglyToad.PdfPig.Graphics
                 case SetLineJoin.Symbol:
                     return new SetLineJoin(OperandToInt(operands[0]));
                 case SetLineWidth.Symbol:
-                    return new SetLineWidth(OperandToDecimal(operands[0]));
+                    return new SetLineWidth((double)OperandToDecimal(operands[0]));
                 case SetMiterLimit.Symbol:
                     return new SetMiterLimit(OperandToDecimal(operands[0]));
                 case AppendDualControlPointBezierCurve.Symbol:

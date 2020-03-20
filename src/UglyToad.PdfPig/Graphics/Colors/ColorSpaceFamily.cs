@@ -1,8 +1,8 @@
 ﻿namespace UglyToad.PdfPig.Graphics.Colors
 {
     /// <summary>
-    /// <see cref="ColorSpace"/>s can be classified into colorspace families.
-    /// <see cref="ColorSpace"/>s within the same family share general characteristics.
+    /// <see cref="PdfPig.Core.Graphics.Colors"/>s can be classified into colorspace families.
+    /// <see cref="PdfPig.Core.Graphics.Colors"/>s within the same family share general characteristics.
     /// </summary>
     public enum ColorSpaceFamily
     {
