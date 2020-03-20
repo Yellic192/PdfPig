@@ -27,7 +27,7 @@
         /// <summary>
         /// Rules for determining which points lie inside/outside the path.
         /// </summary>
-        public ClippingRule ClippingRule { get; private set; }
+        public FillingRule FillingRule { get; private set; }
 
         /// <summary>
         /// 
@@ -48,7 +48,17 @@
         /// The pattern to be used for stroked lines.
         /// </summary>
         public LineDashPattern? LineDashPattern { get; set; }
-        
+
+        /// <summary>
+        /// The cap style to be used for stroked lines.
+        /// </summary>
+        public LineCapStyle LineCapStyle { get; set; }
+
+        /// <summary>
+        /// The join style to be used for stroked lines.
+        /// </summary>
+        public LineJoinStyle LineJoinStyle { get; set; }
+
         /// <summary>
         /// Returns true if this is a clipping path.
         /// </summary>
@@ -109,12 +119,20 @@
         /// <summary>
         /// Set the clipping mode for this path.
         /// </summary>
-        public void SetClipping(ClippingRule clippingRule)
+        public void SetClipping(FillingRule fillingRule)
         {
             IsClipping = true;
-            ClippingRule = clippingRule;
+            FillingRule = fillingRule;
         }
 
+        /// <summary>
+        /// Set the filling rule for this path.
+        /// </summary>
+        public void SetFillingRule(FillingRule fillingRule)
+        {
+            FillingRule = fillingRule;
+        }
+        
         internal static PdfPoint GetStartPoint(IPathCommand command)
         {
             if (command is Line line)

@@ -90,13 +90,15 @@
         /// Fill the current path.
         /// </summary>
         /// <param name="close">Whether to also close the path.</param>
-        void FillPath(bool close);
+        /// <param name="fillingRule"></param>
+        void FillPath(bool close, FillingRule fillingRule);
 
         /// <summary>
         /// Fill and stroke the current path.
         /// </summary>
         /// <param name="close">Whether to also close the path.</param>
-        void FillStrokePath(bool close);
+        /// <param name="fillingRule"></param>
+        void FillStrokePath(bool close, FillingRule fillingRule);
 
         /// <summary>
         /// Close the current path.
@@ -137,6 +139,6 @@
         /// <summary>
         /// Modify the clipping rule of the current path.
         /// </summary>
-        void ModifyClippingIntersect(ClippingRule clippingRule);
+        void ModifyClippingIntersect(FillingRule clippingRule);
     }
 }

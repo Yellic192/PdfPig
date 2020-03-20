@@ -68,11 +68,11 @@
         {
         }
 
-        public void FillPath(bool close)
+        public void FillPath(bool close, FillingRule fillingRule)
         {
         }
 
-        public void FillStrokePath(bool close)
+        public void FillStrokePath(bool close, FillingRule fillingRule)
         {
         }
 
@@ -104,7 +104,7 @@
         {
         }
 
-        public void ModifyClippingIntersect(ClippingRule clippingRule)
+        public void ModifyClippingIntersect(FillingRule clippingRule)
         {
         }
 

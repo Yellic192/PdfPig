@@ -31,9 +31,9 @@
             {
                 if (path.IsClipping)
                 {
-                    var svg = PathToSvg(path, page.Height);
-                    svg = svg.Replace("stroke='black'", "stroke='yellow'");
-                    builder.Append(svg);
+                    //var svg = PathToSvg(path, page.Height);
+                    //svg = svg.Replace("stroke='black'", "stroke='yellow'");
+                    //builder.Append(svg);
                 }
                 else
                 {
@@ -170,14 +170,43 @@
 
             var glyph = builder.ToString();
 
-            var strokeColor = p.StrokeColor != null ? ColorToSvg(p.StrokeColor) : "none"; // none
+            var strokeColor = p.IsStroked ? ColorToSvg(p.StrokeColor) : "yellow"; // "black"; // none
             var lineWidth = double.IsNaN(p.LineWidth) ? 1 : p.LineWidth; // 0
-            var fillColor = p.FillColor != null ? ColorToSvg(p.FillColor) : "none"; // none
+            var fillColor = p.IsFilled ? ColorToSvg(p.FillColor) : "none"; // none
 
             string dashArray = "";
-            //if (p.LineDashPattern.HasValue) dashArray = $" stroke-dasharray='{string.Join(" ", p.LineDashPattern.Value.Array)}'";
+            if (p.LineDashPattern.HasValue && p.LineDashPattern.Value.Array.Count > 0)
+            {
+                dashArray = $" stroke-dasharray='{string.Join(" ", p.LineDashPattern.Value.Array)}'";
+            }
 
-            var path = $"<path d='{glyph}' stroke='{strokeColor}' stroke-width='{lineWidth}'{dashArray} fill='{fillColor}'></path>";
+            string capStyle = "";
+            if (p.LineCapStyle != Core.Graphics.LineCapStyle.Butt)
+            {
+                if (p.LineCapStyle == Core.Graphics.LineCapStyle.Round)
+                {
+                    capStyle = " stroke-linecap='round'";
+                }
+                else
+                {
+                    capStyle = " stroke-linecap='square'";
+                }
+            }
+
+            string jointStyle = "";
+            if (p.LineJoinStyle != Core.Graphics.LineJoinStyle.Miter)
+            {
+                if (p.LineJoinStyle == Core.Graphics.LineJoinStyle.Round)
+                {
+                    jointStyle = " stroke-linejoin='round'";
+                }
+                else
+                {
+                    jointStyle = " stroke-linejoin='bevel'";
+                }
+            }
+
+            var path = $"<path d='{glyph}' stroke='{strokeColor}' stroke-width='{lineWidth}'{dashArray}{capStyle}{jointStyle} fill='{fillColor}'></path>";
             return path;
         }
     }

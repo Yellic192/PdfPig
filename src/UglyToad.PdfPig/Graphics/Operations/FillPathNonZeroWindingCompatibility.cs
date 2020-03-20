@@ -29,7 +29,7 @@
         /// <inheritdoc />
         public void Run(IOperationContext operationContext)
         {
-            operationContext.FillPath(false);
+            operationContext.FillPath(false, PdfPig.Core.FillingRule.NonZeroWinding);
         }
 
         /// <inheritdoc />

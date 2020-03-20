@@ -29,7 +29,7 @@
         public void Run(IOperationContext operationContext)
         {
             // TODO: set EvenOdd
-            operationContext.FillStrokePath(true);
+            operationContext.FillStrokePath(true, PdfPig.Core.FillingRule.EvenOdd);
         }
 
         /// <inheritdoc />

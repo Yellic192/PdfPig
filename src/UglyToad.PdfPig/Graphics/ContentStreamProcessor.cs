@@ -408,13 +408,15 @@
             currentPathAdded = false;
         }
         
-        public void FillStrokePath(bool close)
+        public void FillStrokePath(bool close, FillingRule fillingRule)
         {
+            Console.WriteLine("FillStrokePath()");
             if (CurrentPath == null)
             {
                 return;
             }
 
+            CurrentPath.SetFillingRule(fillingRule);
             CurrentPath.IsFilled = true;
             CurrentPath.IsStroked = true;
 
@@ -449,13 +451,14 @@
             }
         }
 
-        public void FillPath(bool close)
+        public void FillPath(bool close, FillingRule fillingRule)
         {
             if (CurrentPath == null)
             {
                 return;
             }
 
+            CurrentPath.SetFillingRule(fillingRule);
             CurrentPath.IsFilled = true;
 
             if (close)
@@ -497,6 +500,8 @@
                 CurrentPath.LineDashPattern = currentState.LineDashPattern;
                 CurrentPath.StrokeColor = currentState.CurrentStrokingColor;
                 CurrentPath.LineWidth = currentState.LineWidth;
+                CurrentPath.LineCapStyle = currentState.CapStyle;
+                CurrentPath.LineJoinStyle = currentState.JoinStyle;
             }
 
             if (CurrentPath.IsFilled)
@@ -608,7 +613,7 @@
             TextMatrices.TextMatrix = newMatrix;
         }
 
-        public void ModifyClippingIntersect(ClippingRule clippingRule)
+        public void ModifyClippingIntersect(FillingRule clippingRule)
         {
             if (CurrentPath == null)
             {

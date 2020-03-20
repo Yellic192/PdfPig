@@ -28,8 +28,7 @@
         /// <inheritdoc />
         public void Run(IOperationContext operationContext)
         {
-            // TODO: set NonZeroWinding
-            operationContext.FillStrokePath(true);
+            operationContext.FillStrokePath(true, PdfPig.Core.FillingRule.NonZeroWinding);
         }
 
         /// <inheritdoc />

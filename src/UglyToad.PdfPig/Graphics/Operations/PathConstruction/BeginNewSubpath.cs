@@ -26,7 +26,7 @@
         /// The y coordinate for the subpath to begin at.
         /// </summary>
         public decimal Y { get; }
-        
+
         /// <summary>
         /// Create a new <see cref="BeginNewSubpath"/>.
         /// </summary>
@@ -41,7 +41,7 @@
         /// <inheritdoc />
         public void Run(IOperationContext operationContext)
         {
-            // store previous 
+            // store previous info
             var stroked = false;
             var filled = false;
             if (operationContext.CurrentPath != null)
