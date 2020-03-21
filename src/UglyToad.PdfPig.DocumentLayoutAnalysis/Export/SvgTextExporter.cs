@@ -24,7 +24,7 @@
         /// <returns></returns>
         public string Get(Page page)
         {
-            var builder = new StringBuilder($"<svg width='{page.Width}' height='{page.Height}'><g transform=\"scale(1, 1) translate(0, 0)\">");
+            var builder = new StringBuilder($"<svg width='{page.Width}' height='{page.Height}'>\n\t<g transform=\"scale(1, 1) translate(0, 0)\">");
 
             var paths = page.ExperimentalAccess.Paths;
             foreach (var path in paths)
@@ -47,7 +47,7 @@
                 builder.Append(LetterToSvg(letter, page.Height));
             }
 
-            builder.Append("</g></svg>");
+            builder.Append("\n\t</g>\n</svg>");
             return builder.ToString();
         }
 
@@ -175,7 +175,7 @@
             string dashArray = "";
             string capStyle = "";
             string jointStyle = "";
-            string strokeColor = " stroke='none'";
+            string strokeColor = " stroke='none'"; // none yellow
             string strokeWidth = "";
 
             if (p.IsStroked)
@@ -222,7 +222,7 @@
                 //if (p.FillingRule == FillingRule.EvenOdd) fillRule = " fill-rule='evenodd'";
             }
 
-            var path = $"<path d='{glyph}'{strokeColor}{strokeWidth}{dashArray}{capStyle}{jointStyle}{fillColor}{fillRule}></path>";
+            var path = $"\n\t\t<path d='{glyph}'{strokeColor}{strokeWidth}{dashArray}{capStyle}{jointStyle}{fillColor}{fillRule}></path>";
             return path;
         }
     }

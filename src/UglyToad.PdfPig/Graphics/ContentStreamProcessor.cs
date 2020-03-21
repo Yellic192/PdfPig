@@ -407,10 +407,9 @@
             CurrentPath = new PdfPath();
             currentPathAdded = false;
         }
-        
+
         public void FillStrokePath(bool close, FillingRule fillingRule)
         {
-            Console.WriteLine("FillStrokePath()");
             if (CurrentPath == null)
             {
                 return;
@@ -503,6 +502,18 @@
                 CurrentPath.LineCapStyle = currentState.CapStyle;
                 CurrentPath.LineJoinStyle = currentState.JoinStyle;
             }
+
+            // odd behaviour
+            /*else if (paths.Count > 0 && paths.Last().IsStroked)
+            {
+                CurrentPath.IsStroked = true;
+                CurrentPath.LineDashPattern = paths.Last().LineDashPattern;
+                CurrentPath.StrokeColor = paths.Last().StrokeColor;
+                CurrentPath.LineWidth = paths.Last().LineWidth;
+                CurrentPath.LineCapStyle = paths.Last().LineCapStyle;
+                CurrentPath.LineJoinStyle = paths.Last().LineJoinStyle;
+            }*/
+            // end odd behaviour below
 
             if (CurrentPath.IsFilled)
             {

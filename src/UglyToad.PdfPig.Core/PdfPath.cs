@@ -236,7 +236,14 @@
             else
             {
                 // TODO: probably the wrong behaviour here, maybe line starts from (0, 0)?
-                MoveTo(x, y);
+                //MoveTo(x, y);
+                /*
+                 * The trailing endpoint of the segment most recently added to the current path is referred to as 
+                 * the current point. If the current path is empty, the current point shall be undefined. Most 
+                 * operators that add a segment to the current path start at the current point; if the current 
+                 * point is undefined, an error shall be generated.
+                 */
+                throw new ArgumentNullException("Current point has no value.");
             }
         }
 
@@ -272,7 +279,14 @@
             }
             else
             {
-                MoveTo(x3, y3);
+                /*
+                 * The trailing endpoint of the segment most recently added to the current path is referred to as 
+                 * the current point. If the current path is empty, the current point shall be undefined. Most 
+                 * operators that add a segment to the current path start at the current point; if the current 
+                 * point is undefined, an error shall be generated.
+                 */
+                throw new ArgumentNullException("Current point has no value.");
+                //MoveTo(x3, y3);
             }
         }
 
@@ -281,6 +295,13 @@
         /// </summary>
         public void ClosePath()
         {
+            /*
+             * Close the current subpath by appending a straight line segment from the current point to the starting 
+             * point of the subpath. If the current subpath is already closed, h shall donothing.
+             * 
+             * This operator terminates the current subpath. Appending another segment to the current path shall 
+             * begin a new subpath, even if the new segment begins at the endpoint reached by the h operation.
+             */
             if (currentPosition.HasValue)
             {
                 var startPoint = GetStartPoint(commands.First());
@@ -289,7 +310,7 @@
                     shoeLaceSum += (startPoint.X - currentPosition.Value.X) * (startPoint.Y + currentPosition.Value.Y);
                 }
             }
-            commands.Add(new Close());
+            if (!commands.Contains(new Close())) commands.Add(new Close());
         }
 
         /// <summary>
