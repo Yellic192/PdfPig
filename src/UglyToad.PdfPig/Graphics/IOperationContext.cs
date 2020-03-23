@@ -106,6 +106,11 @@
         void ClosePath();
 
         /// <summary>
+        /// 
+        /// </summary>
+        void EndPath();
+
+        /// <summary>
         /// Indicate that a marked content region is started.
         /// </summary>
         void BeginMarkedContent(NameToken name, NameToken propertyDictionaryName, DictionaryToken properties);

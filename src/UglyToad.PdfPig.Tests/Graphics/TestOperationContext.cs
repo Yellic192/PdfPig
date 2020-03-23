@@ -80,6 +80,10 @@
         {
         }
 
+        public void EndPath()
+        {
+        }
+
         public void SetNamedGraphicsState(NameToken stateName)
         {
         }
