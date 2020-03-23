@@ -1,35 +1,35 @@
-﻿namespace UglyToad.PdfPig.Graphics.Operations.PathConstruction
+﻿namespace UglyToad.PdfPig.Graphics.Operations.PathPainting
 {
     using System.IO;
 
     /// <inheritdoc />
     /// <summary>
-    /// Close the current subpath by appending a straight line segment from the current point to the starting point of the subpath. 
-    /// If the current subpath is already closed, this does nothing. 
+    /// Fill the path, using the nonzero winding number rule to determine the region to fill. 
+    /// Any subpaths that are open are implicitly closed before being filled.
     /// </summary>
-    public class CloseSubpath : IGraphicsStateOperation
+    public class FillPathNonZeroWinding : IGraphicsStateOperation
     {
         /// <summary>
         /// The symbol for this operation in a stream.
         /// </summary>
-        public const string Symbol = "h";
+        public const string Symbol = "f";
 
         /// <summary>
-        /// The instance of the <see cref="CloseSubpath"/> operation.
+        /// The instance of the <see cref="FillPathNonZeroWinding"/> operation.
         /// </summary>
-        public static readonly CloseSubpath Value = new CloseSubpath();
+        public static readonly FillPathNonZeroWinding Value = new FillPathNonZeroWinding();
 
         /// <inheritdoc />
         public string Operator => Symbol;
 
-        private CloseSubpath()
+        private FillPathNonZeroWinding()
         {
         }
 
         /// <inheritdoc />
         public void Run(IOperationContext operationContext)
         {
-            operationContext.CurrentPath?.ClosePath();
+            operationContext.FillPath(false, PdfPig.Core.FillingRule.NonZeroWinding);
         }
 
         /// <inheritdoc />
