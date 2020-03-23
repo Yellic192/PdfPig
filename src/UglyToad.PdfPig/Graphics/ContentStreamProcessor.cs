@@ -29,7 +29,7 @@
         /// <summary>
         /// Stores each path as it is encountered in the content stream.
         /// </summary>
-        private readonly List<PdfPath> paths = new List<PdfPath>();
+        public List<PdfPath> Paths { get; }
 
         /// <summary>
         /// Stores a link to each image (either inline or XObject) as it is encountered in the content stream.
@@ -87,6 +87,7 @@
             IFilterProvider filterProvider,
             ILog log)
         {
+            Paths = new List<PdfPath>();
             this.resourceStore = resourceStore;
             this.userSpaceUnit = userSpaceUnit;
             this.rotation = rotation;
@@ -105,7 +106,7 @@
 
             ProcessOperations(operations);
 
-            return new PageContent(operations, letters, paths, images, markedContents, pdfScanner, filterProvider, resourceStore);
+            return new PageContent(operations, letters, Paths, images, markedContents, pdfScanner, filterProvider, resourceStore);
         }
 
         private void ProcessOperations(IReadOnlyList<IGraphicsStateOperation> operations)
@@ -413,6 +414,7 @@
             Console.WriteLine("FillStrokePath()");
             if (CurrentPath == null)
             {
+                Console.WriteLine("FillStrokePath(null)");
                 return;
             }
 
@@ -427,7 +429,6 @@
             else
             {
                 AddPath(CurrentPath);
-                currentPathAdded = true;
             }
         }
 
@@ -435,6 +436,7 @@
         {
             if (CurrentPath == null)
             {
+                Console.WriteLine("StrokePath(null)");
                 return;
             }
 
@@ -447,7 +449,6 @@
             else
             {
                 AddPath(CurrentPath);
-                currentPathAdded = true;
             }
         }
 
@@ -455,6 +456,7 @@
         {
             if (CurrentPath == null)
             {
+                Console.WriteLine("FillPath(null)");
                 return;
             }
 
@@ -468,7 +470,6 @@
             else
             {
                 AddPath(CurrentPath);
-                currentPathAdded = true;
             }
         }
 
@@ -487,8 +488,10 @@
              * used primarily for the side effect of changing the current clipping path (see 8.5.4, "Clipping Path Operators").
              */
 
-            paths.Add(CurrentPath);
+            Paths.Add(CurrentPath);
             markedContentStack.AddPath(CurrentPath);
+            CurrentPath = null;
+            currentPathAdded = true;
         }
         
         private void AddPath(PdfPath path)
@@ -509,8 +512,9 @@
                 CurrentPath.FillColor = currentState.CurrentNonStrokingColor;
             }
 
-            paths.Add(CurrentPath);
+            Paths.Add(CurrentPath);
             markedContentStack.AddPath(CurrentPath);
+            currentPathAdded = true;
         }
 
         public void SetNamedGraphicsState(NameToken stateName)

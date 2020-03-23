@@ -41,13 +41,31 @@
         /// <inheritdoc />
         public void Run(IOperationContext operationContext)
         {
-            // store previous info
+            // store previous stroking info
             var stroked = false;
-            var filled = false;
-            if (operationContext.CurrentPath != null)
+            if (operationContext.CurrentPath != null && !operationContext.CurrentPath.IsClipping)
             {
                 stroked = operationContext.CurrentPath.IsStroked;
-                filled = operationContext.CurrentPath.IsFilled;
+            }
+            else if (operationContext.Paths.Count >= 1)
+            {
+                var previousPath = operationContext.Paths[operationContext.Paths.Count - 1];
+                if (!previousPath.IsClipping)
+                {
+                    stroked = previousPath.IsStroked;
+                }
+                else
+                {
+                    System.Console.WriteLine("previous path is clipping.");
+                    if (operationContext.Paths.Count >= 2)
+                    {
+                        previousPath = operationContext.Paths[operationContext.Paths.Count - 2];
+                        if (!previousPath.IsClipping)
+                        {
+                            stroked = previousPath.IsStroked;
+                        }
+                    }
+                }
             }
 
             var point = new PdfPoint(X, Y);
@@ -56,8 +74,8 @@
             operationContext.CurrentPosition = pointTransform;
             operationContext.CurrentPath.MoveTo(pointTransform.X, pointTransform.Y);
 
+            // apply stroke info
             operationContext.CurrentPath.IsStroked = stroked;
-            operationContext.CurrentPath.IsFilled = filled;
         }
 
         /// <inheritdoc />
