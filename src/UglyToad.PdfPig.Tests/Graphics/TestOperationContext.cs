@@ -10,11 +10,6 @@
 
     internal class TestOperationContext : IOperationContext
     {
-        /// <summary>
-        /// Stores each path as it is encountered in the content stream.
-        /// </summary>
-        public List<PdfPath> Paths { get; }
-
         public Stack<CurrentGraphicsState> StateStack { get; }
             = new Stack<CurrentGraphicsState>();
 
@@ -81,9 +76,9 @@
         {
         }
 
-        public void ClosePath()
+        /*public void ClosePath()
         {
-        }
+        }*/
 
         public void EndPath()
         {

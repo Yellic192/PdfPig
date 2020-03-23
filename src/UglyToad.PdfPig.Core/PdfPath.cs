@@ -121,6 +121,8 @@
         /// </summary>
         public void SetClipping(FillingRule fillingRule)
         {
+            IsFilled = false;
+            IsStroked = false;
             IsClipping = true;
             FillingRule = fillingRule;
         }
@@ -236,7 +238,9 @@
             else
             {
                 // TODO: probably the wrong behaviour here, maybe line starts from (0, 0)?
-                MoveTo(x, y);
+                //MoveTo(x, y);
+                // PDF Reference 1.7 p226
+                throw new ArgumentNullException("LineTo(): currentPosition is null.");
             }
         }
 
@@ -272,7 +276,9 @@
             }
             else
             {
-                MoveTo(x3, y3);
+                //MoveTo(x3, y3);
+                // PDF Reference 1.7 p226
+                throw new ArgumentNullException("BezierCurveTo(): currentPosition is null.");
             }
         }
 

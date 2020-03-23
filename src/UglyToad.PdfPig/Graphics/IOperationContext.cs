@@ -11,11 +11,6 @@
     public interface IOperationContext
     {
         /// <summary>
-        /// Stores each path as it is encountered in the content stream.
-        /// </summary>
-        List<PdfPath> Paths { get; }
-
-        /// <summary>
         /// The current path being drawn if applicable.
         /// </summary>
         [CanBeNull]
@@ -105,10 +100,10 @@
         /// <param name="fillingRule"></param>
         void FillStrokePath(bool close, FillingRule fillingRule);
 
-        /// <summary>
+        /*/// <summary>
         /// Close the current path.
         /// </summary>
-        void ClosePath();
+        void ClosePath();*/
 
         /// <summary>
         /// 

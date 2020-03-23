@@ -35,7 +35,7 @@
         /// <inheritdoc />
         public void Write(Stream stream)
         {
-            stream.WriteText(Symbol);
+            stream.WriteText(FillPathNonZeroWinding.Symbol); // Although PDF consumer applications must be able to accept the operator, PDF producer applications shoud use f instead.
             stream.WriteNewLine();
         }
 

@@ -29,7 +29,7 @@
         /// <summary>
         /// Stores each path as it is encountered in the content stream.
         /// </summary>
-        public List<PdfPath> Paths { get; }
+        private readonly List<PdfPath> paths = new List<PdfPath>();
 
         /// <summary>
         /// Stores a link to each image (either inline or XObject) as it is encountered in the content stream.
@@ -53,7 +53,7 @@
         private Stack<CurrentGraphicsState> graphicsStack = new Stack<CurrentGraphicsState>();
         private IFont activeExtendedGraphicsStateFont;
         private InlineImageBuilder inlineImageBuilder;
-        private bool currentPathAdded;
+        //private bool currentPathAdded;
         private int pageNumber;
 
         /// <summary>
@@ -87,7 +87,6 @@
             IFilterProvider filterProvider,
             ILog log)
         {
-            Paths = new List<PdfPath>();
             this.resourceStore = resourceStore;
             this.userSpaceUnit = userSpaceUnit;
             this.rotation = rotation;
@@ -106,7 +105,7 @@
 
             ProcessOperations(operations);
 
-            return new PageContent(operations, letters, Paths, images, markedContents, pdfScanner, filterProvider, resourceStore);
+            return new PageContent(operations, letters, paths, images, markedContents, pdfScanner, filterProvider, resourceStore);
         }
 
         private void ProcessOperations(IReadOnlyList<IGraphicsStateOperation> operations)
@@ -400,21 +399,39 @@
 
         public void BeginSubpath()
         {
-            if (CurrentPath != null && CurrentPath.Commands.Count > 0 && !currentPathAdded)
+            if (CurrentPath != null) // && CurrentPath.Commands.Count > 0)
             {
                 AddPath(CurrentPath);
             }
 
             CurrentPath = new PdfPath();
-            currentPathAdded = false;
+
+            // retrieve previous stroking info
+            if (paths.Count > 0)
+            {
+                var previousPath = paths.Last();
+                if (!previousPath.IsClipping)
+                {
+                    CurrentPath.IsStroked = previousPath.IsStroked;
+                }
+                else
+                {
+                    if (paths.Count > 1)
+                    {
+                        previousPath = paths[paths.Count - 2];
+                        if (!previousPath.IsClipping)
+                        {
+                            CurrentPath.IsStroked = previousPath.IsStroked;
+                        }
+                    }
+                }
+            }
         }
-        
+
         public void FillStrokePath(bool close, FillingRule fillingRule)
         {
-            Console.WriteLine("FillStrokePath()");
             if (CurrentPath == null)
             {
-                Console.WriteLine("FillStrokePath(null)");
                 return;
             }
 
@@ -424,19 +441,16 @@
 
             if (close)
             {
-                ClosePath();
+                CurrentPath.ClosePath();
             }
-            else
-            {
-                AddPath(CurrentPath);
-            }
+
+            AddPath(CurrentPath);
         }
 
         public void StrokePath(bool close)
         {
             if (CurrentPath == null)
             {
-                Console.WriteLine("StrokePath(null)");
                 return;
             }
 
@@ -444,19 +458,16 @@
 
             if (close)
             {
-                ClosePath();
+                CurrentPath.ClosePath();
             }
-            else
-            {
-                AddPath(CurrentPath);
-            }
+
+            AddPath(CurrentPath);
         }
 
         public void FillPath(bool close, FillingRule fillingRule)
         {
             if (CurrentPath == null)
             {
-                Console.WriteLine("FillPath(null)");
                 return;
             }
 
@@ -465,20 +476,10 @@
 
             if (close)
             {
-                ClosePath();
+                CurrentPath.ClosePath();
             }
-            else
-            {
-                AddPath(CurrentPath);
-            }
-        }
 
-        public void ClosePath()
-        {
-            CurrentPath.ClosePath();
             AddPath(CurrentPath);
-            CurrentPath = null;
-            currentPathAdded = false;
         }
 
         public void EndPath()
@@ -488,10 +489,9 @@
              * used primarily for the side effect of changing the current clipping path (see 8.5.4, "Clipping Path Operators").
              */
 
-            Paths.Add(CurrentPath);
+            paths.Add(CurrentPath);
             markedContentStack.AddPath(CurrentPath);
             CurrentPath = null;
-            currentPathAdded = true;
         }
         
         private void AddPath(PdfPath path)
@@ -512,9 +512,9 @@
                 CurrentPath.FillColor = currentState.CurrentNonStrokingColor;
             }
 
-            Paths.Add(CurrentPath);
+            paths.Add(CurrentPath);
             markedContentStack.AddPath(CurrentPath);
-            currentPathAdded = true;
+            CurrentPath = null;
         }
 
         public void SetNamedGraphicsState(NameToken stateName)
@@ -617,14 +617,14 @@
             TextMatrices.TextMatrix = newMatrix;
         }
 
-        public void ModifyClippingIntersect(FillingRule clippingRule)
+        public void ModifyClippingIntersect(FillingRule fillingRule)
         {
             if (CurrentPath == null)
             {
                 return;
             }
 
-            CurrentPath.SetClipping(clippingRule);
+            CurrentPath.SetClipping(fillingRule);
         }
     }
 }
