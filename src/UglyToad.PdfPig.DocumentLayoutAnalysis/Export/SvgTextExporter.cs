@@ -222,7 +222,7 @@
                 //if (p.FillingRule == FillingRule.EvenOdd) fillRule = " fill-rule='evenodd'";
             }
 
-            var path = $"<path d='{glyph}'{strokeColor}{strokeWidth}{dashArray}{capStyle}{jointStyle}{fillColor}{fillRule}></path>";
+            var path = $"<path d='{glyph}'{fillColor}{fillRule}{strokeColor}{strokeWidth}{dashArray}{capStyle}{jointStyle}></path>";
             return path;
         }
     }

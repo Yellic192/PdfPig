@@ -399,7 +399,7 @@
 
         public void BeginSubpath()
         {
-            if (CurrentPath != null) // && CurrentPath.Commands.Count > 0)
+            if (CurrentPath != null)
             {
                 AddPath(CurrentPath);
             }
