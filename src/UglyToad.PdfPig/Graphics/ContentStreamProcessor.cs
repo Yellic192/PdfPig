@@ -53,7 +53,6 @@
         private Stack<CurrentGraphicsState> graphicsStack = new Stack<CurrentGraphicsState>();
         private IFont activeExtendedGraphicsStateFont;
         private InlineImageBuilder inlineImageBuilder;
-        //private bool currentPathAdded;
         private int pageNumber;
 
         /// <summary>
@@ -482,13 +481,12 @@
             AddPath(CurrentPath);
         }
 
+        /// <summary>
+        /// End the path object without filling or stroking it. This operator shall be a path-painting no-op,
+        /// used primarily for the side effect of changing the current clipping path(see 8.5.4, "Clipping Path Operators").
+        /// </summary>
         public void EndPath()
         {
-            /*
-             * End the path object without filling or stroking it. This operator shall be a path-painting no-op, 
-             * used primarily for the side effect of changing the current clipping path (see 8.5.4, "Clipping Path Operators").
-             */
-
             paths.Add(CurrentPath);
             markedContentStack.AddPath(CurrentPath);
             CurrentPath = null;

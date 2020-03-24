@@ -39,7 +39,6 @@
                 {
                     builder.Append(PathToSvg(path, page.Height));
                 }
-                //builder.Append(PathToSvg(path, page.Height));
             }
 
             foreach (var letter in page.Letters)
@@ -58,26 +57,6 @@
 
         private static string LetterToSvg(Letter l, double height)
         {
-            /*string BboxToRect(PdfRectangle box, TextDirection textDirection, string fill, string stroke)
-            {
-                var x = box.Left;
-                var y = height - box.Bottom - box.Height;
-
-                var overallBbox = $"<rect x='{x}' y='{y}' width='{box.Width}' height='{box.Height}' stroke-width='1' fill='{fill}' stroke='{stroke}'>";
-
-                if (textDirection != TextDirection.Horizontal)
-                {
-                    overallBbox += $"<g transform='rotate({Math.Round(box.Rotation, 0)} {x + box.Width / 2.0},{y + box.Height / 2.0})'>";
-                }
-
-                overallBbox += "</rect>";
-                return overallBbox;
-            }
-
-            var glyphColor = ColorToSvg(l.Color);
-
-            var bbox = BboxToRect(l.GlyphRectangle, l.TextDirection, glyphColor, glyphColor);*/
-
             string fontFamily = GetFontFamily(l.FontName, out string style, out string weight);
             string rotation = "";
             if (l.GlyphRectangle.Rotation != 0)
@@ -108,7 +87,6 @@
                 }
             }
 
-            // 
             if (fontName.Contains('-'))
             {
                 var infos = fontName.Split('-');
@@ -147,7 +125,7 @@
 
         private static string ColorToSvg(IColor color)
         {
-            if (color == null) return ""; // not sure what to return here
+            if (color == null) return "";
             var (r, g, b) = color.ToRGBValues();
             return $"rgb({Math.Ceiling(r * 255)},{Math.Ceiling(g * 255)},{Math.Ceiling(b * 255)})";
         }
