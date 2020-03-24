@@ -438,6 +438,7 @@
             CurrentPath.IsFilled = true;
             CurrentPath.IsStroked = true;
 
+
             if (close)
             {
                 CurrentPath.ClosePath();
