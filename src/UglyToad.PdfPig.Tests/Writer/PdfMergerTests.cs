@@ -38,9 +38,7 @@
             var two = IntegrationHelpers.GetDocumentPath("Single Page Simple - from inkscape.pdf");
 
             var result = PdfMerger.Merge(one, two);
-
-            System.IO.File.WriteAllBytes(@"C:\temp\merged.pdf", result);
-
+            
             using (var document = PdfDocument.Open(result, ParsingOptions.LenientParsingOff))
             {
                 Assert.Equal(2, document.NumberOfPages);
@@ -77,6 +75,22 @@
             using (var document = PdfDocument.Open(result2, ParsingOptions.LenientParsingOff))
             {
                 Assert.Equal(3, document.NumberOfPages);
+            }
+        }
+
+        [Fact]
+        public void ObjectCountLower()
+        {
+            var one = IntegrationHelpers.GetDocumentPath("Single Page Simple - from inkscape.pdf");
+            var two = IntegrationHelpers.GetDocumentPath("Single Page Simple - from inkscape.pdf");
+
+            var result = PdfMerger.Merge(one, two);
+
+            using (var document = PdfDocument.Open(result, ParsingOptions.LenientParsingOff))
+            {
+                Assert.Equal(2, document.NumberOfPages);
+                Assert.True(document.Structure.CrossReferenceTable.ObjectOffsets.Count < 24,
+                    "Expected object count to be lower than 24");
             }
         }
     }

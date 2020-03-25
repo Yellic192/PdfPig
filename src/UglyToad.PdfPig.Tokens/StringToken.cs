@@ -59,6 +59,22 @@ namespace UglyToad.PdfPig.Tokens
         }
 
         /// <inheritdoc />
+        public bool Equals(IToken obj)
+        {
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (!(obj is StringToken other))
+            {
+                return false;
+            }
+
+            return EncodedWith.Equals(other.EncodedWith) && Data.Equals(other.Data);
+        }
+
+        /// <inheritdoc />
         public override string ToString()
         {
             return $"({Data})";

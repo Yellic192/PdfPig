@@ -114,6 +114,36 @@
             return new DictionaryToken(result);
         }
 
+
+        /// <inheritdoc />
+        public bool Equals(IToken obj)
+        {
+            if (ReferenceEquals(this, obj))
+            {
+                return true;
+            }
+
+            if (!(obj is DictionaryToken other))
+            {
+                return false;
+            }
+
+            if (Data.Count != other.Data.Count)
+            {
+                return false;
+            }
+
+            foreach (var kvp in other.Data)
+            {
+                if (!Data.TryGetValue(kvp.Key, out var val) || !val.Equals(kvp.Value))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         /// <inheritdoc />
         public override string ToString()
         {
