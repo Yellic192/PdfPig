@@ -53,9 +53,9 @@
                 new PdfPoint(140, 160));
 
             var builder = new StringBuilder();
-            curve.WriteSvg(builder, double.NaN); // TODO
+            curve.WriteSvg(builder, 0); // TODO
 
-            Assert.Equal("C 75 30, 215 115, 140 160 ", builder.ToString());
+            Assert.Equal("C 75 -30, 215 -115, 140 -160 ", builder.ToString());
         }
     }
 }

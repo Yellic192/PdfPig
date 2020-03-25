@@ -400,7 +400,7 @@
         {
             if (CurrentPath != null)
             {
-                AddPath(CurrentPath);
+                AddCurrentPath();
             }
 
             CurrentPath = new PdfPath();
@@ -444,7 +444,7 @@
                 CurrentPath.ClosePath();
             }
 
-            AddPath(CurrentPath);
+            AddCurrentPath();
         }
 
         public void StrokePath(bool close)
@@ -461,7 +461,7 @@
                 CurrentPath.ClosePath();
             }
 
-            AddPath(CurrentPath);
+            AddCurrentPath();
         }
 
         public void FillPath(bool close, FillingRule fillingRule)
@@ -479,7 +479,7 @@
                 CurrentPath.ClosePath();
             }
 
-            AddPath(CurrentPath);
+            AddCurrentPath();
         }
 
         /// <summary>
@@ -493,7 +493,7 @@
             CurrentPath = null;
         }
         
-        private void AddPath(PdfPath path)
+        private void AddCurrentPath()
         {
             var currentState = this.GetCurrentState();
 
