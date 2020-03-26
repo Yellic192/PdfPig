@@ -48,13 +48,12 @@
         /// <returns></returns>
         public static IEnumerable<TableBlock> GetTables(Page page, int minCellsInTable = 4)
         {
-            var candidates = BaseTableExtractor.GetCandidates(page, minCellsInTable).ToList();
+            var candidates = GetCandidates(page, minCellsInTable).ToList();
             var letters = page.Letters;
             var words = NearestNeighbourWordExtractor.Instance.GetWords(letters);
 
             foreach (var candidate in candidates)
             {
-
                 List<TableCell> cells = candidate.Select(c => new TableCell(c.Item2, null, c.Item1)).ToList();
                 cells = cells.OrderByDescending(x => x.BoundingBox.Top).ThenBy(x => x.BoundingBox.Left).ToList();
 
@@ -168,7 +167,10 @@
                 foreach (var cell in cells)
                 {
                     var containedWords = words.Where(w => cell.BoundingBox.Contains(w.BoundingBox));
-                    cell.SetContent(new TextBlock(containedWords.Select(w => new TextLine(new[] { w })).ToList()));
+                    if (containedWords.Any())
+                    {
+                        cell.SetContent(new TextBlock(containedWords.Select(w => new TextLine(new[] { w })).ToList()));
+                    }
                 }
 
                 yield return new TableBlock(cells);
