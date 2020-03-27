@@ -93,7 +93,12 @@
             this.pageContentParser = pageContentParser ?? throw new ArgumentNullException(nameof(pageContentParser));
             this.filterProvider = filterProvider ?? throw new ArgumentNullException(nameof(filterProvider));
             this.log = log;
-            graphicsStack.Push(new CurrentGraphicsState());
+
+            var clippingPath = new PdfPath();
+            clippingPath.Rectangle(cropBox.BottomLeft.X, cropBox.BottomLeft.Y, cropBox.Width, cropBox.Height);
+            //clippingPath.SetClipping(FillingRule.NonZeroWinding);
+            graphicsStack.Push(new CurrentGraphicsState() { CurrentClippingPath = clippingPath });
+
             ColorSpaceContext = new ColorSpaceContext(GetCurrentState, resourceStore);
         }
 
@@ -408,6 +413,7 @@
             // retrieve previous stroking info
             if (paths.Count > 0)
             {
+                //CurrentPath.IsStroked = paths.Last().IsStroked;
                 var previousPath = paths.Last();
                 if (!previousPath.IsClipping)
                 {
@@ -415,18 +421,19 @@
                 }
                 else
                 {
-                    if (paths.Count > 1)
+                    Console.WriteLine("previous path is clipping");
+                    /*if (paths.Count > 1)
                     {
                         previousPath = paths[paths.Count - 2];
                         if (!previousPath.IsClipping)
                         {
                             CurrentPath.IsStroked = previousPath.IsStroked;
                         }
-                    }
+                    }*/
                 }
             }
         }
-
+        
         public void FillStrokePath(bool close, FillingRule fillingRule)
         {
             if (CurrentPath == null)
@@ -484,19 +491,32 @@
 
         /// <summary>
         /// End the path object without filling or stroking it. This operator shall be a path-painting no-op,
-        /// used primarily for the side effect of changing the current clipping path(see 8.5.4, "Clipping Path Operators").
+        /// used primarily for the side effect of changing the current clipping path (see 8.5.4, "Clipping Path Operators").
         /// </summary>
         public void EndPath()
         {
+            if (CurrentPath.IsClipping)
+            {
+                //Console.WriteLine("EndPath: Don't add clipping path");
+                CurrentPath = null;
+                return;
+            }
+
             paths.Add(CurrentPath);
             markedContentStack.AddPath(CurrentPath);
             CurrentPath = null;
         }
-        
+
         private void AddCurrentPath()
         {
-            var currentState = this.GetCurrentState();
+            if (CurrentPath.IsClipping)
+            {
+                Console.WriteLine("Don't add clipping path");
+                CurrentPath = null;
+                return;
+            }
 
+            var currentState = this.GetCurrentState();
             if (CurrentPath.IsStroked)
             {
                 CurrentPath.LineDashPattern = currentState.LineDashPattern;
@@ -511,9 +531,40 @@
                 CurrentPath.FillColor = currentState.CurrentNonStrokingColor;
             }
 
-            paths.Add(CurrentPath);
-            markedContentStack.AddPath(CurrentPath);
+            var clippedPaths = GeometryExtensions.GreinerHormannClipping(currentState.CurrentClippingPath, CurrentPath);
+            foreach (var clippedPath in clippedPaths)
+            {
+                paths.Add(clippedPath);
+                markedContentStack.AddPath(clippedPath);
+            }
             CurrentPath = null;
+        }
+
+        public void ModifyClippingIntersect(FillingRule fillingRule)
+        {
+            if (CurrentPath == null)
+            {
+                return;
+            }
+
+            CurrentPath.SetClipping(fillingRule);
+
+            if (CurrentPath.Equals(GetCurrentState().CurrentClippingPath))
+            {
+                GetCurrentState().CurrentClippingPath = CurrentPath;
+            }
+            else
+            {
+                var currentClipping = GetCurrentState().CurrentClippingPath;
+                currentClipping.SetClipping(fillingRule);
+
+                var newClippings = GeometryExtensions.GreinerHormannClipping(CurrentPath, currentClipping);
+                if (newClippings.Count() > 1)
+                {
+                    throw new ArgumentOutOfRangeException();
+                }
+                GetCurrentState().CurrentClippingPath = newClippings.First();
+            }
         }
 
         public void SetNamedGraphicsState(NameToken stateName)
@@ -546,6 +597,7 @@
             }
         }
 
+        #region Image
         public void BeginInlineImage()
         {
             if (inlineImageBuilder != null)
@@ -585,7 +637,9 @@
 
             inlineImageBuilder = null;
         }
+        #endregion
 
+        #region MarkedContent
         public void BeginMarkedContent(NameToken name, NameToken propertyDictionaryName, DictionaryToken properties)
         {
             if (propertyDictionaryName != null)
@@ -606,6 +660,7 @@
                 if (mc != null) markedContents.Add(mc);
             }
         }
+        #endregion
 
         private void AdjustTextMatrix(double tx, double ty)
         {
@@ -614,16 +669,6 @@
             var newMatrix = matrix.Multiply(TextMatrices.TextMatrix);
 
             TextMatrices.TextMatrix = newMatrix;
-        }
-
-        public void ModifyClippingIntersect(FillingRule fillingRule)
-        {
-            if (CurrentPath == null)
-            {
-                return;
-            }
-
-            CurrentPath.SetClipping(fillingRule);
         }
     }
 }

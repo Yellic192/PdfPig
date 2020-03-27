@@ -179,15 +179,24 @@
         /// Simplify this <see cref="PdfPath"/> by converting everything to <see cref="PdfLine"/>s.
         /// </summary>
         /// <param name="n">Number of lines required (minimum is 1).</param>
-        internal PdfPath Simplify(int n = 4)
+        public PdfPath Simplify(int n = 4)
         {
+            if (Commands.Count == 0)
+            {
+                return this;
+            }
+
             PdfPath simplifiedPath = new PdfPath();
-            var startPoint = GetStartPoint(Commands.First());
-            simplifiedPath.MoveTo(startPoint.X, startPoint.Y);
+            //var startPoint = GetStartPoint(Commands.First());
+            //simplifiedPath.MoveTo(startPoint.X, startPoint.Y);
 
             foreach (var command in Commands)
             {
-                if (command is Line line)
+                if (command is Move move)
+                {
+                    simplifiedPath.MoveTo(move.Location.X, move.Location.Y);
+                }
+                else if (command is Line line)
                 {
                     simplifiedPath.LineTo(line.To.X, line.To.Y);
                 }
@@ -198,9 +207,13 @@
                         simplifiedPath.LineTo(lineB.To.X, lineB.To.Y);
                     }
                 }
+                else if (command is Close close)
+                {
+                    simplifiedPath.ClosePath();
+                }
             }
 
-            // Check if Closed, if yes: make sure it is actually closed (last TO = first FROM)
+            /*// Check if Closed, if yes: make sure it is actually closed (last TO = first FROM)
             if (IsClosed())
             {
                 var first = GetStartPoint(simplifiedPath.Commands.First());
@@ -208,7 +221,7 @@
                 {
                     simplifiedPath.LineTo(first.X, first.Y);
                 }
-            }
+            }*/
 
             return simplifiedPath;
         }
@@ -793,5 +806,20 @@
             }
             return hash;
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            var builder = new StringBuilder();
+            foreach (var command in Commands)
+            {
+                command.WriteSvg(builder, 0);
+            }
+            return builder.ToString();
+        }
+
     }
 }

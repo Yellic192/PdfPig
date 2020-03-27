@@ -20,6 +20,11 @@ namespace UglyToad.PdfPig.Graphics
         public CurrentFontState FontState { get; set; } = new CurrentFontState();
 
         /// <summary>
+        /// 
+        /// </summary>
+        public PdfPath CurrentClippingPath { get; set; }
+
+        /// <summary>
         /// Thickness in user space units of path to be stroked.
         /// </summary>
         public double LineWidth { get; set; } = 1;
@@ -132,7 +137,8 @@ namespace UglyToad.PdfPig.Graphics
                 Smoothness = Smoothness,
                 StrokeAdjustment = StrokeAdjustment,
                 CurrentStrokingColor = CurrentStrokingColor,
-                CurrentNonStrokingColor = CurrentNonStrokingColor
+                CurrentNonStrokingColor = CurrentNonStrokingColor,
+                CurrentClippingPath = CurrentClippingPath
             };
         }
     }
