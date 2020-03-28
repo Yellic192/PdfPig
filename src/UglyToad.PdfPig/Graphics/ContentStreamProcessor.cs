@@ -96,7 +96,7 @@
 
             var clippingPath = new PdfPath();
             clippingPath.Rectangle(cropBox.BottomLeft.X, cropBox.BottomLeft.Y, cropBox.Width, cropBox.Height);
-            //clippingPath.SetClipping(FillingRule.NonZeroWinding);
+            clippingPath.SetClipping(FillingRule.NonZeroWinding);
             graphicsStack.Push(new CurrentGraphicsState() { CurrentClippingPath = clippingPath });
 
             ColorSpaceContext = new ColorSpaceContext(GetCurrentState, resourceStore);
@@ -531,12 +531,13 @@
                 CurrentPath.FillColor = currentState.CurrentNonStrokingColor;
             }
 
-            var clippedPaths = GeometryExtensions.GreinerHormannClipping(currentState.CurrentClippingPath, CurrentPath);
+            var clippedPaths = currentState.CurrentClippingPath.Clip(CurrentPath);
             foreach (var clippedPath in clippedPaths)
             {
                 paths.Add(clippedPath);
                 markedContentStack.AddPath(clippedPath);
             }
+
             CurrentPath = null;
         }
 
@@ -558,11 +559,12 @@
                 var currentClipping = GetCurrentState().CurrentClippingPath;
                 currentClipping.SetClipping(fillingRule);
 
-                var newClippings = GeometryExtensions.GreinerHormannClipping(CurrentPath, currentClipping);
+                var newClippings = CurrentPath.Clip(currentClipping);
                 if (newClippings.Count() > 1)
                 {
                     throw new ArgumentOutOfRangeException();
                 }
+
                 GetCurrentState().CurrentClippingPath = newClippings.First();
             }
         }

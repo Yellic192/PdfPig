@@ -59,6 +59,32 @@
 
         #region Polygon
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="pdfPath"></param>
+        /// <param name="n">For bezier curves: Number of lines required (minimum is 1).</param>
+        public static IReadOnlyList<PdfPoint> ToPolygon(this PdfPath pdfPath, int n = 4)
+        {
+            List<PdfPoint> polygon = new List<PdfPoint>();
+            foreach (var c in pdfPath.Simplify(n).Commands)
+            {
+                if (c is Line line)
+                {
+                    polygon.Add(line.To);
+                }
+                else if (c is Move move)
+                {
+                    polygon.Add(move.Location);
+                }
+                else if (c is Close)
+                {
+                    polygon.Add(polygon.First());
+                }
+            }
+            return polygon;
+        }
+
+        /// <summary>
         /// Algorithm to find a minimal bounding rectangle (MBR) such that the MBR corresponds to a rectangle 
         /// with smallest possible area completely enclosing the polygon.
         /// <para>From 'A Fast Algorithm for Generating a Minimal Bounding Rectangle' by Lennert D. Den Boer.</para>
@@ -294,6 +320,138 @@
 
             return stack;
         }
+        #endregion
+
+        #region Clipping
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="clipping"></param>
+        /// <param name="path"></param>
+        public static IEnumerable<PdfPath> Clip(this PdfPath clipping, PdfPath path)
+        {
+            if (clipping == null)
+            {
+                throw new ArgumentNullException(nameof(clipping), "Clip(): the clipping path cannot be null.");
+            }
+
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path), "Clip(): the path to be clipped cannot be null.");
+            }
+
+            if (!clipping.IsClipping)
+            {
+                Console.WriteLine("!clipping.IsClipping");
+                throw new ArgumentException("Clip(): the clipping path does not have the IsClipping flag set to true.", nameof(clipping));
+            }
+
+            if (clipping.IsDrawnAsRectangle)
+            {
+                var clippingRect = clipping.GetBoundingRectangle();
+                if (!clippingRect.HasValue)
+                {
+                    throw new ArgumentException();
+                }
+
+                if (path.IsDrawnAsRectangle)
+                {
+                    //Console.WriteLine("Rectangle w/ Rectangle clipping.");
+                    // simplest case where both are axis aligned rectangles
+
+                    var pathRect = path.GetBoundingRectangle();
+                    if (pathRect.HasValue)
+                    {
+                        var intersection = clippingRect.Value.Intersect(pathRect.Value);
+                        if (intersection.HasValue)
+                        {
+                            PdfPath clipped = path.CloneEmpty();
+                            clipped.Rectangle(intersection.Value.BottomLeft.X, intersection.Value.BottomLeft.Y,
+                                              intersection.Value.Width, intersection.Value.Height);
+
+                            yield return clipped;
+                        }
+                        else
+                        {
+                            throw new ArgumentNullException();
+                        }
+                    }
+                    else
+                    {
+                        throw new ArgumentNullException();
+                    }
+
+                }
+                /*else if (path.Commands.Count == 2 && path.Commands[1] is Line)
+                {
+                    //Console.WriteLine("Liang-Barsky line clipping.");
+                    var clipped = LiangBarskyLineClipping(clipping, path);
+                    if (clipped != null)
+         
+                    {
+                        yield return clipped;
+                    }
+                }*/
+                else
+                {
+                    if (!path.IsClosed())
+                    {
+                        throw new NotImplementedException();
+                        /*var poly = path.Simplify(10);
+                        foreach (var command in poly.Commands)
+                        {
+                            if (command is Line line)
+                            {
+                                var clipped = LiangBarskyLineClipping((float)line.From.X, (float)line.From.Y, (float)line.To.X, (float)line.To.Y,
+                                    (float)clippingRect.Value.Left, (float)clippingRect.Value.Right, (float)clippingRect.Value.Bottom, (float)clippingRect.Value.Top);
+
+                                if (clipped.HasValue)
+                                {
+                                    var clippedLine = path.CloneEmpty();
+                                    clippedLine.MoveTo(clipped.Value.point1.X, clipped.Value.point1.Y);
+                                    clippedLine.LineTo(clipped.Value.point2.X, clipped.Value.point2.Y);
+                                    yield return clippedLine;
+                                }
+                            }
+                        }*/
+                    }
+                    else
+                    {
+                        //Console.WriteLine("Greiner-Hormann clipping.");
+                        // hardcore clipping
+                        foreach (var clipped in GreinerHormannClipping(clipping, path))
+                        {
+                            yield return clipped;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                //if (clipping.IsCounterClockwise) // need to check if convex
+                //{
+                //    Console.WriteLine("Sutherland-Hodgman clipping.");
+                //    var clipped = SutherlandHodgmanClipping(clipping, path);
+                //    if (clipped == null)
+                //    {
+                //        return new List<PdfPath>();
+                //    }
+                //    else
+                //    {
+                //        return new[] { clipped };
+                //    }
+                //}
+                //else
+                //{
+                //Console.WriteLine("Greiner-Hormann clipping.");
+                // hardcore clipping
+                foreach (var clipped in GreinerHormannClipping(clipping, path))
+                {
+                    yield return clipped;
+                }
+                //}
+            }
+        }
 
         /// <summary>
         /// 
@@ -339,80 +497,25 @@
             return count;
         }
 
+
         /// <summary>
         /// 
         /// </summary>
         /// <param name="clipping"></param>
         /// <param name="polygon"></param>
-        /// <returns></returns>
         public static IEnumerable<PdfPath> GreinerHormannClipping(PdfPath clipping, PdfPath polygon)
         {
-            List<PdfPoint> clippingList = new List<PdfPoint>();
-            foreach (var c in clipping.Simplify(10).Commands)
-            {
-                if (c is Line line)
-                {
-                    clippingList.Add(line.To);
-                }
-                else if (c is Move move)
-                {
-                    clippingList.Add(move.Location);
-                }
-                else if (c is Close)
-                {
-                    clippingList.Add(clippingList.First());
-                }
-            }
+            var clippingList = clipping.ToPolygon(10);
+            var polygonList = polygon.ToPolygon(10);
 
-            List<PdfPoint> polygonList = new List<PdfPoint>();
-            foreach (var c in polygon.Simplify(10).Commands)
-            {
-                if (c is Line line)
-                {
-                    polygonList.Add(line.To);
-                }
-                else if (c is Move move)
-                {
-                    polygonList.Add(move.Location);
-                }
-                else if (c is Close)
-                {
-                    polygonList.Add(polygonList.First());
-                }
-            }
-
-            var clippeds = GreinerHormannClipping(clippingList.ToList(), polygonList.ToList(), clipping.FillingRule);
+            var clippeds = GreinerHormannClipping(clippingList, polygonList, clipping.FillingRule);
 
             List<PdfPath> paths = new List<PdfPath>();
             foreach (var clipped in clippeds)
             {
                 if (clipped.Count > 0)
                 {
-                    PdfPath clippedPath = new PdfPath();
-                    if (polygon.IsClipping)
-                    {
-                        clippedPath.SetClipping(polygon.FillingRule);
-                    }
-                    else
-                    {
-                        if (polygon.IsFilled)
-                        {
-                            clippedPath.IsFilled = true;
-                            clippedPath.SetFillingRule(polygon.FillingRule);
-                            clippedPath.FillColor = polygon.FillColor;
-                        }
-
-                        if (polygon.IsStroked)
-                        {
-                            clippedPath.IsStroked = true;
-                            clippedPath.LineCapStyle = polygon.LineCapStyle;
-                            clippedPath.LineDashPattern = polygon.LineDashPattern;
-                            clippedPath.LineJoinStyle = polygon.LineJoinStyle;
-                            clippedPath.LineWidth = polygon.LineWidth;
-                            clippedPath.StrokeColor = polygon.StrokeColor;
-                        }
-                    }
-
+                    PdfPath clippedPath = polygon.CloneEmpty();
                     clippedPath.MoveTo(clipped.First().Coordinates.X, clipped.First().Coordinates.Y);
 
                     if (clippedPath.IsFilled)
@@ -432,30 +535,7 @@
                             if ((clipped[i - 1].Intersect && current.IsClipping) || (clipped[i - 1].Intersect && current.Intersect))
                             {
                                 paths.Add(clippedPath);
-                                clippedPath = new PdfPath();
-                                if (polygon.IsClipping)
-                                {
-                                    clippedPath.SetClipping(polygon.FillingRule);
-                                }
-                                else
-                                {
-                                    if (polygon.IsFilled)
-                                    {
-                                        clippedPath.IsFilled = true;
-                                        clippedPath.SetFillingRule(polygon.FillingRule);
-                                        clippedPath.FillColor = polygon.FillColor;
-                                    }
-
-                                    if (polygon.IsStroked)
-                                    {
-                                        clippedPath.IsStroked = true;
-                                        clippedPath.LineCapStyle = polygon.LineCapStyle;
-                                        clippedPath.LineDashPattern = polygon.LineDashPattern;
-                                        clippedPath.LineJoinStyle = polygon.LineJoinStyle;
-                                        clippedPath.LineWidth = polygon.LineWidth;
-                                        clippedPath.StrokeColor = polygon.StrokeColor;
-                                    }
-                                }
+                                clippedPath = polygon.CloneEmpty();
 
                                 if (i + 1 < clipped.Count - 1 && !clipped[i + 1].Intersect) 
                                 { 
@@ -473,7 +553,7 @@
                         }
                     }
 
-                    paths.Add(clippedPath);
+                    if (clippedPath.Commands.Count > 0) paths.Add(clippedPath);
                 }
             }
             return paths;
@@ -489,6 +569,13 @@
         public static List<List<Vertex>> GreinerHormannClipping(IReadOnlyList<PdfPoint> clipping, IReadOnlyList<PdfPoint> polygon,
             FillingRule fillingRule)
         {
+            static double squaredDist(PdfPoint point1, PdfPoint point2)
+            {
+                double dx = point1.X - point2.X;
+                double dy = point1.Y - point2.Y;
+                return dx * dx + dy * dy;
+            }
+
             Func<IReadOnlyList<PdfPoint>, PdfPoint, bool> isInside = NonZeroWindingRule;
             if (fillingRule == FillingRule.EvenOdd) isInside = EvenOddRule;
 
@@ -503,7 +590,6 @@
             {
                 subject.AddLast(new Vertex() { Coordinates = subject.First.Value.Coordinates, IsClipping = false, IsFake = true });
             }
-
 
             LinkedList<Vertex> clip = new LinkedList<Vertex>();
             foreach (var point in clipping)
@@ -542,12 +628,15 @@
                     if (intersection.HasValue)
                     {
                         hasIntersection = true;
-                        var a = new PdfLine(Si.Value.Coordinates, intersection.Value).Length / new PdfLine(Si.Value.Coordinates, SiNext.Value.Coordinates).Length;
-                        var i1 = new Vertex() { Coordinates = intersection.Value, Intersect = true, Alpha = (float)a, IsClipping = false };
 
-                        var b = new PdfLine(Cj.Value.Coordinates, intersection.Value).Length / new PdfLine(Cj.Value.Coordinates, CjNext.Value.Coordinates).Length;
-                        var i2 = new Vertex() { Coordinates = intersection.Value, Intersect = true, Alpha = (float)b, IsClipping = true };
+                        bool isFake = Si.Value.IsFake || SiNext.Value.IsFake;
 
+                        var a = squaredDist(Si.Value.Coordinates, intersection.Value) / squaredDist(Si.Value.Coordinates, SiNext.Value.Coordinates);
+                        var b = squaredDist(Cj.Value.Coordinates, intersection.Value) / squaredDist(Cj.Value.Coordinates, CjNext.Value.Coordinates);
+              
+                        var i1 = new Vertex() { Coordinates = intersection.Value, Intersect = true, Alpha = (float)a, IsClipping = false, IsFake = isFake };
+                        var i2 = new Vertex() { Coordinates = intersection.Value, Intersect = true, Alpha = (float)b, IsClipping = true, IsFake = isFake };
+                        
                         var tempSi = Si;
                         while (tempSi != SiNext && tempSi.Value.Alpha < i1.Alpha)
                         {
@@ -619,8 +708,9 @@
             List<List<Vertex>> polygons = new List<List<Vertex>>();
             while (true)
             {
-                var current = subject.Find(subject.Where(x => x.Intersect && !x.IsProcessed).First());
+                var current = subject.Find(subject.Where(x => x.Intersect && !x.IsProcessed && !x.IsFake).First());
                 List<Vertex> newPolygon = new List<Vertex>();
+
                 newPolygon.Add(current.Value);
 
                 while (true)
@@ -639,8 +729,8 @@
                             {
                                 current = current.Next;
                             }
-                   
-                            newPolygon.Add(current.Value);
+
+                            if (!current.Value.IsFake) newPolygon.Add(current.Value);
                             if (current.Value.Intersect) break;
                         }
                     }
@@ -656,8 +746,8 @@
                             {
                                 current = current.Previous;
                             }
-                    
-                            newPolygon.Add(current.Value);
+
+                            if (!current.Value.IsFake) newPolygon.Add(current.Value);
                             if (current.Value.Intersect) break;
                         }
                     }
@@ -667,7 +757,7 @@
                 }
                 polygons.Add(newPolygon);
 
-                if (!subject.Where(x => x.Intersect && !x.IsProcessed).Any()) break;
+                if (!subject.Where(x => x.Intersect && !x.IsProcessed && !x.IsFake).Any()) break;
             }
 
             return polygons;
@@ -745,77 +835,27 @@
         /// <returns></returns>
         public static PdfPath SutherlandHodgmanClipping(PdfPath clipping, PdfPath polygon)
         {
-            List<PdfPoint> clippingList = new List<PdfPoint>();
-            foreach (var c in clipping.Simplify(7).Commands)
-            {
-                if (c is Line line)
-                {
-                    clippingList.Add(line.From);
-                    clippingList.Add(line.To);
-                }
-                else if (c is Move move)
-                {
-                    clippingList.Add(move.Location);
-                }
-            }
-
-            List<PdfPoint> polygonList = new List<PdfPoint>();
-            foreach (var c in polygon.Simplify(10).Commands)
-            {
-                if (c is Line line)
-                {
-                    polygonList.Add(line.From);
-                    polygonList.Add(line.To);
-                }
-                else if (c is Move move)
-                {
-                    polygonList.Add(move.Location);
-                }
-            }
+            var clippingList = clipping.ToPolygon(10);
+            var polygonList = polygon.ToPolygon(10);
 
             var clipped = SutherlandHodgmanClipping(clippingList.Distinct().ToList(), polygonList.ToList());
 
-            PdfPath clippedPath = new PdfPath()
-            {
-                IsFilled = polygon.IsFilled,
-                IsStroked = polygon.IsStroked,
-            };
-
-            if (clippedPath.IsFilled)
-            {
-                clippedPath.SetFillingRule(polygon.FillingRule);
-                clippedPath.FillColor = polygon.FillColor;
-            }
-
-            if (clippedPath.IsStroked)
-            {
-                clippedPath.LineCapStyle = polygon.LineCapStyle;
-                clippedPath.LineDashPattern = polygon.LineDashPattern;
-                clippedPath.LineJoinStyle = polygon.LineJoinStyle;
-                clippedPath.LineWidth = polygon.LineWidth;
-                clippedPath.StrokeColor = polygon.StrokeColor;
-            }
-
-            if (clippedPath.IsClipping)
-            {
-                clippedPath.SetClipping(polygon.FillingRule);
-            }
+            PdfPath clippedPath = polygon.CloneEmpty();
 
             if (clipped.Count > 0)
             {
                 clippedPath.MoveTo(clipped.First().X, clipped.First().Y);
-                var points = clipped.Skip(1);
-                //if (!polygon.IsClosed()) points = points.Take(points.Count() - 1);
-                foreach (var point in points)
+                for (int i = 1; i < clipped.Count; i++)
                 {
-                    clippedPath.LineTo(point.X, point.Y);
+                    var current = clipped[i];
+                    clippedPath.LineTo(current.X, current.Y);
                 }
-
+    
                 return clippedPath;
             }
             else
             {
-                return new PdfPath();
+                return null;
             }
         }
 
@@ -831,10 +871,20 @@
                 return polygon;
             }
 
-            if (polygon.Count <= 1)
+            if (polygon.Count == 0)
             {
-                // careful here
                 return polygon;
+            }
+            else if (polygon.Count == 1)
+            {
+                if (NonZeroWindingRule(clipping, polygon[0]))
+                {
+                    return polygon;
+                }
+                else
+                {
+                    return new List<PdfPoint>();
+                }
             }
 
             List<PdfPoint> outputList = polygon.ToList();
@@ -1016,6 +1066,7 @@
 
         /// <summary>
         /// Gets the <see cref="PdfRectangle"/> that is the intersection of two rectangles.
+        /// <para>Only work for axis aligned rectangles.</para>
         /// </summary>
         public static PdfRectangle? Intersect(this PdfRectangle rectangle, PdfRectangle other)
         {

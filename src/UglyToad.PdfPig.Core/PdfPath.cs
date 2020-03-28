@@ -20,7 +20,7 @@
         public IReadOnlyList<IPathCommand> Commands => commands;
 
         /// <summary>
-        /// True if the <see cref="PdfPath"/> was originaly draw as a rectangle.
+        /// True if the <see cref="PdfPath"/> was originaly draw as an axis aligned rectangle.
         /// </summary>
         public bool IsDrawnAsRectangle { get; internal set; }
 
@@ -266,7 +266,7 @@
             LineTo(x + width, y);
             LineTo(x + width, y + height);
             LineTo(x, y + height);
-            LineTo(x, y);
+            ClosePath(); //LineTo(x, y);
             IsDrawnAsRectangle = true;
         }
 
@@ -774,6 +774,38 @@
             {
                 return (StartPoint, FirstControlPoint, SecondControlPoint, EndPoint).GetHashCode();
             }
+        }
+
+        /// <summary>
+        /// Create a clone with no Commands/>.
+        /// </summary>
+        public PdfPath CloneEmpty()
+        {
+            PdfPath newPath = new PdfPath();
+            if (IsClipping)
+            {
+                newPath.SetClipping(FillingRule);
+            }
+            else
+            {
+                if (IsFilled)
+                {
+                    newPath.IsFilled = true;
+                    newPath.SetFillingRule(FillingRule);
+                    newPath.FillColor = FillColor;
+                }
+
+                if (IsStroked)
+                {
+                    newPath.IsStroked = true;
+                    newPath.LineCapStyle = LineCapStyle;
+                    newPath.LineDashPattern = LineDashPattern;
+                    newPath.LineJoinStyle = LineJoinStyle;
+                    newPath.LineWidth = LineWidth;
+                    newPath.StrokeColor = StrokeColor;
+                }
+            }
+            return newPath;
         }
 
         /// <summary>
