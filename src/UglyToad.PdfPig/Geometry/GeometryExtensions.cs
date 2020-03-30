@@ -61,7 +61,6 @@
         /// </summary>
         /// <param name="point"></param>
         /// <param name="factor"></param>
-        /// <returns></returns>
         public static PdfPoint Multiply(this PdfPoint point, double factor)
         {
             return new PdfPoint(point.X * factor, point.Y * factor);
@@ -281,7 +280,7 @@
 
             if (points.Count() < 3) return points;
 
-            double polarAngle(PdfPoint point1, PdfPoint point2)
+            static double polarAngle(PdfPoint point1, PdfPoint point2)
             {
                 return Math.Atan2(point2.Y - point1.Y, point2.X - point1.X) % Math.PI;
             }
@@ -360,7 +359,7 @@
             }
             else
             {
-                double area(PdfPoint p1, PdfPoint p2, PdfPoint p3)
+                static double area(PdfPoint p1, PdfPoint p2, PdfPoint p3)
                 {
                     return Math.Abs((p2.X * p1.Y - p1.X * p2.Y) + (p3.X * p2.Y - p2.X * p3.Y) + (p1.X * p3.Y - p3.X * p1.Y)) / 2.0;
                 }
@@ -926,7 +925,7 @@
             else // Casus irreducibilis
             {
                 // François Viète's formula
-                double vietTrigonometricSolution(double p_, double q_, double k) => 2.0 * Math.Sqrt(-p_ / 3.0)
+                static double vietTrigonometricSolution(double p_, double q_, double k) => 2.0 * Math.Sqrt(-p_ / 3.0)
                         * Math.Cos(OneThird * Math.Acos((3.0 * q_) / (2.0 * p_) * Math.Sqrt(-3.0 / p_)) - (2.0 * Math.PI * k) / 3.0);
 
                 double p = Q * 3.0;         // (3.0 * a * c - b * b) / (3.0 * aSquared);
@@ -968,7 +967,7 @@
         /// <returns></returns>
         internal static string ToFullSvg(this PdfPath p, double height)
         {
-            string BboxToRect(PdfRectangle box, string stroke)
+            static string BboxToRect(PdfRectangle box, string stroke)
             {
                 var overallBbox = $"<rect x='{box.Left}' y='{box.Bottom}' width='{box.Width}' height='{box.Height}' stroke-width='2' fill='none' stroke='{stroke}'></rect>";
                 return overallBbox;

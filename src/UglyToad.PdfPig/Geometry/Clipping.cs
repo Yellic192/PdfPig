@@ -23,46 +23,86 @@
                 throw new ArgumentNullException(nameof(clipping), "Clip(): the clipping path cannot be null.");
             }
 
-            if (path == null)
-            {
-                throw new ArgumentNullException(nameof(path), "Clip(): the path to be clipped cannot be null.");
-            }
-
             if (!clipping.IsClipping)
             {
                 throw new ArgumentException("Clip(): the clipping path does not have the IsClipping flag set to true.", nameof(clipping));
             }
 
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path), "Clip(): the path to be clipped cannot be null.");
+            }
+
             var clippingRect = clipping.GetBoundingRectangle();
             if (!clippingRect.HasValue)
             {
-                throw new ArgumentException();
+                throw new ArgumentException("Clip(): clip bounding box not available.", nameof(clipping));
+            }
+
+            if (path.Commands.Count == 0)
+            {
+                yield return path;
+                yield break;
             }
 
             var pathRect = path.GetBoundingRectangle();
             if (!pathRect.HasValue)
             {
-                throw new ArgumentException();
+                if (path.Commands.Count == 1 && path.Commands[0] is Move move)
+                {
+                    if (clipping.FillingRule == FillingRule.EvenOdd)
+                    {
+                        if (EvenOddRule(clipping.ToPolygon(10), move.Location))
+                        {
+                            yield return path;
+                            yield break;
+                        }
+                        else
+                        {
+                            yield break;
+                        }
+                    }
+                    else if (clipping.FillingRule == FillingRule.NonZeroWinding)
+                    {
+                        if (NonZeroWindingRule(clipping.ToPolygon(10), move.Location))
+                        {
+                            yield return path;
+                            yield break;
+                        }
+                        else
+                        {
+                            yield break;
+                        }
+                    }
+                    else
+                    {
+                        throw new ArgumentException("Clip(): path bounding box not available.", nameof(path));
+                    }
+                }
+                else
+                {
+                    throw new ArgumentException("Clip(): path bounding box not available.", nameof(path));
+                }
             }
-
+            
             if (clippingRect.Value.Contains(pathRect.Value, true))
             {
                 // path completly inside
                 yield return path;
+                yield break;
             }
-
+            
             if (!clippingRect.Value.IntersectsWith(pathRect.Value))
             {
                 // path completly outside
                 yield break;
             }
 
-            // to check if polygon is filled: path.FillingRule == FillingRule.None
-            if (clipping.IsDrawnAsRectangle)
+            else if (clipping.IsDrawnAsRectangle) // rectangle clipping
             {
-                if (path.IsDrawnAsRectangle)
+                if (path.IsDrawnAsRectangle) // rectangle clipped
                 {
-                    if (path.IsFilled || path.IsClipping)
+                    if (path.IsFilled || path.IsClipping) // rectangle w/ rectangle, filled
                     {
                         // Simplest case where both the clipping and the clipped path are axis aligned rectangles
                         var intersection = clippingRect.Value.Intersect(pathRect.Value);
@@ -78,42 +118,53 @@
                             throw new ArgumentException("They should intersect as we checked for that before.");
                         }
                     }
-                    else
+                    else // rectangle w/ rectangle, not filled
                     {
-                        //Console.WriteLine("Multi line Liang-Barsky clipping");
-                        foreach (var clipped in LiangBarskyClipping(clippingRect.Value.Left, clippingRect.Value.Right, clippingRect.Value.Bottom, clippingRect.Value.Top, path.Simplify(10)))
+                        foreach (var clipped in LiangBarsky(clippingRect.Value.Left, clippingRect.Value.Right, clippingRect.Value.Bottom, clippingRect.Value.Top, path.Simplify(10)))
                         {
                             yield return clipped;
                         }
                     }
                 }
-                else
+                else // polyline or polygon clipped
                 {
-                    if (path.IsFilled || path.IsClipping) // path.IsClosed() ||
+                    if (path.IsFilled || path.IsClipping) // polygon with rectangle
                     {
-                        //Console.WriteLine("Greiner-Hormann clipping.");
-                        // hardcore clipping
-                        foreach (var clipped in GreinerHormannClipping(clipping, path))
+                        // could check for convexity to use Sutherland-Hodgman
+                        foreach (var clipped in GreinerHormann(clipping, path.Simplify(10)))
                         {
                             yield return clipped;
                         }
                     }
-                    else
+                    else // polyline with rectangle
                     {
-                        //Console.WriteLine("Multi line Liang-Barsky clipping");
-                        foreach (var clipped in LiangBarskyClipping(clippingRect.Value.Left, clippingRect.Value.Right, clippingRect.Value.Bottom, clippingRect.Value.Top, path.Simplify(10)))
+                        foreach (var clipped in LiangBarsky(clippingRect.Value.Left, clippingRect.Value.Right, clippingRect.Value.Bottom, clippingRect.Value.Top, path.Simplify(10)))
                         {
                             yield return clipped;
                         }
                     }
                 }
             }
-            else
+            else // polygon clipping
             {
-                //Console.WriteLine("Greiner-Hormann clipping.");
-                foreach (var clipped in GreinerHormannClipping(clipping, path))
+                if (path.IsFilled || path.IsClipping) // polygon with polygon
                 {
-                    yield return clipped;
+                    // check convex or not
+                    foreach (var clipped in GreinerHormann(clipping, path.Simplify(10)))
+                    {
+                        yield return clipped;
+                    }
+                }
+                else // polyline
+                {
+                    // check convex or not
+                    // if convex -> CB
+
+                    // we assume always convex for the moment
+                    foreach (var clipped in CyrusBeck(clipping, path.Simplify(10)))
+                    {
+                        yield return clipped;
+                    }
                 }
             }
         }
@@ -168,39 +219,188 @@
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="clipping">convex counter-clockwise</param>
-        /// <param name="xA"></param>
-        /// <param name="xB"></param>
+        /// <param name="clippingPath">Convex counter clockwise</param>
+        /// <param name="path">polyline path.</param>
         /// <returns></returns>
-        public static (PdfPoint p1, PdfPoint p2)? CyrusBeckClipping(IReadOnlyList<PdfPoint> clipping, PdfPoint xA, PdfPoint xB)
+        public static IEnumerable<PdfPath> CyrusBeck(PdfPath clippingPath, PdfPath path)
+        {
+            var lastX = double.NaN;
+            var lastY = double.NaN;
+            var clipped = path.CloneEmpty();
+
+            PdfPoint previous;
+            if (path.Commands[0] is Move move)
+            {
+                previous = move.Location;
+            }
+            else
+            {
+                throw new ArgumentException("CyrusBeck(): path's first command is not a Move command.", nameof(path));
+            }
+
+            var clipping = clippingPath.ToPolygon(10);
+
+            for (int i = 1; i < path.Commands.Count; i++)
+            {
+                PdfPoint current;
+                if (path.Commands[i] is Line line)
+                {
+                    current = line.To;
+                }
+                else if (path.Commands[i] is Close)
+                {
+                    current = move.Location;
+                }
+                else
+                {
+                    throw new ArgumentException("CyrusBeck(): path contains bezier curve.", nameof(path));
+                }
+
+                if (CyrusBeck(clipping, previous, current, out double x0clip, out double y0clip, out double x1clip, out double y1clip))
+                {
+                    if (clipped.Commands.Count == 0)
+                    {
+                        // new polygon
+                        clipped.MoveTo(x0clip, y0clip);
+                        clipped.LineTo(x1clip, y1clip);
+                        lastX = x1clip;
+                        lastY = y1clip;
+                    }
+                    else if (Math.Abs(lastX - x0clip) < GeometryExtensions.epsilon &&
+                             Math.Abs(lastY - y0clip) < GeometryExtensions.epsilon)
+                    {
+                        // last point of polygon equal new start point of clipped line, we continue
+                        clipped.LineTo(x1clip, y1clip);
+                        lastX = x1clip;
+                        lastY = y1clip;
+                    }
+                    else
+                    {
+                        // polygon and new clipped line are not connected
+                        // we are done for this polygon, close polygon
+                        yield return clipped;
+
+                        clipped = path.CloneEmpty();
+                        clipped.MoveTo(x0clip, y0clip);
+                        clipped.LineTo(x1clip, y1clip);
+                        lastX = x1clip;
+                        lastY = y1clip;
+                    }
+                }
+                else
+                {
+                    yield return clipped;
+                    clipped = path.CloneEmpty();
+                }
+
+                previous = current;
+            }
+
+            if (clipped.Commands.Count > 0) yield return clipped;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="clipping">Convex counter clockwise</param>
+        /// <param name="polyLine"></param>
+        /// <returns></returns>
+        public static IEnumerable<IReadOnlyList<PdfPoint>> CyrusBeck(IReadOnlyList<PdfPoint> clipping, IReadOnlyList<PdfPoint> polyLine)
+        {
+            var lastX = double.NaN;
+            var lastY = double.NaN;
+            List<PdfPoint> clipped = new List<PdfPoint>();
+
+            PdfPoint previous = polyLine[0];
+            for (int i = 1; i < polyLine.Count; i++)
+            {
+                PdfPoint current = polyLine[i];
+
+                if (CyrusBeck(clipping, previous, current, out double x0clip, out double y0clip, out double x1clip, out double y1clip))
+                {
+                    if (clipped.Count == 0)
+                    {
+                        // new polygon
+                        clipped.Add(new PdfPoint(x0clip, y0clip));
+                        clipped.Add(new PdfPoint(x1clip, y1clip));
+                        lastX = x1clip;
+                        lastY = y1clip;
+                    }
+                    else if (Math.Abs(lastX - x0clip) < GeometryExtensions.epsilon &&
+                             Math.Abs(lastY - y0clip) < GeometryExtensions.epsilon)
+                    {
+                        // last point of polygon equal new start point of clipped line, we continue
+                        clipped.Add(new PdfPoint(x1clip, y1clip));
+                        lastX = x1clip;
+                        lastY = y1clip;
+                    }
+                    else
+                    {
+                        // polygon and new clipped line are not connected
+                        // we are done for this polygon, close polygon
+                        yield return clipped;
+
+                        clipped = new List<PdfPoint>
+                        {
+                            new PdfPoint(x0clip, y0clip),
+                            new PdfPoint(x1clip, y1clip)
+                        };
+                        lastX = x1clip;
+                        lastY = y1clip;
+                    }
+                }
+                else
+                {
+                    yield return clipped;
+                    clipped = new List<PdfPoint>();
+                }
+
+                previous = current;
+            }
+
+            if (clipped.Count > 0) yield return clipped;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="clipping">Convex counter clockwise</param>
+        /// <param name="p1src"></param>
+        /// <param name="p2src"></param>
+        /// <param name="x0clip"></param>
+        /// <param name="y0clip"></param>
+        /// <param name="x1clip"></param>
+        /// <param name="y1clip"></param>
+        /// <returns></returns>
+        public static bool CyrusBeck(IReadOnlyList<PdfPoint> clipping, PdfPoint p1src, PdfPoint p2src,
+            out double x0clip, out double y0clip, out double x1clip, out double y1clip)
         {
             if (!clipping.Last().Equals(clipping.First()))
             {
-                throw new ArgumentException("CyrusBeckClipping(): need a closed polygon as input.", nameof(clipping));
+                throw new ArgumentException("CyrusBeck(): need a closed polygon as input.", nameof(clipping));
             }
 
-            int N = clipping.Count;
             double tmin = 0;
             double tmax = 1.0;
 
-            var sX = xB.X - xA.X;
-            var sY = xB.Y - xA.Y;
+            var sX = p2src.X - p1src.X;
+            var sY = p2src.Y - p1src.Y;
 
             var current = clipping[0];
 
-            for (int i = 1; i < N; i++)
+            for (int i = 1; i < clipping.Count; i++)
             {
-                var siX = current.X - xA.X;
-                var siY = current.Y - xA.Y;
+                var siX = current.X - p1src.X;
+                var siY = current.Y - p1src.Y;
 
                 // n is a normal vector of edge ei(xi, xi+1), pointing outside of polygon
                 var next = clipping[i];
                 var nX = next.Y - current.Y;
-                var nY = -(next.X - current.X);
+                var nY = current.X - next.X;
 
                 var k = nX * sX + nY * sY;
 
-                if (Math.Abs(k)> GeometryExtensions.epsilon) // k != 0
+                if (Math.Abs(k) > GeometryExtensions.epsilon) // k != 0
                 {
                     double t = (nX * siX + nY * siY) / k;
                     if (k > 0)
@@ -219,11 +419,20 @@
                 current = next;
             }
 
-            if (tmin > tmax) return null;
-            xB = new PdfPoint(xA.X + sX * tmax, xA.Y + sY * tmax);
-            xA = new PdfPoint(xA.X + sX * tmin, xA.Y + sY * tmin);
+            if (tmin > tmax)
+            {
+                x0clip = double.NaN;
+                y0clip = double.NaN;
+                x1clip = double.NaN;
+                y1clip = double.NaN;
+                return false;
+            }
 
-            return (xA, xB);
+            x1clip = p1src.X + sX * tmax;
+            y1clip = p1src.Y + sY * tmax;
+            x0clip = p1src.X + sX * tmin;
+            y0clip = p1src.Y + sY * tmin;
+            return true;
         }
 
         #endregion
@@ -238,8 +447,10 @@
         /// <param name="edgeTop"></param>
         /// <param name="path"></param>
         /// <returns></returns>
-        public static IEnumerable<PdfPath> LiangBarskyClipping(double edgeLeft, double edgeRight, double edgeBottom, double edgeTop, PdfPath path)
+        public static IEnumerable<PdfPath> LiangBarsky(double edgeLeft, double edgeRight, double edgeBottom, double edgeTop, PdfPath path)
         {
+            // TO DO: need to take in account if first == last (belong to same output polyline)
+
             var clipped = path.CloneEmpty();
             var lastX = double.NaN;
             var lastY = double.NaN;
@@ -251,7 +462,7 @@
             }
             else
             {
-                throw new ArgumentException("LiangBarskyClipping(): path's first command is not a Move command.", nameof(path));
+                throw new ArgumentException("LiangBarsky(): path's first command is not a Move command.", nameof(path));
             }
 
             for (int i = 1; i < path.Commands.Count; i++)
@@ -269,7 +480,7 @@
                 }
                 else
                 {
-                    throw new ArgumentException("LiangBarskyClipping(): path contains bezier curve.", nameof(path));
+                    throw new ArgumentException("LiangBarsky(): path contains bezier curve.", nameof(path));
                 }
 
                 double t0 = 0.0;
@@ -419,8 +630,9 @@
         /// <param name="edgeTop"></param>
         /// <param name="polyLine"></param>
         /// <returns></returns>
-        public static IEnumerable<IReadOnlyList<PdfPoint>> LiangBarskyClipping(double edgeLeft, double edgeRight, double edgeBottom, double edgeTop, IReadOnlyList<PdfPoint> polyLine)
+        public static IEnumerable<IReadOnlyList<PdfPoint>> LiangBarsky(double edgeLeft, double edgeRight, double edgeBottom, double edgeTop, IReadOnlyList<PdfPoint> polyLine)
         {
+            // TO DO: need to take in account if first == last (belong to same output polyline)
             var clipped = new List<PdfPoint>();
             var lastX = double.NaN;
             var lastY = double.NaN;
@@ -554,9 +766,11 @@
                             // we are done for this polygon, close polygon
                             yield return clipped;
 
-                            clipped = new List<PdfPoint>();
-                            clipped.Add(new PdfPoint(x0clip, y0clip));
-                            clipped.Add(new PdfPoint(x1clip, y1clip));
+                            clipped = new List<PdfPoint>
+                            {
+                                new PdfPoint(x0clip, y0clip),
+                                new PdfPoint(x1clip, y1clip)
+                            };
                             lastX = x1clip;
                             lastY = y1clip;
                         }
@@ -585,7 +799,7 @@
         /// <param name="x1clip"></param>
         /// <param name="y1clip"></param>
         /// <returns></returns>
-        public static bool LiangBarskyClipping(double edgeLeft, double edgeRight, double edgeBottom, double edgeTop, // Define the x/y clipping values for the border.
+        public static bool LiangBarsky(double edgeLeft, double edgeRight, double edgeBottom, double edgeTop, // Define the x/y clipping values for the border.
                                   double x0src, double y0src, double x1src, double y1src,                             // Define the start and end points of the line.
                                   out double x0clip, out double y0clip, out double x1clip, out double y1clip)         // The output values, so declare these outside.
         {
@@ -661,14 +875,14 @@
         /// </summary>
         /// <param name="clipping"></param>
         /// <param name="polygon"></param>
-        public static IEnumerable<PdfPath> GreinerHormannClipping(PdfPath clipping, PdfPath polygon)
+        public static IEnumerable<PdfPath> GreinerHormann(PdfPath clipping, PdfPath polygon)
         {
             //if (clipping.Equals(polygon)) return new List<PdfPath>() { polygon };
 
             var clippingList = clipping.ToPolygon(10);
             var polygonList = polygon.ToPolygon(10);
 
-            var clippeds = GreinerHormannClipping(clippingList, polygonList, clipping.FillingRule);
+            var clippeds = GreinerHormann(clippingList, polygonList, clipping.FillingRule);
 
             foreach (var clipped in clippeds)
             {
@@ -695,12 +909,12 @@
         /// <param name="polygon"></param>
         /// <param name="fillingRule"></param>
         /// <returns></returns>
-        public static List<List<Vertex>> GreinerHormannClipping(IReadOnlyList<PdfPoint> clipping, IReadOnlyList<PdfPoint> polygon,
+        public static List<List<Vertex>> GreinerHormann(IReadOnlyList<PdfPoint> clipping, IReadOnlyList<PdfPoint> polygon,
             FillingRule fillingRule)
         {
             if (clipping.Count < 3)
             {
-                throw new ArgumentException("GreinerHormannClipping(): clipping shoul contain more that 3 points.", nameof(clipping));
+                throw new ArgumentException("GreinerHormann(): clipping should contain more that 3 points.", nameof(clipping));
             }
 
             if (polygon.Count == 0)
@@ -717,6 +931,11 @@
                 {
                     return new List<List<Vertex>>();
                 }
+            }
+
+            if (!clipping.Last().Equals(clipping.First()))
+            {
+                throw new ArgumentException("GreinerHormann(): need a closed clipping polygon as input.", nameof(clipping));
             }
 
             static double squaredDist(PdfPoint point1, PdfPoint point2)
@@ -745,12 +964,6 @@
             foreach (var point in clipping)
             {
                 clip.AddLast(new Vertex() { Coordinates = point, IsClipping = true });
-            }
-
-            // force close
-            if (!clip.Last.Value.Coordinates.Equals(clip.Last.Value.Coordinates))
-            {
-                clip.AddLast(new Vertex() { Coordinates = clip.First.Value.Coordinates, IsClipping = false, IsFake = true });
             }
 
             bool hasIntersection = false;
@@ -859,9 +1072,10 @@
             while (true)
             {
                 var current = subject.Find(subject.Where(x => x.Intersect && !x.IsProcessed).First());
-                List<Vertex> newPolygon = new List<Vertex>();
-
-                newPolygon.Add(current.Value);
+                List<Vertex> newPolygon = new List<Vertex>
+                {
+                    current.Value
+                };
 
                 while (true)
                 {
@@ -985,12 +1199,12 @@
         /// <param name="clipping"></param>
         /// <param name="polygon"></param>
         /// <returns></returns>
-        public static PdfPath SutherlandHodgmanClipping(PdfPath clipping, PdfPath polygon)
+        public static PdfPath SutherlandHodgman(PdfPath clipping, PdfPath polygon)
         {
             var clippingList = clipping.ToPolygon(10);
             var polygonList = polygon.ToPolygon(10);
 
-            var clipped = SutherlandHodgmanClipping(clippingList.Distinct().ToList(), polygonList.ToList());
+            var clipped = SutherlandHodgman(clippingList.Distinct().ToList(), polygonList.ToList());
 
             PdfPath clippedPath = polygon.CloneEmpty();
 
@@ -1015,13 +1229,16 @@
         /// 
         /// </summary>
         /// <param name="clipping">The clipping polygon. Should be convex, in counter-clockwise order.</param>
-        /// <param name="polygon">The polygon to be clipped.</param>
-        public static IReadOnlyList<PdfPoint> SutherlandHodgmanClipping(IReadOnlyList<PdfPoint> clipping, IReadOnlyList<PdfPoint> polygon)
+        /// <param name="polygon">The polygon to be clipped. Preferably convex.</param>
+        public static IReadOnlyList<PdfPoint> SutherlandHodgman(IReadOnlyList<PdfPoint> clipping, IReadOnlyList<PdfPoint> polygon)
         {
+            /*
+             * This algorithm does not work if the clip window is not convex.
+             * If the polygon is not also convex, there may be some dangling edges. 
+             */
             if (clipping.Count < 3)
             {
                 throw new ArgumentException();
-                //return polygon;
             }
 
             if (polygon.Count == 0)
@@ -1040,15 +1257,25 @@
                 }
             }
 
+            if (!clipping.Last().Equals(clipping.First()))
+            {
+                throw new ArgumentException("SutherlandHodgman(): need a closed clipping polygon as input.", nameof(clipping));
+            }
+
+            if (!polygon.Last().Equals(polygon.First()))
+            {
+                throw new ArgumentException("SutherlandHodgman(): need a closed polygon to clip as input.", nameof(polygon));
+            }
+
             List<PdfPoint> outputList = polygon.ToList();
 
-            PdfPoint edgeP1 = clipping[clipping.Count - 1];
-            for (int e = 0; e < clipping.Count; e++)
+            PdfPoint edgeP1 = clipping[0];
+            for (int e = 1; e < clipping.Count; e++)
             {
+                if (outputList.Count == 0) break;
+
                 List<PdfPoint> inputList = outputList.ToList();
                 outputList.Clear();
-
-                if (inputList.Count == 0) break;
 
                 PdfPoint edgeP2 = clipping[e];
 
@@ -1080,6 +1307,9 @@
                 }
                 edgeP1 = edgeP2;
             }
+
+            // force close 
+            if (!outputList[0].Equals(outputList[outputList.Count - 1])) outputList.Add(outputList[0]);
             return outputList;
         }
         #endregion
