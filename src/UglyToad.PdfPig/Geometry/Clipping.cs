@@ -164,8 +164,71 @@
         }
         #endregion
 
-        #region Liang-Barsky
+        #region Cyrus-Beck
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="clipping">convex counter-clockwise</param>
+        /// <param name="xA"></param>
+        /// <param name="xB"></param>
+        /// <returns></returns>
+        public static (PdfPoint p1, PdfPoint p2)? CyrusBeckClipping(IReadOnlyList<PdfPoint> clipping, PdfPoint xA, PdfPoint xB)
+        {
+            if (!clipping.Last().Equals(clipping.First()))
+            {
+                throw new ArgumentException("CyrusBeckClipping(): need a closed polygon as input.", nameof(clipping));
+            }
 
+            int N = clipping.Count;
+            double tmin = 0;
+            double tmax = 1.0;
+
+            var sX = xB.X - xA.X;
+            var sY = xB.Y - xA.Y;
+
+            var current = clipping[0];
+
+            for (int i = 1; i < N; i++)
+            {
+                var siX = current.X - xA.X;
+                var siY = current.Y - xA.Y;
+
+                // n is a normal vector of edge ei(xi, xi+1), pointing outside of polygon
+                var next = clipping[i];
+                var nX = next.Y - current.Y;
+                var nY = -(next.X - current.X);
+
+                var k = nX * sX + nY * sY;
+
+                if (Math.Abs(k)> GeometryExtensions.epsilon) // k != 0
+                {
+                    double t = (nX * siX + nY * siY) / k;
+                    if (k > 0)
+                    {
+                        tmax = Math.Min(t, tmax);
+                    }
+                    else
+                    {
+                        tmin = Math.Max(t, tmin);
+                    }
+                }
+                else
+                {
+                    // special case solution
+                }
+                current = next;
+            }
+
+            if (tmin > tmax) return null;
+            xB = new PdfPoint(xA.X + sX * tmax, xA.Y + sY * tmax);
+            xA = new PdfPoint(xA.X + sX * tmin, xA.Y + sY * tmin);
+
+            return (xA, xB);
+        }
+
+        #endregion
+
+        #region Liang-Barsky
         /// <summary>
         /// 
         /// </summary>
@@ -188,7 +251,7 @@
             }
             else
             {
-                throw new ArgumentException();
+                throw new ArgumentException("LiangBarskyClipping(): path's first command is not a Move command.", nameof(path));
             }
 
             for (int i = 1; i < path.Commands.Count; i++)
@@ -206,7 +269,7 @@
                 }
                 else
                 {
-                    throw new ArgumentException();
+                    throw new ArgumentException("LiangBarskyClipping(): path contains bezier curve.", nameof(path));
                 }
 
                 double t0 = 0.0;
@@ -354,19 +417,19 @@
         /// <param name="edgeRight"></param>
         /// <param name="edgeBottom"></param>
         /// <param name="edgeTop"></param>
-        /// <param name="lines"></param>
+        /// <param name="polyLine"></param>
         /// <returns></returns>
-        public static IEnumerable<IReadOnlyList<PdfPoint>> LiangBarskyClipping(double edgeLeft, double edgeRight, double edgeBottom, double edgeTop, IReadOnlyList<PdfPoint> lines)
+        public static IEnumerable<IReadOnlyList<PdfPoint>> LiangBarskyClipping(double edgeLeft, double edgeRight, double edgeBottom, double edgeTop, IReadOnlyList<PdfPoint> polyLine)
         {
             var clipped = new List<PdfPoint>();
             var lastX = double.NaN;
             var lastY = double.NaN;
 
-            PdfPoint previous = lines[0];
-            for (int i = 1; i < lines.Count; i++)
+            PdfPoint previous = polyLine[0];
+            for (int i = 1; i < polyLine.Count; i++)
             {
                 bool drawLine = true;
-                PdfPoint current = lines[i];
+                PdfPoint current = polyLine[i];
 
                 double t0 = 0.0;
                 double t1 = 1.0;

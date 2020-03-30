@@ -55,6 +55,18 @@
         {
             return new PdfPoint(point1.X - point2.X, point1.Y - point2.Y);
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="point"></param>
+        /// <param name="factor"></param>
+        /// <returns></returns>
+        public static PdfPoint Multiply(this PdfPoint point, double factor)
+        {
+            return new PdfPoint(point.X * factor, point.Y * factor);
+        }
+
         #endregion
 
         #region Polygon
