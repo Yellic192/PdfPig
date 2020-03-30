@@ -176,7 +176,7 @@
         }
 
         /// <summary>
-        /// Simplify this <see cref="PdfPath"/> by converting everything to <see cref="PdfLine"/>s.
+        /// Simplify this <see cref="PdfPath"/> by converting bezier curves in to <see cref="Line"/>s.
         /// </summary>
         /// <param name="n">Number of lines required (minimum is 1).</param>
         public PdfPath Simplify(int n = 4)
@@ -186,9 +186,17 @@
                 return this;
             }
 
-            PdfPath simplifiedPath = new PdfPath();
-            //var startPoint = GetStartPoint(Commands.First());
-            //simplifiedPath.MoveTo(startPoint.X, startPoint.Y);
+            if (IsDrawnAsRectangle)
+            {
+                return this;
+            }
+
+            if (!Commands.Any(c=>c is BezierCurve))
+            {
+                return this;
+            }
+
+            PdfPath simplifiedPath = this.CloneEmpty();
 
             foreach (var command in Commands)
             {
@@ -212,16 +220,6 @@
                     simplifiedPath.ClosePath();
                 }
             }
-
-            /*// Check if Closed, if yes: make sure it is actually closed (last TO = first FROM)
-            if (IsClosed())
-            {
-                var first = GetStartPoint(simplifiedPath.Commands.First());
-                if (!first.Equals(GetEndPoint(simplifiedPath.Commands.Last())))
-                {
-                    simplifiedPath.LineTo(first.X, first.Y);
-                }
-            }*/
 
             return simplifiedPath;
         }
@@ -262,11 +260,11 @@
         /// </summary>
         public void Rectangle(double x, double y, double width, double height)
         {
-            MoveTo(x, y); //currentPosition = new PdfPoint(x, y);
+            MoveTo(x, y);
             LineTo(x + width, y);
             LineTo(x + width, y + height);
             LineTo(x, y + height);
-            ClosePath(); //LineTo(x, y);
+            ClosePath();
             IsDrawnAsRectangle = true;
         }
 
@@ -777,7 +775,7 @@
         }
 
         /// <summary>
-        /// Create a clone with no Commands/>.
+        /// Create a clone with no Commands.
         /// </summary>
         public PdfPath CloneEmpty()
         {

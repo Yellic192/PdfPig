@@ -49,6 +49,7 @@
         private readonly IFilterProvider filterProvider;
         private readonly ILog log;
         private readonly MarkedContentStack markedContentStack = new MarkedContentStack();
+        private readonly bool clipPaths;
 
         private Stack<CurrentGraphicsState> graphicsStack = new Stack<CurrentGraphicsState>();
         private IFont activeExtendedGraphicsStateFont;
@@ -84,7 +85,8 @@
             IPdfTokenScanner pdfScanner,
             IPageContentParser pageContentParser,
             IFilterProvider filterProvider,
-            ILog log)
+            ILog log,
+            bool clipPaths)
         {
             this.resourceStore = resourceStore;
             this.userSpaceUnit = userSpaceUnit;
@@ -93,6 +95,7 @@
             this.pageContentParser = pageContentParser ?? throw new ArgumentNullException(nameof(pageContentParser));
             this.filterProvider = filterProvider ?? throw new ArgumentNullException(nameof(filterProvider));
             this.log = log;
+            this.clipPaths = clipPaths;
 
             var clippingPath = new PdfPath();
             clippingPath.Rectangle(cropBox.BottomLeft.X, cropBox.BottomLeft.Y, cropBox.Width, cropBox.Height);
@@ -411,27 +414,27 @@
             CurrentPath = new PdfPath();
 
             // retrieve previous stroking info
-            if (paths.Count > 0)
-            {
-                //CurrentPath.IsStroked = paths.Last().IsStroked;
-                var previousPath = paths.Last();
-                if (!previousPath.IsClipping)
-                {
-                    CurrentPath.IsStroked = previousPath.IsStroked;
-                }
-                else
-                {
-                    Console.WriteLine("previous path is clipping");
-                    /*if (paths.Count > 1)
-                    {
-                        previousPath = paths[paths.Count - 2];
-                        if (!previousPath.IsClipping)
-                        {
-                            CurrentPath.IsStroked = previousPath.IsStroked;
-                        }
-                    }*/
-                }
-            }
+            //if (paths.Count > 0)
+            //{
+            //    //CurrentPath.IsStroked = paths.Last().IsStroked;
+            //    var previousPath = paths.Last();
+            //    if (!previousPath.IsClipping)
+            //    {
+            //        CurrentPath.IsStroked = previousPath.IsStroked;
+            //    }
+            //    else
+            //    {
+            //        Console.WriteLine("previous path is clipping");
+            //        /*if (paths.Count > 1)
+            //        {
+            //            previousPath = paths[paths.Count - 2];
+            //            if (!previousPath.IsClipping)
+            //            {
+            //                CurrentPath.IsStroked = previousPath.IsStroked;
+            //            }
+            //        }*/
+            //    }
+            //}
         }
         
         public void FillStrokePath(bool close, FillingRule fillingRule)
@@ -531,11 +534,19 @@
                 CurrentPath.FillColor = currentState.CurrentNonStrokingColor;
             }
 
-            var clippedPaths = currentState.CurrentClippingPath.Clip(CurrentPath);
-            foreach (var clippedPath in clippedPaths)
+            if (clipPaths)
             {
-                paths.Add(clippedPath);
-                markedContentStack.AddPath(clippedPath);
+                var clippedPaths = currentState.CurrentClippingPath.Clip(CurrentPath);
+                foreach (var clippedPath in clippedPaths)
+                {
+                    paths.Add(clippedPath);
+                    markedContentStack.AddPath(clippedPath);
+                }
+            }
+            else
+            {
+                paths.Add(CurrentPath);
+                markedContentStack.AddPath(CurrentPath);
             }
 
             CurrentPath = null;
@@ -549,6 +560,12 @@
             }
 
             CurrentPath.SetClipping(fillingRule);
+
+            if (!CurrentPath.IsClosed())
+            {
+                Console.WriteLine("force close clipping path");
+                CurrentPath.ClosePath();
+            }
 
             if (CurrentPath.Equals(GetCurrentState().CurrentClippingPath))
             {

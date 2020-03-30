@@ -41,5 +41,10 @@
         /// All passwords to try when opening this document, will include any values set for <see cref="Password"/>.
         /// </summary>
         public List<string> Passwords { get; set; } = new List<string>();
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public bool ClipPaths { get; set; } = false;
     }
 }
