@@ -577,12 +577,19 @@
                 currentClipping.SetClipping(fillingRule);
 
                 var newClippings = CurrentPath.Clip(currentClipping);
-                if (newClippings.Count() > 1)
+                if (newClippings.Count() == 0)
                 {
-                    throw new ArgumentOutOfRangeException();
+                    Console.WriteLine("ContentStreamProcessor.ModifyClippingIntersect(): Warning, empty clipping path found... Clipping path not updated.");
+                    log.Warn("ModifyClippingIntersect(): Warning, empty clipping path found... Clipping path not updated.");
                 }
-
-                GetCurrentState().CurrentClippingPath = newClippings.First();
+                else if (newClippings.Count() == 1)
+                {
+                    GetCurrentState().CurrentClippingPath = newClippings.First();
+                }
+                else
+                {
+                    throw new ArgumentOutOfRangeException("More than 1 clipping path found.");
+                }
             }
         }
 

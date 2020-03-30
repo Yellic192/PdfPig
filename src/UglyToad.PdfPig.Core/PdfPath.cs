@@ -105,6 +105,221 @@
         }
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public bool IsConvex()
+        {
+            // https://math.stackexchange.com/questions/1743995/determine-whether-a-polygon-is-convex-based-on-its-vertices
+            var vertexlist = GetPoints().ToList();
+
+            if (vertexlist.Count < 3) return false;
+            double wSign = 0;                                       // First nonzero orientation (positive or negative)
+
+            var xSign = 0;
+            var xFirstSign = 0;                                     // Sign of first nonzero edge vector x
+            var xFlips = 0;                                         // Number of sign changes in x
+
+            var ySign = 0;
+            var yFirstSign = 0;                                     // Sign of first nonzero edge vector y
+            var yFlips = 0;                                         // Number of sign changes in y
+
+            PdfPoint curr = vertexlist[vertexlist.Count - 2];       // Second-to-last vertex
+            PdfPoint next = vertexlist[vertexlist.Count - 1];       // Last vertex
+
+            foreach (var v in vertexlist)                           // Each vertex, in order
+            {
+                var prev = curr;                                    // Previous vertex
+                curr = next;                                        // Current vertex
+                next = v;                                           // Next vertex
+
+                // Previous edge vector ("before"):
+                var bx = curr.X - prev.X;
+                var by = curr.Y - prev.Y;
+
+                // Next edge vector ("after"):
+                var ax = next.X - curr.X;
+                var ay = next.Y - curr.Y;
+
+                // Calculate sign flips using the next edge vector ("after"),
+                // recording the first sign.
+                if (ax > 0)
+                {
+                    if (xSign == 0)
+                    {
+                        xFirstSign = +1;
+                    }
+                    else if (xSign < 0)
+                    {
+                        xFlips++;
+                    }
+                    xSign = +1;
+                }
+                else if (ax < 0)
+                {
+                    if (xSign == 0)
+                    {
+                        xFirstSign = -1;
+                    }
+                    else if (xSign > 0)
+                    {
+                        xFlips++;
+                    }
+                    xSign = -1;
+                }
+
+                if (xFlips > 2)
+                {
+                    return false;
+                }
+
+                if (ay > 0)
+                {
+                    if (ySign == 0)
+                    {
+                        yFirstSign = +1;
+                    }
+                    else if (ySign < 0)
+                    {
+                        yFlips++;
+                    }
+                    ySign = +1;
+                }
+                else if (ay < 0)
+                {
+                    if (ySign == 0)
+                    {
+                        yFirstSign = -1;
+                    }
+                    else if (ySign > 0)
+                    {
+                        yFlips++;
+                    }
+                    ySign = -1;
+                }
+
+                if (yFlips > 2)
+                {
+                    return false;
+                }
+
+                // Find out the orientation of this pair of edges,
+                // and ensure it does not differ from previous ones.
+                var w = bx * ay - ax * by;
+                if (wSign == 0 && w != 0)
+                {
+                    wSign = w;
+                }
+                else if (wSign > 0 && w < 0)
+                {
+                    return false;
+                }
+                else if (wSign < 0 && w > 0)
+                {
+                    return false;
+                }
+            }
+
+            // Final/wraparound sign flips:
+            if (xSign != 0 && xFirstSign != 0 && xSign != xFirstSign)
+            {
+                xFlips++;
+            }
+
+            if (ySign != 0 && yFirstSign != 0 && ySign != yFirstSign)
+            {
+                yFlips++;
+            }
+
+            // Concave polygons have two sign flips along each axis.
+            if (xFlips != 2 || yFlips != 2)
+            {
+                return false;
+            }
+
+            // This is a convex polygon.
+            return true;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="consecutiveDuplicates">true to allow, false to remove.</param>
+        /// <returns></returns>
+        public IEnumerable<PdfPoint> GetPoints(bool consecutiveDuplicates = false)
+        {
+            PdfPoint firstPoint;
+            PdfPoint previous;
+            if (Commands[0] is Move move)
+            {
+                firstPoint = move.Location;
+                previous = move.Location;
+                yield return previous;
+            }
+            else
+            {
+                throw new ArgumentException();
+            }
+
+            for (int i = 1; i < Commands.Count; i++)
+            {
+                var command = Commands[i];
+                if (command is Move)
+                {
+                    throw new ArgumentException();
+                }
+                else if (command is Line line)
+                {
+                    if (!previous.Equals(line.From))
+                    {
+                        previous = line.From;
+                        yield return line.From;
+                    }
+
+                    if (!previous.Equals(line.To))
+                    {
+                        previous = line.To;
+                        yield return line.To;
+                    }
+                }
+                else if (command is BezierCurve curve)
+                {
+                    if (!curve.StartPoint.Equals(previous))
+                    {
+                        previous = curve.StartPoint;
+                        yield return curve.StartPoint;
+                    }
+
+                    if (!curve.FirstControlPoint.Equals(previous))
+                    {
+                        previous = curve.FirstControlPoint;
+                        yield return curve.FirstControlPoint;
+                    }
+
+                    if (!curve.SecondControlPoint.Equals(previous))
+                    {
+                        previous = curve.SecondControlPoint;
+                        yield return curve.SecondControlPoint;
+                    }
+
+                    if (!curve.EndPoint.Equals(previous))
+                    {
+                        previous = curve.EndPoint;
+                        yield return curve.EndPoint;
+                    }
+                }
+                else // close
+                {
+                    if (!previous.Equals(firstPoint))
+                    {
+                        previous = firstPoint;
+                        yield return firstPoint;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Get the <see cref="PdfPath"/>'s centroid point.
         /// </summary>
         public PdfPoint GetCentroid()
@@ -191,7 +406,7 @@
                 return this;
             }
 
-            if (!Commands.Any(c=>c is BezierCurve))
+            if (!Commands.Any(c => c is BezierCurve))
             {
                 return this;
             }

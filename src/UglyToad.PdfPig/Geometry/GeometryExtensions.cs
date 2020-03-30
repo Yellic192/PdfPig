@@ -76,23 +76,7 @@
         /// <param name="n">For bezier curves: Number of lines required (minimum is 1).</param>
         public static IReadOnlyList<PdfPoint> ToPolygon(this PdfPath pdfPath, int n = 4)
         {
-            List<PdfPoint> polygon = new List<PdfPoint>();
-            foreach (var c in pdfPath.Simplify(n).Commands)
-            {
-                if (c is Line line)
-                {
-                    polygon.Add(line.To);
-                }
-                else if (c is Move move)
-                {
-                    polygon.Add(move.Location);
-                }
-                else if (c is Close)
-                {
-                    polygon.Add(polygon.First());
-                }
-            }
-            return polygon;
+            return pdfPath.Simplify(n).GetPoints().ToList();
         }
 
         /// <summary>

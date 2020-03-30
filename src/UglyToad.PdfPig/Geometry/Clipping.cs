@@ -84,26 +84,46 @@
                     throw new ArgumentException("Clip(): path bounding box not available.", nameof(path));
                 }
             }
-            
-            if (clippingRect.Value.Contains(pathRect.Value, true))
+
+            /*
+             * Need mo checks, use PDFKit guide.pdf p19 for that
+             * 
+            if (clippingRect.Value.Contains(pathRect.Value))
             {
-                // path completly inside
+                // TODO: check filling rule
+                Console.WriteLine("Clip: clipped path completly inside, c=" + clipping.IsCounterClockwise + ", p=" + path.IsCounterClockwise);
+                // path completely inside
                 yield return path;
                 yield break;
             }
-            
-            if (!clippingRect.Value.IntersectsWith(pathRect.Value))
+
+            if (pathRect.Value.Contains(clippingRect.Value))
             {
-                // path completly outside
+                // TODO: check filling rule
+                Console.WriteLine("Clip: clipping path completly inside, c=" + clipping.IsCounterClockwise + ", p=" + path.IsCounterClockwise);
+                // path completely inside
+                yield return clipping;
                 yield break;
             }
 
-            else if (clipping.IsDrawnAsRectangle) // rectangle clipping
+            if (!clippingRect.Value.IntersectsWith(pathRect.Value))
+            {
+                // TODO: check filling rule
+                Console.WriteLine("Clip: clipped path completly outside, c=" + clipping.IsCounterClockwise + ", p=" + path.IsCounterClockwise);
+                // path completely outside
+                yield break;
+            }
+            */
+
+
+
+            if (clipping.IsDrawnAsRectangle) // rectangle clipping
             {
                 if (path.IsDrawnAsRectangle) // rectangle clipped
                 {
                     if (path.IsFilled || path.IsClipping) // rectangle w/ rectangle, filled
                     {
+                        Console.WriteLine("Clip: filled rectangle clipped w/ rectangle");
                         // Simplest case where both the clipping and the clipped path are axis aligned rectangles
                         var intersection = clippingRect.Value.Intersect(pathRect.Value);
                         if (intersection.HasValue)
@@ -115,11 +135,13 @@
                         }
                         else
                         {
-                            throw new ArgumentException("They should intersect as we checked for that before.");
+                            //throw new ArgumentException("They should intersect as we checked for that before.");
+                            yield break;
                         }
                     }
                     else // rectangle w/ rectangle, not filled
                     {
+                        Console.WriteLine("Clip: not filled rectangle clipped w/ rectangle -> Liang-Barsky");
                         foreach (var clipped in LiangBarsky(clippingRect.Value.Left, clippingRect.Value.Right, clippingRect.Value.Bottom, clippingRect.Value.Top, path.Simplify(10)))
                         {
                             yield return clipped;
@@ -130,14 +152,27 @@
                 {
                     if (path.IsFilled || path.IsClipping) // polygon with rectangle
                     {
-                        // could check for convexity to use Sutherland-Hodgman
-                        foreach (var clipped in GreinerHormann(clipping, path.Simplify(10)))
+                        if (path.IsConvex())
                         {
-                            yield return clipped;
+                            Console.WriteLine("Clip: convex polygon clipped w/ rectangle -> Sutherland-Hodgman");
+                            var clipped = SutherlandHodgman(clipping, path);
+                            if (clipped != null)
+                            {
+                                yield return clipped;
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("Clip: concave polygon clipped w/ rectangle -> Greiner-Hormann");
+                            foreach (var clipped in GreinerHormann(clipping, path))
+                            {
+                                yield return clipped;
+                            }
                         }
                     }
                     else // polyline with rectangle
                     {
+                        Console.WriteLine("Clip: polyline clipped w/ rectangle -> Liang-Barsky");
                         foreach (var clipped in LiangBarsky(clippingRect.Value.Left, clippingRect.Value.Right, clippingRect.Value.Bottom, clippingRect.Value.Top, path.Simplify(10)))
                         {
                             yield return clipped;
@@ -149,21 +184,42 @@
             {
                 if (path.IsFilled || path.IsClipping) // polygon with polygon
                 {
-                    // check convex or not
-                    foreach (var clipped in GreinerHormann(clipping, path.Simplify(10)))
+                    //if (clipping.IsConvex() && path.IsConvex())
+                    //{
+                    //    Console.WriteLine("Clip: convex polygon clipped w/ convex polygon -> Sutherland-Hodgman");
+                    //    var clipped = SutherlandHodgman(clipping, path);
+                    //    if (clipped != null)
+                    //    {
+                    //        yield return clipped;
+                    //    }
+                    //}
+                    //else
+                    //{
+                    Console.WriteLine("Clip: convex/concave polygon clipped w/ convex/concave polygon -> Greiner-Hormann");
+                    foreach (var clipped in GreinerHormann(clipping, path))
                     {
                         yield return clipped;
                     }
+                    //}
                 }
                 else // polyline
                 {
-                    // check convex or not
-                    // if convex -> CB
-
-                    // we assume always convex for the moment
-                    foreach (var clipped in CyrusBeck(clipping, path.Simplify(10)))
+                    if (clipping.IsConvex())
                     {
-                        yield return clipped;
+                        Console.WriteLine("Clip: polyline clipped w/ convex polygon -> Cyrus-Beck");
+                        foreach (var clipped in CyrusBeck(clipping, path.Simplify(10)))
+                        {
+                            yield return clipped;
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("Clip: polyline clipped w/ concave polygon -> Cyrus-Beck [TO DO]");
+                        // we assume always convex for the moment
+                        foreach (var clipped in CyrusBeck(clipping, path.Simplify(10)))
+                        {
+                            yield return clipped;
+                        }
                     }
                 }
             }
@@ -219,8 +275,8 @@
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="clippingPath">Convex counter clockwise</param>
-        /// <param name="path">polyline path.</param>
+        /// <param name="clippingPath">Convex counter clockwise (ToPolygon)</param>
+        /// <param name="path">polyline path. Need to simplify</param>
         /// <returns></returns>
         public static IEnumerable<PdfPath> CyrusBeck(PdfPath clippingPath, PdfPath path)
         {
@@ -445,7 +501,7 @@
         /// <param name="edgeRight"></param>
         /// <param name="edgeBottom"></param>
         /// <param name="edgeTop"></param>
-        /// <param name="path"></param>
+        /// <param name="path">need to Simplify before</param>
         /// <returns></returns>
         public static IEnumerable<PdfPath> LiangBarsky(double edgeLeft, double edgeRight, double edgeBottom, double edgeTop, PdfPath path)
         {
@@ -873,12 +929,10 @@
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="clipping"></param>
-        /// <param name="polygon"></param>
+        /// <param name="clipping">ToPolygon</param>
+        /// <param name="polygon">ToPolygon</param>
         public static IEnumerable<PdfPath> GreinerHormann(PdfPath clipping, PdfPath polygon)
         {
-            //if (clipping.Equals(polygon)) return new List<PdfPath>() { polygon };
-
             var clippingList = clipping.ToPolygon(10);
             var polygonList = polygon.ToPolygon(10);
 
@@ -1196,21 +1250,22 @@
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="clipping"></param>
-        /// <param name="polygon"></param>
+        /// <param name="clipping">ToPolygon</param>
+        /// <param name="polygon">ToPolygon</param>
         /// <returns></returns>
         public static PdfPath SutherlandHodgman(PdfPath clipping, PdfPath polygon)
         {
             var clippingList = clipping.ToPolygon(10);
+
             var polygonList = polygon.ToPolygon(10);
 
-            var clipped = SutherlandHodgman(clippingList.Distinct().ToList(), polygonList.ToList());
+            var clipped = SutherlandHodgman(clippingList.ToList(), polygonList.ToList());
 
             PdfPath clippedPath = polygon.CloneEmpty();
 
             if (clipped.Count > 0)
             {
-                clippedPath.MoveTo(clipped.First().X, clipped.First().Y);
+                clippedPath.MoveTo(clipped[0].X, clipped[0].Y);
                 for (int i = 1; i < clipped.Count; i++)
                 {
                     var current = clipped[i];
@@ -1228,13 +1283,14 @@
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="clipping">The clipping polygon. Should be convex, in counter-clockwise order.</param>
+        /// <param name="clipping">The clipping polygon. Should be convex, in counter-clockwise order.No consecutive duplicate points allowed.</param>
         /// <param name="polygon">The polygon to be clipped. Preferably convex.</param>
         public static IReadOnlyList<PdfPoint> SutherlandHodgman(IReadOnlyList<PdfPoint> clipping, IReadOnlyList<PdfPoint> polygon)
         {
             /*
              * This algorithm does not work if the clip window is not convex.
-             * If the polygon is not also convex, there may be some dangling edges. 
+             * If the polygon is not also convex, there may be some dangling edges.
+             * Doesn't work if consecutive duplicate points in clipping path (what about in clipped path??)
              */
             if (clipping.Count < 3)
             {
@@ -1261,6 +1317,21 @@
             {
                 throw new ArgumentException("SutherlandHodgman(): need a closed clipping polygon as input.", nameof(clipping));
             }
+
+            // hackish: makes sure all consecutive duplicate points are removed
+            var previousH = clipping[0];
+            var tempClipping = new List<PdfPoint>() { previousH };
+            for (int p = 1; p < clipping.Count; p++)
+            {
+                var current = clipping[p];
+                if (!current.Equals(previousH))
+                {
+                    tempClipping.Add(current);
+                    previousH = current;
+                }
+            }
+            clipping = tempClipping;
+            // end hackish
 
             if (!polygon.Last().Equals(polygon.First()))
             {
@@ -1293,6 +1364,7 @@
                                 outputList.Add(intersection.Value);
                             }
                         }
+                        
                         outputList.Add(current);
                     }
                     else if (GeometryExtensions.ccw(edgeP1, edgeP2, previous))
@@ -1308,8 +1380,11 @@
                 edgeP1 = edgeP2;
             }
 
-            // force close 
-            if (!outputList[0].Equals(outputList[outputList.Count - 1])) outputList.Add(outputList[0]);
+            // force close
+            if (outputList.Count > 0)
+            {
+                if (!outputList[0].Equals(outputList[outputList.Count - 1])) outputList.Add(outputList[0]);
+            }
             return outputList;
         }
         #endregion
