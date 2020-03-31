@@ -85,22 +85,20 @@
                 }
             }
 
-            /*
-             * Need mo checks, use PDFKit guide.pdf p19 for that
-             * 
-            if (clippingRect.Value.Contains(pathRect.Value))
+            // Deal with simples cases
+            if (clippingRect.Value.Contains(pathRect.Value) && clipping.IsDrawnAsRectangle)
             {
                 // TODO: check filling rule
-                Console.WriteLine("Clip: clipped path completly inside, c=" + clipping.IsCounterClockwise + ", p=" + path.IsCounterClockwise);
                 // path completely inside
+                //Console.WriteLine("Clip: clipped path completly inside");
                 yield return path;
                 yield break;
             }
 
-            if (pathRect.Value.Contains(clippingRect.Value))
+            if (pathRect.Value.Contains(clippingRect.Value) && path.IsDrawnAsRectangle)
             {
                 // TODO: check filling rule
-                Console.WriteLine("Clip: clipping path completly inside, c=" + clipping.IsCounterClockwise + ", p=" + path.IsCounterClockwise);
+                //Console.WriteLine("Clip: clipping path completly inside");
                 // path completely inside
                 yield return clipping;
                 yield break;
@@ -109,13 +107,11 @@
             if (!clippingRect.Value.IntersectsWith(pathRect.Value))
             {
                 // TODO: check filling rule
-                Console.WriteLine("Clip: clipped path completly outside, c=" + clipping.IsCounterClockwise + ", p=" + path.IsCounterClockwise);
+                //Console.WriteLine("Clip: clipped path completly outside");
                 // path completely outside
                 yield break;
             }
-            */
-
-
+            // End deal with simples cases
 
             if (clipping.IsDrawnAsRectangle) // rectangle clipping
             {
@@ -123,7 +119,7 @@
                 {
                     if (path.IsFilled || path.IsClipping) // rectangle w/ rectangle, filled
                     {
-                        Console.WriteLine("Clip: filled rectangle clipped w/ rectangle");
+                        //Console.WriteLine("Clip: filled rectangle clipped w/ rectangle");
                         // Simplest case where both the clipping and the clipped path are axis aligned rectangles
                         var intersection = clippingRect.Value.Intersect(pathRect.Value);
                         if (intersection.HasValue)
@@ -141,7 +137,7 @@
                     }
                     else // rectangle w/ rectangle, not filled
                     {
-                        Console.WriteLine("Clip: not filled rectangle clipped w/ rectangle -> Liang-Barsky");
+                        //Console.WriteLine("Clip: not filled rectangle clipped w/ rectangle -> Liang-Barsky");
                         foreach (var clipped in LiangBarsky(clippingRect.Value.Left, clippingRect.Value.Right, clippingRect.Value.Bottom, clippingRect.Value.Top, path.Simplify(10)))
                         {
                             yield return clipped;
@@ -184,23 +180,23 @@
             {
                 if (path.IsFilled || path.IsClipping) // polygon with polygon
                 {
-                    //if (clipping.IsConvex() && path.IsConvex())
-                    //{
-                    //    Console.WriteLine("Clip: convex polygon clipped w/ convex polygon -> Sutherland-Hodgman");
-                    //    var clipped = SutherlandHodgman(clipping, path);
-                    //    if (clipped != null)
-                    //    {
-                    //        yield return clipped;
-                    //    }
-                    //}
-                    //else
-                    //{
-                    Console.WriteLine("Clip: convex/concave polygon clipped w/ convex/concave polygon -> Greiner-Hormann");
-                    foreach (var clipped in GreinerHormann(clipping, path))
+                    if (clipping.IsConvex() && path.IsConvex())
                     {
-                        yield return clipped;
+                        Console.WriteLine("Clip: convex polygon clipped w/ convex polygon -> Sutherland-Hodgman");
+                        var clipped = SutherlandHodgman(clipping, path);
+                        if (clipped != null)
+                        {
+                            yield return clipped;
+                        }
                     }
-                    //}
+                    else
+                    {
+                        Console.WriteLine("Clip: convex/concave polygon clipped w/ convex/concave polygon -> Greiner-Hormann");
+                        foreach (var clipped in GreinerHormann(clipping, path))
+                        {
+                            yield return clipped;
+                        }
+                    }
                 }
                 else // polyline
                 {
@@ -418,7 +414,7 @@
         }
 
         /// <summary>
-        /// 
+        /// O(n)
         /// </summary>
         /// <param name="clipping">Convex counter clockwise</param>
         /// <param name="p1src"></param>
@@ -840,7 +836,7 @@
         }
 
         /// <summary>
-        /// 
+        /// O(n)
         /// </summary>
         /// <param name="edgeLeft"></param>
         /// <param name="edgeRight"></param>
@@ -927,7 +923,7 @@
 
         #region Greiner-Hormann
         /// <summary>
-        /// 
+        /// O(m*n)
         /// </summary>
         /// <param name="clipping">ToPolygon</param>
         /// <param name="polygon">ToPolygon</param>
@@ -957,7 +953,7 @@
         }
 
         /// <summary>
-        /// 
+        /// O(m*n)
         /// </summary>
         /// <param name="clipping"></param>
         /// <param name="polygon"></param>
@@ -1248,14 +1244,25 @@
 
         #region Sutherland-Hodgman
         /// <summary>
-        /// 
+        /// O(m*n)
         /// </summary>
-        /// <param name="clipping">ToPolygon</param>
-        /// <param name="polygon">ToPolygon</param>
+        /// <param name="clipping">The clipping polygon. Should be convex, in counter-clockwise order.No consecutive duplicate points allowed.</param>
+        /// <param name="polygon">The polygon to be clipped. Preferably convex.</param>
         /// <returns></returns>
         public static PdfPath SutherlandHodgman(PdfPath clipping, PdfPath polygon)
         {
             var clippingList = clipping.ToPolygon(10);
+            if (clipping.IsClockwise)
+            {
+                Console.WriteLine("SutherlandHodgman: clockwise clipping polygon, reversing its order.");
+                clippingList = clippingList.Reverse().ToList();
+            }
+
+            if (!polygon.IsClosed())
+            {
+                Console.WriteLine("SutherlandHodgman: force closing polygon.");
+                polygon.ClosePath();
+            }
 
             var polygonList = polygon.ToPolygon(10);
 
@@ -1281,7 +1288,7 @@
         }
 
         /// <summary>
-        /// 
+        /// O(m*n)
         /// </summary>
         /// <param name="clipping">The clipping polygon. Should be convex, in counter-clockwise order.No consecutive duplicate points allowed.</param>
         /// <param name="polygon">The polygon to be clipped. Preferably convex.</param>
