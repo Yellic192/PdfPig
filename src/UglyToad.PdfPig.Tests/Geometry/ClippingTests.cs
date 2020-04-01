@@ -125,7 +125,7 @@ namespace UglyToad.PdfPig.Tests.Geometry
         [MemberData(nameof(SutherlandHodgmanData))]
         public void SutherlandHodgman(PdfPoint[] clipping, PdfPoint[] polygon, PdfPoint[] expected)
         {
-            var computed = Clipping.SutherlandHodgman(clipping, polygon);
+            var computed = ClippingOld.SutherlandHodgman(clipping, polygon);
 
             Assert.Equal(expected.Length, computed.Count);
             foreach (var e in expected)
