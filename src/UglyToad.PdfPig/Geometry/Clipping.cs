@@ -466,7 +466,17 @@
                 }
                 else
                 {
-                    // special case solution
+                    // Special case solution
+                    // Cases when the clipped line is collinear or nearly collinear 
+                    // with an edge, i.e., the case when k = 0 or is close to zero.
+                    if (!GeometryExtensions.ccw(current, next, p1src) || !GeometryExtensions.ccw(current, next, p2src))
+                    {
+                        x0clip = double.NaN;
+                        y0clip = double.NaN;
+                        x1clip = double.NaN;
+                        y1clip = double.NaN;
+                        return false;
+                    }
                 }
                 current = next;
             }
