@@ -56,7 +56,7 @@
         /// <inheritdoc />
         public void Run(IOperationContext operationContext)
         {
-            operationContext.BeginSubpath();
+            //operationContext.BeginSubpath();
             var lowerLeft = operationContext.CurrentTransformationMatrix.Transform(new PdfPoint(LowerLeftX, LowerLeftY));
             var upperRight = operationContext.CurrentTransformationMatrix.Transform(new PdfPoint(LowerLeftX + Width, LowerLeftY + Height));
 

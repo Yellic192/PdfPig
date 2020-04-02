@@ -130,12 +130,15 @@
             return $"rgb({Math.Ceiling(r * 255)},{Math.Ceiling(g * 255)},{Math.Ceiling(b * 255)})";
         }
 
-        private static string PathToSvg(PdfPath p, double height)
+        private static string PathToSvg(PdfPath pdfPath, double height)
         {
             var builder = new StringBuilder();
-            foreach (var pathCommand in p.Commands)
+            foreach (var pdfSubpath in pdfPath)
             {
-                pathCommand.WriteSvg(builder, height);
+                foreach (var command in pdfSubpath.Commands)
+                {
+                    command.WriteSvg(builder, height);
+                }
             }
 
             if (builder.Length == 0)
@@ -156,19 +159,19 @@
             string strokeColor = " stroke='none'";
             string strokeWidth = "";
 
-            if (p.IsStroked)
+            if (pdfPath.IsStroked)
             {
-                strokeColor = $" stroke='{ColorToSvg(p.StrokeColor)}'";
-                strokeWidth = double.IsNaN(p.LineWidth) ? "" : $" stroke-width='{p.LineWidth}'";
+                strokeColor = $" stroke='{ColorToSvg(pdfPath.StrokeColor)}'";
+                strokeWidth = double.IsNaN(pdfPath.LineWidth) ? "" : $" stroke-width='{pdfPath.LineWidth}'";
 
-                if (p.LineDashPattern.HasValue && p.LineDashPattern.Value.Array.Count > 0)
+                if (pdfPath.LineDashPattern.HasValue && pdfPath.LineDashPattern.Value.Array.Count > 0)
                 {
-                    dashArray = $" stroke-dasharray='{string.Join(" ", p.LineDashPattern.Value.Array)}'";
+                    dashArray = $" stroke-dasharray='{string.Join(" ", pdfPath.LineDashPattern.Value.Array)}'";
                 }
 
-                if (p.LineCapStyle != Core.Graphics.LineCapStyle.Butt)
+                if (pdfPath.LineCapStyle != Core.Graphics.LineCapStyle.Butt)
                 {
-                    if (p.LineCapStyle == Core.Graphics.LineCapStyle.Round)
+                    if (pdfPath.LineCapStyle == Core.Graphics.LineCapStyle.Round)
                     {
                         capStyle = " stroke-linecap='round'";
                     }
@@ -178,9 +181,9 @@
                     }
                 }
                 
-                if (p.LineJoinStyle != Core.Graphics.LineJoinStyle.Miter)
+                if (pdfPath.LineJoinStyle != Core.Graphics.LineJoinStyle.Miter)
                 {
-                    if (p.LineJoinStyle == Core.Graphics.LineJoinStyle.Round)
+                    if (pdfPath.LineJoinStyle == Core.Graphics.LineJoinStyle.Round)
                     {
                         jointStyle = " stroke-linejoin='round'";
                     }
@@ -194,9 +197,9 @@
             string fillColor = " fill='none'";
             string fillRule = "";
 
-            if (p.IsFilled)
+            if (pdfPath.IsFilled)
             {
-                fillColor = $" fill='{ColorToSvg(p.FillColor)}'";
+                fillColor = $" fill='{ColorToSvg(pdfPath.FillColor)}'";
                 //if (p.FillingRule == FillingRule.EvenOdd) fillRule = " fill-rule='evenodd'";
             }
 

@@ -21,10 +21,10 @@
         /// </summary>
         IColorSpaceContext ColorSpaceContext { get; }
 
-        /// <summary>
+        /*/// <summary>
         /// The current position.
         /// </summary>
-        PdfPoint CurrentPosition { get; set; }
+        PdfPoint CurrentPosition { get; set; }*/
 
         /// <summary>
         /// Get the currently active <see cref="CurrentGraphicsState"/>. States are stored on a stack structure.

@@ -457,8 +457,6 @@ namespace UglyToad.PdfPig.Geometry
     {
         pftEvenOdd,
         pftNonZero,
-        //pftPositive,
-        //pftNegative
     };
 
     internal enum JoinType

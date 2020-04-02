@@ -20,7 +20,7 @@
 
         public TransformationMatrix CurrentTransformationMatrix => GetCurrentState().CurrentTransformationMatrix;
 
-        public PdfPath CurrentPath { get; set; }
+        public PdfPath CurrentPath { get; private set; }
 
         public IColorSpaceContext ColorSpaceContext { get; }
 

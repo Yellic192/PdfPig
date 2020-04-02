@@ -63,7 +63,7 @@
                 end.Y,
                 end.X,
                 end.Y);
-            operationContext.CurrentPosition = end;
+            //operationContext.CurrentPosition = end;
         }
 
         /// <inheritdoc />

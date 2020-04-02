@@ -77,7 +77,7 @@
             operationContext.CurrentPath.BezierCurveTo(controlPoint1.X, controlPoint1.Y,
                 controlPoint2.X, controlPoint2.Y,
                 end.X, end.Y);
-            operationContext.CurrentPosition = end;
+            //operationContext.CurrentPosition = end;
         }
 
         /// <inheritdoc />
