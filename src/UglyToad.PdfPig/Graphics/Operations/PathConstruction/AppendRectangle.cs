@@ -62,7 +62,6 @@
 
             operationContext.CurrentSubpath.Rectangle(lowerLeft.X, lowerLeft.Y, upperRight.X - lowerLeft.X, upperRight.Y - lowerLeft.Y);
             operationContext.AddSubpath();
-            //operationContext.BeginSubpath();
         }
 
         /// <inheritdoc />

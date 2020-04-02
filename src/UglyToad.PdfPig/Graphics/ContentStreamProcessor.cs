@@ -515,7 +515,12 @@
 
             if (CurrentPath.IsClipping)
             {
-                //Console.WriteLine("EndPath: Don't add clipping path");
+                if (!clipPaths)
+                {
+                    // if we don't clip paths, add clipping paths
+                    paths.Add(CurrentPath);
+                    markedContentStack.AddPath(CurrentPath);
+                }
                 CurrentPath = null;
                 return;
             }
@@ -531,8 +536,7 @@
 
             if (CurrentPath.IsClipping)
             {
-                Console.WriteLine("Don't add clipping path");
-                CurrentPath = null;
+                EndPath();
                 return;
             }
 
