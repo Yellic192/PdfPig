@@ -18,6 +18,7 @@
     using UglyToad.PdfPig.Core.Graphics;
     using UglyToad.PdfPig.Core.Graphics.Colors;
     using XObjects;
+    using static UglyToad.PdfPig.Core.PdfSubpath;
 
     internal class ContentStreamProcessor : IOperationContext
     {
@@ -29,7 +30,7 @@
         /// <summary>
         /// Stores each path as it is encountered in the content stream.
         /// </summary>
-        private readonly List<PdfPathFix> paths = new List<PdfPathFix>();
+        private readonly List<PdfPath> paths = new List<PdfPath>();
 
         /// <summary>
         /// Stores a link to each image (either inline or XObject) as it is encountered in the content stream.
@@ -67,9 +68,9 @@
 
         public TransformationMatrix CurrentTransformationMatrix => GetCurrentState().CurrentTransformationMatrix;
 
-        public PdfPathFix CurrentPath { get; private set; }
+        public PdfPath CurrentPath { get; private set; }
 
-        public PdfPath CurrentSubpath { get; private set; }
+        public PdfSubpath CurrentSubpath { get; private set; }
 
         public IColorSpaceContext ColorSpaceContext { get; }
 
@@ -99,10 +100,11 @@
             this.log = log;
             this.clipPaths = clipPaths;
 
-            var clippingSubpath = new PdfPath();
+            var clippingSubpath = new PdfSubpath();
             clippingSubpath.Rectangle(cropBox.BottomLeft.X, cropBox.BottomLeft.Y, cropBox.Width, cropBox.Height);
-            var clippingPath = new PdfPathFix() { clippingSubpath };
+            var clippingPath = new PdfPath() { clippingSubpath };
             clippingPath.SetClipping(FillingRule.NonZeroWinding);
+
             graphicsStack.Push(new CurrentGraphicsState() { CurrentClippingPath = clippingPath });
 
             ColorSpaceContext = new ColorSpaceContext(GetCurrentState, resourceStore);
@@ -411,23 +413,29 @@
         {
             if (CurrentPath == null)
             {
-                CurrentPath = new PdfPathFix();
+                CurrentPath = new PdfPath();
             }
 
-            if (CurrentSubpath != null)
-            {
-                AddSubpath();
-            }
-
-            CurrentSubpath = new PdfPath();
+            AddSubpath();
+            CurrentSubpath = new PdfSubpath();
         }
 
-        public void CloseSubpath()
+        public PdfPoint CloseSubpath()
         {
+            PdfPoint point;
+            if (CurrentSubpath.Commands[0] is Move move)
+            {
+                point = move.Location;
+            }
+            else
+            {
+                throw new ArgumentException("CloseSubpath(): first command not Move.");
+            }
+
             CurrentSubpath.ClosePath();
             AddSubpath();
+            return point;
         }
-
 
         public void AddSubpath()
         {
@@ -514,7 +522,6 @@
 
             paths.Add(CurrentPath);
             markedContentStack.AddPath(CurrentPath);
-            CurrentSubpath = null;
             CurrentPath = null;
         }
 
@@ -525,7 +532,7 @@
             if (CurrentPath.IsClipping)
             {
                 Console.WriteLine("Don't add clipping path");
-                CurrentSubpath = null;
+                CurrentPath = null;
                 return;
             }
 
@@ -559,7 +566,6 @@
                 markedContentStack.AddPath(CurrentPath);
             }
 
-            CurrentSubpath = null;
             CurrentPath = null;
         }
 
@@ -568,17 +574,11 @@
             if (CurrentPath == null)
             {
                 throw new ArgumentException("ModifyClippingIntersect(null)");
-                //return;
             }
 
+            AddSubpath();
+
             CurrentPath.SetClipping(fillingRule);
-
-            /*if (!CurrentSubpath.IsClosed())
-            {
-                Console.WriteLine("force close clipping path");
-                CurrentSubpath.ClosePath();
-            }*/
-
             var currentClipping = GetCurrentState().CurrentClippingPath;
             currentClipping.SetClipping(fillingRule);
 

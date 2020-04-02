@@ -4,14 +4,14 @@
     using System.Collections.Generic;
     using System.Linq;
     using UglyToad.PdfPig.Core;
-    using static UglyToad.PdfPig.Core.PdfPath;
+    using static UglyToad.PdfPig.Core.PdfSubpath;
 
     /// <summary>
     /// 
     /// </summary>
     public static class Clipping
     {
-        const int factor = 10_000;
+        const double factor = 10_000.0;
 
         /// <summary>
         /// 
@@ -19,7 +19,7 @@
         /// <param name="clipping"></param>
         /// <param name="subject"></param>
         /// <returns></returns>
-        public static PdfPathFix Clip(this PdfPathFix clipping, PdfPathFix subject)
+        public static PdfPath Clip(this PdfPath clipping, PdfPath subject)
         {
             if (clipping == null)
             {
@@ -46,150 +46,113 @@
             {
                 // force close clipping polygon
                 if (!subpath.IsClosed()) subpath.ClosePath();
-
-                // convert PdfPath to polygon
-                var intClipping = subpath.ToClipperPolygon(10).ToList();
-                clipper.AddPath(intClipping, PolyType.ptClip, true);
+                clipper.AddPath(subpath.ToClipperPolygon(10).ToList(), PolyType.ptClip, true);
             }
 
             bool subjectClose = subject.IsFilled || subject.IsClipping;
-
             foreach (var subpath in subject)
             {      
                 // force close subject if need be
                 if (subjectClose && !subpath.IsClosed()) subpath.ClosePath();
-                // convert PdfPath to polygon
-                var intPath = subpath.ToClipperPolygon(10).ToList();
-                clipper.AddPath(intPath, PolyType.ptSubject, subjectClose);
+                clipper.AddPath(subpath.ToClipperPolygon(10).ToList(), PolyType.ptSubject, subjectClose);
             }
 
             var clippingFillType = clipping.FillingRule == FillingRule.NonZeroWinding ? PolyFillType.pftNonZero : PolyFillType.pftEvenOdd;
+            var subjectFillType = subject.FillingRule == FillingRule.NonZeroWinding ? PolyFillType.pftNonZero : PolyFillType.pftEvenOdd;
 
             if (!subjectClose)
             {
                 // case where subject is not closed
                 var solutions = new PolyTree();
-                if (clipper.Execute(ClipType.ctIntersection, solutions, clippingFillType))
+                if (clipper.Execute(ClipType.ctIntersection, solutions, subjectFillType, clippingFillType))
                 {
-                    PdfPathFix clippedPath = subject.CloneEmpty();
+                    PdfPath clippedPath = subject.CloneEmpty();
                     foreach (var solution in solutions.Childs)
                     {
-                        PdfPath clipped = new PdfPath();
-                        clipped.MoveTo((double)solution.Contour[0].X / factor, (double)solution.Contour[0].Y / factor);
-
-                        for (int i = 1; i < solution.Contour.Count; i++)
+                        if (solution.Contour.Count > 0)
                         {
-                            clipped.LineTo((double)solution.Contour[i].X / factor, (double)solution.Contour[i].Y / factor);
+                            PdfSubpath clipped = new PdfSubpath();
+                            clipped.MoveTo(solution.Contour[0].X / factor, solution.Contour[0].Y / factor);
+
+                            for (int i = 1; i < solution.Contour.Count; i++)
+                            {
+                                clipped.LineTo(solution.Contour[i].X / factor, solution.Contour[i].Y / factor);
+                            }
+                            clippedPath.Add(clipped);
                         }
-                        clippedPath.Add(clipped);
                     }
-                    return clippedPath;
+                    if (clippedPath.Count > 0) return clippedPath;
                 }
-                else
-                {
-                    return null;
-                }
+                return null;
             }
             else
             {
                 // case where subject is closed
-                var subjectFillType = subject.FillingRule == FillingRule.NonZeroWinding ? PolyFillType.pftNonZero : PolyFillType.pftEvenOdd;
-
                 var solutions = new List<List<IntPoint>>();
                 if (clipper.Execute(ClipType.ctIntersection, solutions, subjectFillType, clippingFillType))
                 {
-                    PdfPathFix clippedPath = subject.CloneEmpty();
+                    PdfPath clippedPath = subject.CloneEmpty();
                     foreach (var solution in solutions)
                     {
-                        PdfPath clipped = new PdfPath();
-                        clipped.MoveTo((double)solution[0].X / 10000, (double)solution[0].Y / 10000);
+                        PdfSubpath clipped = new PdfSubpath();
+                        clipped.MoveTo(solution[0].X / factor, solution[0].Y / factor);
 
                         for (int i = 1; i < solution.Count; i++)
                         {
-                            clipped.LineTo((double)solution[i].X / 10000, (double)solution[i].Y / 10000);
+                            clipped.LineTo(solution[i].X / factor, solution[i].Y / factor);
                         }
-                        clipped.ClosePath();
-
-                        clippedPath.Add(clipped);
+                        if (!clipped.IsClosed()) clipped.ClosePath();
+                        if (clipped.Commands.Count > 0) clippedPath.Add(clipped);
                     }
-                    return clippedPath;
+                    if (clippedPath.Count > 0) return clippedPath;
                 }
-                else
-                {
-                    return null;
-                }
+                return null;
             }
         }
 
-        private static IEnumerable<IntPoint> ToClipperPolygon(this PdfPath pdfPath, int n = 4)
+        private static IEnumerable<IntPoint> ToClipperPolygon(this PdfSubpath pdfPath, int n = 4)
         {
             if (pdfPath.Commands.Count == 0)
             {
                 yield break;
             }
 
-            IntPoint previous;
             if (pdfPath.Commands[0] is Move currentMove)
             {
-                previous = new IntPoint(currentMove.Location.X * factor, currentMove.Location.Y * factor);
-                yield return previous;
+                yield return new IntPoint(currentMove.Location.X * factor, currentMove.Location.Y * factor);
             }
             else
             {
-                throw new ArgumentException();
+                throw new ArgumentException("ToClipperPolygon");
             }
 
             for (int i = 1; i < pdfPath.Commands.Count; i++)
             {
                 var command = pdfPath.Commands[i];
-                if (command is Move move)
+                if (command is Move)
                 {
-                    var location = new IntPoint(move.Location.X * factor, move.Location.Y * factor);
-                    if (location != previous)
-                    {
-                        yield return location;
-                        previous = location;
-                        currentMove = move;
-                    }
+                    throw new ArgumentException("ToClipperPolygon");
                 }
                 else if (command is Line line)
                 {
-                    var from = new IntPoint(line.From.X * factor, line.From.Y * factor);
-                    if (!previous.Equals(from))
-                    {
-                        yield return from;
-                        previous = from;
-                    }
-
-                    var to = new IntPoint(line.To.X * factor, line.To.Y * factor);
-                    if (!previous.Equals(to))
-                    {
-                        yield return to;
-                        previous = to;
-                    }
+                    yield return new IntPoint(line.From.X * factor, line.From.Y * factor);
+                    yield return new IntPoint(line.To.X * factor, line.To.Y * factor);
                 }
                 else if (command is BezierCurve curve)
                 {
                     foreach (var lineB in curve.ToLines(n))
                     {
-                        var from = new IntPoint(lineB.From.X * factor, lineB.From.Y * factor);
-                        if (!previous.Equals(from))
-                        {
-                            yield return from;
-                            previous = from;
-                        }
-
-                        var to = new IntPoint(lineB.To.X * factor, lineB.To.Y * factor);
-                        if (!previous.Equals(to))
-                        {
-                            yield return to;
-                            previous = to;
-                        }
+                        yield return new IntPoint(lineB.From.X * factor, lineB.From.Y * factor);
+                        yield return new IntPoint(lineB.To.X * factor, lineB.To.Y * factor);
                     }
                 }
                 else if (command is Close)
                 {
                     yield return new IntPoint(currentMove.Location.X * factor, currentMove.Location.Y * factor);
+                }
+                else
+                {
+                    throw new ArgumentException("ToClipperPolygon - unknown command");
                 }
             }
         }

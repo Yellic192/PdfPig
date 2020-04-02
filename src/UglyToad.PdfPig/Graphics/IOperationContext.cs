@@ -14,7 +14,7 @@
         /// The current path being drawn if applicable.
         /// </summary>
         [CanBeNull]
-        PdfPath CurrentSubpath { get; }
+        PdfSubpath CurrentSubpath { get; }
 
         /// <summary>
         /// The active colorspaces for this content stream.
@@ -83,7 +83,7 @@
         /// <summary>
         /// 
         /// </summary>
-        void CloseSubpath();
+        PdfPoint CloseSubpath();
 
         /// <summary>
         /// 

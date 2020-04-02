@@ -176,7 +176,7 @@
         /// <param name="pageHeight"></param>
         /// <param name="subPaths"></param>
         /// <param name="level">The indent level.</param>
-        private string GetCode(PdfPathFix path, double pageHeight, bool subPaths, int level)
+        private string GetCode(PdfPath path, double pageHeight, bool subPaths, int level)
         {
             if (path == null) return string.Empty;
 

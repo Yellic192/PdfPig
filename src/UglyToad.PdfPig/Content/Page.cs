@@ -172,9 +172,9 @@
             private readonly AnnotationProvider annotationProvider;
 
             /// <summary>
-            /// The set of <see cref="PdfPath"/>s drawn by the PDF content.
+            /// The set of <see cref="PdfSubpath"/>s drawn by the PDF content.
             /// </summary>
-            public IReadOnlyList<PdfPathFix> Paths => page.Content?.Paths ?? new List<PdfPathFix>();
+            public IReadOnlyList<PdfPath> Paths => page.Content?.Paths ?? new List<PdfPath>();
 
             internal Experimental(Page page, AnnotationProvider annotationProvider)
             {

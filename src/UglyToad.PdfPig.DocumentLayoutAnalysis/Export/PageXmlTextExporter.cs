@@ -199,7 +199,7 @@
             return pageXmlPage;
         }
 
-        private PageXmlDocument.PageXmlLineDrawingRegion ToPageXmlLineDrawingRegion(PdfPathFix pdfPath, double height)
+        private PageXmlDocument.PageXmlLineDrawingRegion ToPageXmlLineDrawingRegion(PdfPath pdfPath, double height)
         {
             var bbox = pdfPath.GetBoundingRectangle();
             if (bbox.HasValue)

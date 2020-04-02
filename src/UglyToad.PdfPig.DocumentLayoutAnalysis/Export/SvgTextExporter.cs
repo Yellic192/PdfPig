@@ -130,7 +130,7 @@
             return $"rgb({Math.Ceiling(r * 255)},{Math.Ceiling(g * 255)},{Math.Ceiling(b * 255)})";
         }
 
-        private static string PathToSvg(PdfPathFix p, double height)
+        private static string PathToSvg(PdfPath p, double height)
         {
             var builder = new StringBuilder();
             foreach (var subpath in p)

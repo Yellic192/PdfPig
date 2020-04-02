@@ -30,7 +30,8 @@
         public void Run(IOperationContext operationContext)
         {
             //operationContext.CurrentSubpath.ClosePath();
-            operationContext.CloseSubpath();
+            operationContext.CurrentPosition = operationContext.CloseSubpath();
+
             // current position???
         }
 

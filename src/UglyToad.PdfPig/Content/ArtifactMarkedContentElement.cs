@@ -73,7 +73,7 @@
             IReadOnlyList<NameToken> attached,
             IReadOnlyList<MarkedContentElement> children,
             IReadOnlyList<Letter> letters,
-            IReadOnlyList<PdfPathFix> paths,
+            IReadOnlyList<PdfPath> paths,
             IReadOnlyList<IPdfImage> images,
             int index) 
             : base(markedContentIdentifier, tag, properties, language,

@@ -22,7 +22,7 @@ namespace UglyToad.PdfPig.Graphics
         /// <summary>
         /// 
         /// </summary>
-        public PdfPathFix CurrentClippingPath { get; set; }
+        public PdfPath CurrentClippingPath { get; set; }
 
         /// <summary>
         /// Thickness in user space units of path to be stroked.

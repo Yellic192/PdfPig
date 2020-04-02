@@ -372,7 +372,7 @@
         [MemberData(nameof(IsCounterClockwiseData))]
         public void IsCounterClockwise(double[][] source, bool expected)
         {
-            PdfPath pdfPath = new PdfPath();
+            PdfSubpath pdfPath = new PdfSubpath();
             pdfPath.MoveTo(source[0][0], source[0][1]);
             for (int i = 1; i < source.Length; i++)
             {
