@@ -60,7 +60,9 @@
             var lowerLeft = operationContext.CurrentTransformationMatrix.Transform(new PdfPoint(LowerLeftX, LowerLeftY));
             var upperRight = operationContext.CurrentTransformationMatrix.Transform(new PdfPoint(LowerLeftX + Width, LowerLeftY + Height));
 
-            operationContext.CurrentPath.Rectangle(lowerLeft.X, lowerLeft.Y, upperRight.X - lowerLeft.X, upperRight.Y - lowerLeft.Y);
+            operationContext.CurrentSubpath.Rectangle(lowerLeft.X, lowerLeft.Y, upperRight.X - lowerLeft.X, upperRight.Y - lowerLeft.Y);
+            operationContext.AddSubpath();
+            //operationContext.BeginSubpath();
         }
 
         /// <inheritdoc />

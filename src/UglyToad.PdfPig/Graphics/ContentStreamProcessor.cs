@@ -29,7 +29,7 @@
         /// <summary>
         /// Stores each path as it is encountered in the content stream.
         /// </summary>
-        private readonly List<PdfPath> paths = new List<PdfPath>();
+        private readonly List<PdfPathFix> paths = new List<PdfPathFix>();
 
         /// <summary>
         /// Stores a link to each image (either inline or XObject) as it is encountered in the content stream.
@@ -67,7 +67,9 @@
 
         public TransformationMatrix CurrentTransformationMatrix => GetCurrentState().CurrentTransformationMatrix;
 
-        public PdfPath CurrentPath { get; private set; }
+        public PdfPathFix CurrentPath { get; private set; }
+
+        public PdfPath CurrentSubpath { get; private set; }
 
         public IColorSpaceContext ColorSpaceContext { get; }
 
@@ -97,8 +99,9 @@
             this.log = log;
             this.clipPaths = clipPaths;
 
-            var clippingPath = new PdfPath();
-            clippingPath.Rectangle(cropBox.BottomLeft.X, cropBox.BottomLeft.Y, cropBox.Width, cropBox.Height);
+            var clippingSubpath = new PdfPath();
+            clippingSubpath.Rectangle(cropBox.BottomLeft.X, cropBox.BottomLeft.Y, cropBox.Width, cropBox.Height);
+            var clippingPath = new PdfPathFix() { clippingSubpath };
             clippingPath.SetClipping(FillingRule.NonZeroWinding);
             graphicsStack.Push(new CurrentGraphicsState() { CurrentClippingPath = clippingPath });
 
@@ -406,52 +409,52 @@
 
         public void BeginSubpath()
         {
-            if (CurrentPath != null)
+            if (CurrentPath == null)
             {
-                AddCurrentPath();
+                CurrentPath = new PdfPathFix();
             }
 
-            CurrentPath = new PdfPath();
+            if (CurrentSubpath != null)
+            {
+                AddSubpath();
+            }
 
-            // retrieve previous stroking info
-            //if (paths.Count > 0)
-            //{
-            //    //CurrentPath.IsStroked = paths.Last().IsStroked;
-            //    var previousPath = paths.Last();
-            //    if (!previousPath.IsClipping)
-            //    {
-            //        CurrentPath.IsStroked = previousPath.IsStroked;
-            //    }
-            //    else
-            //    {
-            //        Console.WriteLine("previous path is clipping");
-            //        /*if (paths.Count > 1)
-            //        {
-            //            previousPath = paths[paths.Count - 2];
-            //            if (!previousPath.IsClipping)
-            //            {
-            //                CurrentPath.IsStroked = previousPath.IsStroked;
-            //            }
-            //        }*/
-            //    }
-            //}
+            CurrentSubpath = new PdfPath();
         }
-        
+
+        public void CloseSubpath()
+        {
+            CurrentSubpath.ClosePath();
+            AddSubpath();
+        }
+
+
+        public void AddSubpath()
+        {
+            if (CurrentSubpath == null)
+            {
+                return;
+            }
+
+            CurrentPath.Add(CurrentSubpath);
+            CurrentSubpath = null;
+        }
+
         public void FillStrokePath(bool close, FillingRule fillingRule)
         {
             if (CurrentPath == null)
             {
-                return;
+                throw new ArgumentException("FillStrokePath(null)");
+                //return;
             }
 
             CurrentPath.SetFillingRule(fillingRule);
             CurrentPath.IsFilled = true;
             CurrentPath.IsStroked = true;
 
-
             if (close)
             {
-                CurrentPath.ClosePath();
+                CurrentSubpath.ClosePath();
             }
 
             AddCurrentPath();
@@ -461,14 +464,15 @@
         {
             if (CurrentPath == null)
             {
-                return;
+                throw new ArgumentException("StrokePath(null)");
+                //return;
             }
 
             CurrentPath.IsStroked = true;
 
             if (close)
             {
-                CurrentPath.ClosePath();
+                CurrentSubpath.ClosePath();
             }
 
             AddCurrentPath();
@@ -478,7 +482,8 @@
         {
             if (CurrentPath == null)
             {
-                return;
+                throw new ArgumentException("FillPath(null)");
+                //return;
             }
 
             CurrentPath.SetFillingRule(fillingRule);
@@ -486,7 +491,7 @@
 
             if (close)
             {
-                CurrentPath.ClosePath();
+                CurrentSubpath.ClosePath();
             }
 
             AddCurrentPath();
@@ -498,6 +503,8 @@
         /// </summary>
         public void EndPath()
         {
+            AddSubpath();
+
             if (CurrentPath.IsClipping)
             {
                 //Console.WriteLine("EndPath: Don't add clipping path");
@@ -507,15 +514,18 @@
 
             paths.Add(CurrentPath);
             markedContentStack.AddPath(CurrentPath);
+            CurrentSubpath = null;
             CurrentPath = null;
         }
 
         private void AddCurrentPath()
         {
+            AddSubpath();
+
             if (CurrentPath.IsClipping)
             {
                 Console.WriteLine("Don't add clipping path");
-                CurrentPath = null;
+                CurrentSubpath = null;
                 return;
             }
 
@@ -536,8 +546,8 @@
 
             if (clipPaths)
             {
-                var clippedPaths = currentState.CurrentClippingPath.Clip(CurrentPath);
-                foreach (var clippedPath in clippedPaths)
+                var clippedPath = currentState.CurrentClippingPath.Clip(CurrentPath);
+                if (clippedPath != null)
                 {
                     paths.Add(clippedPath);
                     markedContentStack.AddPath(clippedPath);
@@ -549,6 +559,7 @@
                 markedContentStack.AddPath(CurrentPath);
             }
 
+            CurrentSubpath = null;
             CurrentPath = null;
         }
 
@@ -556,40 +567,30 @@
         {
             if (CurrentPath == null)
             {
-                return;
+                throw new ArgumentException("ModifyClippingIntersect(null)");
+                //return;
             }
 
             CurrentPath.SetClipping(fillingRule);
 
-            if (!CurrentPath.IsClosed())
+            /*if (!CurrentSubpath.IsClosed())
             {
                 Console.WriteLine("force close clipping path");
-                CurrentPath.ClosePath();
-            }
+                CurrentSubpath.ClosePath();
+            }*/
 
-            if (CurrentPath.Equals(GetCurrentState().CurrentClippingPath))
-            {
-                GetCurrentState().CurrentClippingPath = CurrentPath;
-            }
-            else
-            {
-                var currentClipping = GetCurrentState().CurrentClippingPath;
-                currentClipping.SetClipping(fillingRule);
+            var currentClipping = GetCurrentState().CurrentClippingPath;
+            currentClipping.SetClipping(fillingRule);
 
-                var newClippings = CurrentPath.Clip(currentClipping);
-                if (newClippings.Count() == 0)
-                {
-                    Console.WriteLine("ContentStreamProcessor.ModifyClippingIntersect(): Warning, empty clipping path found... Clipping path not updated.");
-                    log.Warn("ModifyClippingIntersect(): Warning, empty clipping path found... Clipping path not updated.");
-                }
-                else if (newClippings.Count() == 1)
-                {
-                    GetCurrentState().CurrentClippingPath = newClippings.First();
-                }
-                else
-                {
-                    throw new ArgumentOutOfRangeException("More than 1 clipping path found.");
-                }
+            var newClippings = CurrentPath.Clip(currentClipping);
+            if (newClippings == null)
+            {
+                Console.WriteLine("ContentStreamProcessor.ModifyClippingIntersect(): Warning, empty clipping path found... Clipping path not updated.");
+                log.Warn("ModifyClippingIntersect(): Warning, empty clipping path found... Clipping path not updated.");
+            }
+            else 
+            {
+                GetCurrentState().CurrentClippingPath = newClippings;
             }
         }
 

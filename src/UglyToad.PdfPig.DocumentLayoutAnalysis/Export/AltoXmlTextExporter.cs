@@ -159,7 +159,7 @@
             return altoPage;
         }
 
-        private AltoDocument.AltoGraphicalElement ToAltoGraphicalElement(PdfPath pdfPath, double height)
+        private AltoDocument.AltoGraphicalElement ToAltoGraphicalElement(PdfPathFix pdfPath, double height)
         {
             graphicalElementCount++;
 

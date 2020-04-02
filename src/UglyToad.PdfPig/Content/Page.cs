@@ -174,7 +174,7 @@
             /// <summary>
             /// The set of <see cref="PdfPath"/>s drawn by the PDF content.
             /// </summary>
-            public IReadOnlyList<PdfPath> Paths => page.Content?.Paths ?? new List<PdfPath>();
+            public IReadOnlyList<PdfPathFix> Paths => page.Content?.Paths ?? new List<PdfPathFix>();
 
             internal Experimental(Page page, AnnotationProvider annotationProvider)
             {

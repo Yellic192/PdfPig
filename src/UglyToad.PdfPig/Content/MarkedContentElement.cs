@@ -50,7 +50,7 @@
         /// <summary>
         /// Paths contained in this marked content.
         /// </summary>
-        public IReadOnlyList<PdfPath> Paths { get; }
+        public IReadOnlyList<PdfPathFix> Paths { get; }
 
         /// <summary>
         /// Images contained in this marked content.
@@ -88,7 +88,7 @@
             bool isArtifact, 
             IReadOnlyList<MarkedContentElement> children,
             IReadOnlyList<Letter> letters,
-            IReadOnlyList<PdfPath> paths,
+            IReadOnlyList<PdfPathFix> paths,
             IReadOnlyList<IPdfImage> images,
                 int index)
         {

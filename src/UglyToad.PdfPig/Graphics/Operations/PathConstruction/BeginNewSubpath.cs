@@ -44,7 +44,7 @@
             operationContext.BeginSubpath();
             var point = operationContext.CurrentTransformationMatrix.Transform(new PdfPoint(X, Y));
             operationContext.CurrentPosition = point;
-            operationContext.CurrentPath.MoveTo(point.X, point.Y);
+            operationContext.CurrentSubpath.MoveTo(point.X, point.Y);
         }
 
         /// <inheritdoc />

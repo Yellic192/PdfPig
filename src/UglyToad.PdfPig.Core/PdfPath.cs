@@ -24,56 +24,6 @@
         /// </summary>
         public bool IsDrawnAsRectangle { get; internal set; }
 
-        /// <summary>
-        /// Rules for determining which points lie inside/outside the path.
-        /// </summary>
-        public FillingRule FillingRule { get; private set; }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public IColor FillColor { get; set; }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public IColor StrokeColor { get; set; }
-
-        /// <summary>
-        /// Thickness in user space units of path to be stroked.
-        /// </summary>
-        public double LineWidth { get; set; } = double.NaN;
-
-        /// <summary>
-        /// The pattern to be used for stroked lines.
-        /// </summary>
-        public LineDashPattern? LineDashPattern { get; set; }
-
-        /// <summary>
-        /// The cap style to be used for stroked lines.
-        /// </summary>
-        public LineCapStyle LineCapStyle { get; set; }
-
-        /// <summary>
-        /// The join style to be used for stroked lines.
-        /// </summary>
-        public LineJoinStyle LineJoinStyle { get; set; }
-
-        /// <summary>
-        /// Returns true if this is a clipping path.
-        /// </summary>
-        public bool IsClipping { get; private set; }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public bool IsFilled { get; set; }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public bool IsStroked { get; set; }
-
         private PdfPoint? currentPosition;
 
         private double shoeLaceSum;
@@ -331,25 +281,6 @@
             return new PdfPoint(points.Average(p => p.X), points.Average(p => p.Y));
         }
 
-        /// <summary>
-        /// Set the clipping mode for this path.
-        /// </summary>
-        public void SetClipping(FillingRule fillingRule)
-        {
-            IsFilled = false;
-            IsStroked = false;
-            IsClipping = true;
-            FillingRule = fillingRule;
-        }
-
-        /// <summary>
-        /// Set the filling rule for this path.
-        /// </summary>
-        public void SetFillingRule(FillingRule fillingRule)
-        {
-            FillingRule = fillingRule;
-        }
-        
         internal static PdfPoint GetStartPoint(IPathCommand command)
         {
             if (command is Line line)
@@ -411,7 +342,7 @@
                 return this;
             }
 
-            PdfPath simplifiedPath = this.CloneEmpty();
+            PdfPath simplifiedPath = new PdfPath();
 
             foreach (var command in Commands)
             {
@@ -987,38 +918,6 @@
             {
                 return (StartPoint, FirstControlPoint, SecondControlPoint, EndPoint).GetHashCode();
             }
-        }
-
-        /// <summary>
-        /// Create a clone with no Commands.
-        /// </summary>
-        public PdfPath CloneEmpty()
-        {
-            PdfPath newPath = new PdfPath();
-            if (IsClipping)
-            {
-                newPath.SetClipping(FillingRule);
-            }
-            else
-            {
-                if (IsFilled)
-                {
-                    newPath.IsFilled = true;
-                    newPath.SetFillingRule(FillingRule);
-                    newPath.FillColor = FillColor;
-                }
-
-                if (IsStroked)
-                {
-                    newPath.IsStroked = true;
-                    newPath.LineCapStyle = LineCapStyle;
-                    newPath.LineDashPattern = LineDashPattern;
-                    newPath.LineJoinStyle = LineJoinStyle;
-                    newPath.LineWidth = LineWidth;
-                    newPath.StrokeColor = StrokeColor;
-                }
-            }
-            return newPath;
         }
 
         /// <summary>

@@ -19,7 +19,7 @@
         /// <param name="clipping"></param>
         /// <param name="subject"></param>
         /// <returns></returns>
-        public static IEnumerable<PdfPath> Clip(this PdfPath clipping, PdfPath subject)
+        public static PdfPathFix Clip(this PdfPathFix clipping, PdfPathFix subject)
         {
             if (clipping == null)
             {
@@ -36,47 +36,58 @@
                 throw new ArgumentNullException(nameof(subject), "Clip(): the subject path cannot be null.");
             }
 
-            if (subject.Commands.Count == 0)
+            if (subject.Count == 0)
             {
-                yield return subject;
-                yield break;
+                return subject;
             }
 
-            // force close clipping polygon
-            if (!clipping.IsClosed()) clipping.ClosePath();
-
-            // force close subject if need be
-            bool subjectClose = subject.IsFilled || subject.IsClipping;
-            if (subjectClose && !subject.IsClosed()) subject.ClosePath();
-
-            // convert PdfPath to polygon
-            var intClipping = clipping.ToClipperPolygon(10).ToList();
-            var intPath = subject.ToClipperPolygon(10).ToList();
-
             Clipper clipper = new Clipper();
+            foreach (var subpath in clipping)
+            {
+                // force close clipping polygon
+                if (!subpath.IsClosed()) subpath.ClosePath();
 
-            clipper.AddPath(intClipping, PolyType.ptClip, true);
-            clipper.AddPath(intPath, PolyType.ptSubject, subjectClose);
+                // convert PdfPath to polygon
+                var intClipping = subpath.ToClipperPolygon(10).ToList();
+                clipper.AddPath(intClipping, PolyType.ptClip, true);
+            }
+
+            bool subjectClose = subject.IsFilled || subject.IsClipping;
+
+            foreach (var subpath in subject)
+            {      
+                // force close subject if need be
+                if (subjectClose && !subpath.IsClosed()) subpath.ClosePath();
+                // convert PdfPath to polygon
+                var intPath = subpath.ToClipperPolygon(10).ToList();
+                clipper.AddPath(intPath, PolyType.ptSubject, subjectClose);
+            }
+
             var clippingFillType = clipping.FillingRule == FillingRule.NonZeroWinding ? PolyFillType.pftNonZero : PolyFillType.pftEvenOdd;
 
             if (!subjectClose)
             {
                 // case where subject is not closed
                 var solutions = new PolyTree();
-
                 if (clipper.Execute(ClipType.ctIntersection, solutions, clippingFillType))
                 {
+                    PdfPathFix clippedPath = subject.CloneEmpty();
                     foreach (var solution in solutions.Childs)
                     {
-                        PdfPath clipped = subject.CloneEmpty();
+                        PdfPath clipped = new PdfPath();
                         clipped.MoveTo((double)solution.Contour[0].X / factor, (double)solution.Contour[0].Y / factor);
 
                         for (int i = 1; i < solution.Contour.Count; i++)
                         {
                             clipped.LineTo((double)solution.Contour[i].X / factor, (double)solution.Contour[i].Y / factor);
                         }
-                        yield return clipped;
+                        clippedPath.Add(clipped);
                     }
+                    return clippedPath;
+                }
+                else
+                {
+                    return null;
                 }
             }
             else
@@ -87,9 +98,10 @@
                 var solutions = new List<List<IntPoint>>();
                 if (clipper.Execute(ClipType.ctIntersection, solutions, subjectFillType, clippingFillType))
                 {
+                    PdfPathFix clippedPath = subject.CloneEmpty();
                     foreach (var solution in solutions)
                     {
-                        PdfPath clipped = subject.CloneEmpty();
+                        PdfPath clipped = new PdfPath();
                         clipped.MoveTo((double)solution[0].X / 10000, (double)solution[0].Y / 10000);
 
                         for (int i = 1; i < solution.Count; i++)
@@ -98,8 +110,13 @@
                         }
                         clipped.ClosePath();
 
-                        yield return clipped;
+                        clippedPath.Add(clipped);
                     }
+                    return clippedPath;
+                }
+                else
+                {
+                    return null;
                 }
             }
         }
