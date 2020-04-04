@@ -20,6 +20,33 @@
         /// </summary>
         public static RecursiveXYCut Instance { get; } = new RecursiveXYCut();
 
+        private double minimumWidth;
+        private Func<IEnumerable<double>, double> dominantFontWidth;
+        private Func<IEnumerable<double>, double> dominantFontHeight;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public RecursiveXYCut()
+        {
+            minimumWidth = 0;
+            dominantFontWidth = k => Math.Round(k.Mode(), 3);
+            dominantFontHeight = k => Math.Round(k.Mode() * 1.5, 3);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="minimumWidth"></param>
+        /// <param name="dominantFontWidth"></param>
+        /// <param name="dominantFontHeight"></param>
+        public RecursiveXYCut(double minimumWidth, double dominantFontWidth, double dominantFontHeight)
+        {
+            this.minimumWidth = minimumWidth;
+            this.dominantFontWidth = x => dominantFontWidth;
+            this.dominantFontHeight = x => dominantFontHeight;
+        }
+
         /// <summary>
         /// Get the blocks.
         /// <para>Uses 'minimumWidth' = 0, 'dominantFontWidthFunc' = Mode(Width), 'dominantFontHeightFunc' = 1.5 x Mode(Height)</para>
@@ -28,31 +55,7 @@
         /// <returns></returns>
         public IReadOnlyList<TextBlock> GetBlocks(IEnumerable<Word> pageWords)
         {
-            return GetBlocks(pageWords, 0);
-        }
-
-        /// <summary>
-        /// Get the blocks.
-        /// <para>Uses 'dominantFontWidthFunc' = Mode(Width), 'dominantFontHeightFunc' = 1.5 x Mode(Height)</para>
-        /// </summary>
-        /// <param name="pageWords">The words in the page.</param>
-        /// <param name="minimumWidth">The minimum width for a block.</param>
-        public IReadOnlyList<TextBlock> GetBlocks(IEnumerable<Word> pageWords, double minimumWidth)
-        {
-            return GetBlocks(pageWords, minimumWidth, k => Math.Round(k.Mode(), 3), k => Math.Round(k.Mode() * 1.5, 3));
-        }
-
-        /// <summary>
-        /// Get the blocks.
-        /// </summary>
-        /// <param name="pageWords">The words in the page.</param>
-        /// <param name="minimumWidth">The minimum width for a block.</param>
-        /// <param name="dominantFontWidth">The dominant font width.</param>
-        /// <param name="dominantFontHeight">The dominant font height.</param>
-        public IReadOnlyList<TextBlock> GetBlocks(IEnumerable<Word> pageWords, double minimumWidth,
-            double dominantFontWidth, double dominantFontHeight)
-        {
-            return GetBlocks(pageWords, minimumWidth, k => dominantFontWidth, k => dominantFontHeight);
+            return GetBlocks(pageWords, minimumWidth, dominantFontWidth, dominantFontHeight);
         }
 
         /// <summary>
@@ -62,7 +65,7 @@
         /// <param name="minimumWidth">The minimum width for a block.</param>
         /// <param name="dominantFontWidthFunc">The function that determines the dominant font width.</param>
         /// <param name="dominantFontHeightFunc">The function that determines the dominant font height.</param>
-        public IReadOnlyList<TextBlock> GetBlocks(IEnumerable<Word> pageWords, double minimumWidth,
+        private IReadOnlyList<TextBlock> GetBlocks(IEnumerable<Word> pageWords, double minimumWidth,
             Func<IEnumerable<double>, double> dominantFontWidthFunc,
             Func<IEnumerable<double>, double> dominantFontHeightFunc)
         {

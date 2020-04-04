@@ -15,7 +15,8 @@
         /// </summary>
         public static UnsupervisedReadingOrderDetector Instance { get; } = new UnsupervisedReadingOrderDetector();
 
-        private double T;
+        private readonly double T;
+        private readonly bool useRenderingOrder;
 
         /// <summary>
         /// Algorithm that retrieve the blocks' reading order using both (spatial) Allen’s interval relations and rendering order.
@@ -23,13 +24,15 @@
         /// <param name="T">The tolerance parameter T. If two coordinates are closer than T they are considered equal.
         /// This flexibility is necessary because due to the inherent noise in the PDF extraction text blocks in the 
         /// same column might not be exactly aligned.</param>
-        public UnsupervisedReadingOrderDetector(double T = 5)
+        /// <param name="useRenderingOrder"></param>
+        public UnsupervisedReadingOrderDetector(double T = 5, bool useRenderingOrder = true)
         {
             this.T = T;
+            this.useRenderingOrder = useRenderingOrder;
         }
 
         /// <summary>
-        /// Gets the blocks in reading order and sets the <see cref="TextBlock.ReadingOrder"/>.
+        /// Gets the blocks in reading order and sets the <see cref="BaseBlock.ReadingOrder"/>.
         /// </summary>
         /// <param name="textBlocks">The <see cref="TextBlock"/>s to order.</param>
         public IEnumerable<TextBlock> Get(IReadOnlyList<TextBlock> textBlocks)
@@ -90,7 +93,7 @@
 
         private bool GetBeforeInReadingRendering(TextBlock a, TextBlock b, double T)
         {
-            return GetBeforeInReadingVertical(a, b, T) || GetBeforeInRendering(a, b);
+            return GetBeforeInReadingVertical(a, b, T) || (useRenderingOrder && GetBeforeInRendering(a, b));
         }
 
         private bool GetBeforeInRendering(TextBlock a, TextBlock b)

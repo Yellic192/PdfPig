@@ -7,7 +7,9 @@
     using PAGE;
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.Linq;
+    using System.Text;
     using System.Xml;
     using System.Xml.Serialization;
     using UglyToad.PdfPig.DocumentLayoutAnalysis.PageSegmenter;
@@ -144,6 +146,18 @@
             return sum.ToString();
         }
 
+        private bool IsControl(Letter letter)
+        {
+            foreach (var c in letter.Value.ToCharArray())
+            {
+                if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.Control)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         private PageXmlDocument.PageXmlPage ToPageXmlPage(Page page, bool includePaths)
         {
             var pageXmlPage = new PageXmlDocument.PageXmlPage()
@@ -155,7 +169,9 @@
 
             var regions = new List<PageXmlDocument.PageXmlRegion>();
 
-            var words = page.GetWords(wordExtractor).ToList();
+            var cleanLetters = page.Letters.Where(l => !IsControl(l)).ToList();
+
+            var words = wordExtractor.GetWords(cleanLetters).ToList();
             if (words.Count > 0)
             {
                 var blocks = pageSegmenter.GetBlocks(words);
