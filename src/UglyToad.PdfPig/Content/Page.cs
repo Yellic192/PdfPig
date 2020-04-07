@@ -10,6 +10,7 @@
     using Util;
     using Util.JetBrains.Annotations;
     using Tokenization.Scanner;
+    using UglyToad.PdfPig.Graphics;
 
     /// <summary>
     /// Contains the content and provides access to methods of a single page in the <see cref="PdfDocument"/>.

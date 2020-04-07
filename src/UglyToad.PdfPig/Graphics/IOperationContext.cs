@@ -11,6 +11,12 @@
     public interface IOperationContext
     {
         /// <summary>
+        /// The current subpath being drawn if applicable.
+        /// </summary>
+        [CanBeNull]
+        PdfSubpath CurrentSubpath { get; }
+
+        /// <summary>
         /// The current path being drawn if applicable.
         /// </summary>
         [CanBeNull]
@@ -79,6 +85,16 @@
         /// Start a new sub-path.
         /// </summary>
         void BeginSubpath();
+        
+        /// <summary>
+        /// Close the current subpath.
+        /// </summary>
+        PdfPoint? CloseSubpath();
+
+        /// <summary>
+        /// Add the current subpath to the path.
+        /// </summary>
+        void AddCurrentSubpath();
 
         /// <summary>
         /// Stroke the current path.
@@ -89,8 +105,22 @@
         /// <summary>
         /// Fill the current path.
         /// </summary>
+        /// <param name="fillingRule">The filling rule to use.</param>
         /// <param name="close">Whether to also close the path.</param>
-        void FillPath(bool close);
+        void FillPath(FillingRule fillingRule, bool close);
+
+        /// <summary>
+        /// Fill and stroke the current path.
+        /// </summary>
+        /// <param name="fillingRule">The filling rule to use.</param>
+        /// <param name="close">Whether to also close the path.</param>
+        void FillStrokePath(FillingRule fillingRule, bool close);
+
+        /// <summary>
+        /// End the path object without filling or stroking it. This operator shall be a path-painting no-op,
+        /// used primarily for the side effect of changing the current clipping path (see 8.5.4, "Clipping Path Operators").
+        /// </summary>
+        void EndPath();
 
         /// <summary>
         /// Close the current path.
@@ -131,6 +161,6 @@
         /// <summary>
         /// Modify the clipping rule of the current path.
         /// </summary>
-        void ModifyClippingIntersect(ClippingRule clippingRule);
+        void ModifyClippingIntersect(FillingRule clippingRule);
     }
 }

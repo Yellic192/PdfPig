@@ -1,4 +1,4 @@
-﻿namespace UglyToad.PdfPig.Graphics.Operations
+﻿namespace UglyToad.PdfPig.Graphics.Operations.PathPainting
 {
     using System.IO;
     
@@ -28,7 +28,7 @@
         /// <inheritdoc />
         public void Run(IOperationContext operationContext)
         {
-            operationContext.FillPath(true);
+            operationContext.FillStrokePath(PdfPig.Core.FillingRule.NonZeroWinding, true);
         }
 
         /// <inheritdoc />

@@ -17,6 +17,7 @@
     using Tokenization.Scanner;
     using Tokens;
     using XObjects;
+    using static UglyToad.PdfPig.Core.PdfSubpath;
 
     internal class ContentStreamProcessor : IOperationContext
     {
@@ -47,12 +48,12 @@
         private readonly IPageContentParser pageContentParser;
         private readonly IFilterProvider filterProvider;
         private readonly ILog log;
+        private readonly bool clipPaths;
         private readonly MarkedContentStack markedContentStack = new MarkedContentStack();
 
         private Stack<CurrentGraphicsState> graphicsStack = new Stack<CurrentGraphicsState>();
         private IFont activeExtendedGraphicsStateFont;
         private InlineImageBuilder inlineImageBuilder;
-        private bool currentPathAdded;
         private int pageNumber;
 
         /// <summary>
@@ -65,6 +66,8 @@
         public TextMatrices TextMatrices { get; } = new TextMatrices();
 
         public TransformationMatrix CurrentTransformationMatrix => GetCurrentState().CurrentTransformationMatrix;
+
+        public PdfSubpath CurrentSubpath { get; private set; }
 
         public PdfPath CurrentPath { get; private set; }
 
@@ -84,7 +87,8 @@
             IPdfTokenScanner pdfScanner,
             IPageContentParser pageContentParser,
             IFilterProvider filterProvider,
-            ILog log)
+            ILog log, 
+            bool clipPaths)
         {
             this.resourceStore = resourceStore;
             this.userSpaceUnit = userSpaceUnit;
@@ -93,7 +97,15 @@
             this.pageContentParser = pageContentParser ?? throw new ArgumentNullException(nameof(pageContentParser));
             this.filterProvider = filterProvider ?? throw new ArgumentNullException(nameof(filterProvider));
             this.log = log;
-            graphicsStack.Push(new CurrentGraphicsState());
+            this.clipPaths = clipPaths;
+
+            // initiate CurrentClippingPath to cropBox
+            var clippingSubpath = new PdfSubpath();
+            clippingSubpath.Rectangle(cropBox.BottomLeft.X, cropBox.BottomLeft.Y, cropBox.Width, cropBox.Height);
+            var clippingPath = new PdfPath() { clippingSubpath };
+            clippingPath.SetClipping(FillingRule.NonZeroWinding);
+
+            graphicsStack.Push(new CurrentGraphicsState() { CurrentClippingPath = clippingPath });
             ColorSpaceContext = new ColorSpaceContext(GetCurrentState, resourceStore);
         }
 
@@ -398,14 +410,46 @@
 
         public void BeginSubpath()
         {
-            if (CurrentPath != null && CurrentPath.Commands.Count > 0 && !currentPathAdded)
+            if (CurrentPath == null)
             {
-                paths.Add(CurrentPath);
-                markedContentStack.AddPath(CurrentPath);
+                CurrentPath = new PdfPath();
             }
 
-            CurrentPath = new PdfPath();
-            currentPathAdded = false;
+            AddCurrentSubpath();
+            CurrentSubpath = new PdfSubpath();
+        }
+
+        public PdfPoint? CloseSubpath()
+        {
+            if (CurrentSubpath == null)
+            {
+                return null;
+            }
+
+            PdfPoint point;
+            if (CurrentSubpath.Commands[0] is Move move)
+            {
+                point = move.Location;
+            }
+            else
+            {
+                throw new ArgumentException("CloseSubpath(): first command not Move.");
+            }
+
+            CurrentSubpath.CloseSubpath();
+            AddCurrentSubpath();
+            return point;
+        }
+
+        public void AddCurrentSubpath()
+        {
+            if (CurrentSubpath == null)
+            {
+                return;
+            }
+
+            CurrentPath.Add(CurrentSubpath);
+            CurrentSubpath = null;
         }
 
         public void StrokePath(bool close)
@@ -415,44 +459,144 @@
                 return;
             }
 
+            CurrentPath.SetStroked();
+
             if (close)
             {
-                ClosePath();
+                CurrentSubpath?.CloseSubpath();
             }
-            else
-            {
-                paths.Add(CurrentPath);
-                markedContentStack.AddPath(CurrentPath);
-                currentPathAdded = true;
-            }
+
+            ClosePath();
         }
 
-        public void FillPath(bool close)
+        public void FillPath(FillingRule fillingRule, bool close)
         {
             if (CurrentPath == null)
             {
                 return;
             }
 
+            CurrentPath.SetFilled(fillingRule);
+
             if (close)
             {
-                ClosePath();
+                CurrentSubpath?.CloseSubpath();
+            }
+
+            ClosePath();
+        }
+
+        public void FillStrokePath(FillingRule fillingRule, bool close)
+        {
+            if (CurrentPath == null)
+            {
+                return;
+            }
+
+            CurrentPath.SetFilled(fillingRule);
+            CurrentPath.SetStroked();
+
+            if (close)
+            {
+                CurrentSubpath?.CloseSubpath();
+            }
+
+            ClosePath();
+        }
+        
+        public void EndPath()
+        {
+            if (CurrentPath == null)
+            {
+                return;
+            }
+
+            AddCurrentSubpath();
+
+            if (CurrentPath.IsClipping)
+            {
+                if (!clipPaths)
+                {
+                    // if we don't clip paths, add clipping path to paths
+                    paths.Add(CurrentPath);
+                    markedContentStack.AddPath(CurrentPath);
+                }
+                CurrentPath = null;
+                return;
+            }
+
+            paths.Add(CurrentPath);
+            markedContentStack.AddPath(CurrentPath);
+            CurrentPath = null;
+        }
+
+        public void ClosePath()
+        {
+            AddCurrentSubpath();
+
+            if (CurrentPath.IsClipping)
+            {
+                EndPath();
+                return;
+            }
+
+            var currentState = this.GetCurrentState();
+            if (CurrentPath.IsStroked)
+            {
+                CurrentPath.LineDashPattern = currentState.LineDashPattern;
+                CurrentPath.StrokeColor = currentState.CurrentStrokingColor;
+                CurrentPath.LineWidth = currentState.LineWidth;
+                CurrentPath.LineCapStyle = currentState.CapStyle;
+                CurrentPath.LineJoinStyle = currentState.JoinStyle;
+            }
+
+            if (CurrentPath.IsFilled)
+            {
+                CurrentPath.FillColor = currentState.CurrentNonStrokingColor;
+            }
+
+            if (clipPaths)
+            {
+                var clippedPath = currentState.CurrentClippingPath.Clip(CurrentPath);
+                if (clippedPath != null)
+                {
+                    paths.Add(clippedPath);
+                    markedContentStack.AddPath(clippedPath);
+                }
             }
             else
             {
                 paths.Add(CurrentPath);
                 markedContentStack.AddPath(CurrentPath);
-                currentPathAdded = true;
             }
-        }
 
-        public void ClosePath()
-        {
-            CurrentPath.ClosePath();
-            paths.Add(CurrentPath);
-            markedContentStack.AddPath(CurrentPath);
             CurrentPath = null;
-            currentPathAdded = false;
+        }
+        public void ModifyClippingIntersect(FillingRule clippingRule)
+        {
+            if (CurrentPath == null)
+            {
+                return;
+            }
+
+            AddCurrentSubpath();
+            CurrentPath.SetClipping(clippingRule);
+
+            if (clipPaths)
+            {
+                var currentClipping = GetCurrentState().CurrentClippingPath;
+                currentClipping.SetClipping(clippingRule);
+
+                var newClippings = CurrentPath.Clip(currentClipping);
+                if (newClippings == null)
+                {
+                    log.Warn("Empty clipping path found. Clipping path not updated.");
+                }
+                else
+                {
+                    GetCurrentState().CurrentClippingPath = newClippings;
+                }
+            }
         }
 
         public void SetNamedGraphicsState(NameToken stateName)
@@ -553,16 +697,6 @@
             var newMatrix = matrix.Multiply(TextMatrices.TextMatrix);
 
             TextMatrices.TextMatrix = newMatrix;
-        }
-
-        public void ModifyClippingIntersect(ClippingRule clippingRule)
-        {
-            if (CurrentPath == null)
-            {
-                return;
-            }
-
-            CurrentPath.SetClipping(clippingRule);
         }
     }
 }

@@ -4,9 +4,9 @@
     using UglyToad.PdfPig.Core;
     using UglyToad.PdfPig.Geometry;
     using Xunit;
-    using static UglyToad.PdfPig.Core.PdfPath;
+    using static UglyToad.PdfPig.Core.PdfSubpath;
 
-    public class PdfPathLineTests
+    public class PdfSubpathLineTests
     {
         private static readonly DoubleComparer DoubleComparer = new DoubleComparer(3);
         private static readonly DoubleComparer PreciseDoubleComparer = new DoubleComparer(6);

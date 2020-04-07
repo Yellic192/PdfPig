@@ -6,31 +6,21 @@
     using System.Text;
 
     /// <summary>
-    /// A path in a PDF document, used by glyphs and page content. Can contain multiple sub-paths.
+    /// A supbpath is made up of a sequence of connected segments.
     /// </summary>
-    public class PdfPath
+    public class PdfSubpath
     {
         private readonly List<IPathCommand> commands = new List<IPathCommand>();
 
         /// <summary>
-        /// The sequence of sub-paths which form this <see cref="PdfPath"/>.
+        /// The sequence of commands which form this <see cref="PdfSubpath"/>.
         /// </summary>
         public IReadOnlyList<IPathCommand> Commands => commands;
 
         /// <summary>
-        /// True if the <see cref="PdfPath"/> was originaly draw as a rectangle.
+        /// True if the <see cref="PdfSubpath"/> was originaly draw as a rectangle.
         /// </summary>
         public bool IsDrawnAsRectangle { get; internal set; }
-
-        /// <summary>
-        /// Rules for determining which points lie inside/outside the path.
-        /// </summary>
-        public ClippingRule ClippingRule { get; private set; }
-
-        /// <summary>
-        /// Returns true if this is a clipping path.
-        /// </summary>
-        public bool IsClipping { get; private set; }
 
         private PdfPoint? currentPosition;
 
@@ -63,7 +53,7 @@
         }
 
         /// <summary>
-        /// Get the <see cref="PdfPath"/>'s centroid point.
+        /// Get the <see cref="PdfSubpath"/>'s centroid point.
         /// </summary>
         public PdfPoint GetCentroid()
         {
@@ -72,15 +62,6 @@
             var points = filtered.Select(GetStartPoint).ToList();
             points.AddRange(filtered.Select(GetEndPoint));
             return new PdfPoint(points.Average(p => p.X), points.Average(p => p.Y));
-        }
-
-        /// <summary>
-        /// Set the clipping mode for this path.
-        /// </summary>
-        public void SetClipping(ClippingRule clippingRule)
-        {
-            IsClipping = true;
-            ClippingRule = clippingRule;
         }
 
         internal static PdfPoint GetStartPoint(IPathCommand command)
@@ -124,12 +105,12 @@
         }
 
         /// <summary>
-        /// Simplify this <see cref="PdfPath"/> by converting everything to <see cref="PdfLine"/>s.
+        /// Simplify this <see cref="PdfSubpath"/> by converting everything to <see cref="PdfLine"/>s.
         /// </summary>
         /// <param name="n">Number of lines required (minimum is 1).</param>
-        internal PdfPath Simplify(int n = 4)
+        internal PdfSubpath Simplify(int n = 4)
         {
-            PdfPath simplifiedPath = new PdfPath();
+            PdfSubpath simplifiedPath = new PdfSubpath();
             var startPoint = GetStartPoint(Commands.First());
             simplifiedPath.MoveTo(startPoint.X, startPoint.Y);
 
@@ -185,8 +166,8 @@
             }
             else
             {
-                // TODO: probably the wrong behaviour here, maybe line starts from (0, 0)?
-                MoveTo(x, y);
+                // PDF Reference 1.7 p226
+                throw new ArgumentNullException("LineTo(): currentPosition is null.");
             }
         }
         
@@ -195,11 +176,12 @@
         /// </summary>
         public void Rectangle(double x, double y, double width, double height)
         {
-            currentPosition = new PdfPoint(x, y);
-            LineTo(x + width, y);
-            LineTo(x + width, y + height);
-            LineTo(x, y + height);
-            LineTo(x, y);
+                                                // is equivalent to:
+            MoveTo(x, y);                       // x y m
+            LineTo(x + width, y);               // (x + width) y l
+            LineTo(x + width, y + height);      // (x + width) (y + height) l
+            LineTo(x, y + height);              // x (y + height) l
+            CloseSubpath();                     // h
             IsDrawnAsRectangle = true;
         }
         
@@ -222,14 +204,15 @@
             }
             else
             {
-                MoveTo(x3, y3);
+                // PDF Reference 1.7 p226
+                throw new ArgumentNullException("BezierCurveTo(): currentPosition is null.");
             }
         }
         
         /// <summary>
         /// Close the path.
         /// </summary>
-        public void ClosePath()
+        public void CloseSubpath()
         {
             if (currentPosition.HasValue)
             {
@@ -247,18 +230,17 @@
         /// </summary>
         public bool IsClosed()
         {
-            // need to check if filled -> true if filled
             if (Commands.Any(c => c is Close)) return true;
-            var filtered = Commands.Where(c => c is Line || c is BezierCurve).ToList();
+            var filtered = Commands.Where(c => c is Line || c is BezierCurve || c is Move).ToList();
             if (filtered.Count < 2) return false;
             if (!GetStartPoint(filtered.First()).Equals(GetEndPoint(filtered.Last()))) return false;
             return true;
         }
 
         /// <summary>
-        /// Gets a <see cref="PdfRectangle"/> which entirely contains the geometry of the defined path.
+        /// Gets a <see cref="PdfRectangle"/> which entirely contains the geometry of the defined subpath.
         /// </summary>
-        /// <returns>For paths which don't define any geometry this returns <see langword="null"/>.</returns>
+        /// <returns>For subpaths which don't define any geometry this returns <see langword="null"/>.</returns>
         public PdfRectangle? GetBoundingRectangle()
         {
             if (commands.Count == 0)
@@ -315,7 +297,7 @@
         }
 
         /// <summary>
-        /// A command in a <see cref="PdfPath"/>.
+        /// A command in a <see cref="PdfSubpath"/>.
         /// </summary>
         public interface IPathCommand
         {
@@ -328,11 +310,11 @@
             /// <summary>
             /// Converts from the path command to an SVG string representing the path operation.
             /// </summary>
-            void WriteSvg(StringBuilder builder);
+            void WriteSvg(StringBuilder builder, double height);
         }
 
         /// <summary>
-        /// Close the current <see cref="PdfPath"/>.
+        /// Close the current <see cref="PdfSubpath"/>.
         /// </summary>
         public class Close : IPathCommand
         {
@@ -343,7 +325,7 @@
             }
 
             /// <inheritdoc />
-            public void WriteSvg(StringBuilder builder)
+            public void WriteSvg(StringBuilder builder, double height)
             {
                 builder.Append("Z ");
             }
@@ -363,7 +345,7 @@
         }
 
         /// <summary>
-        /// Move drawing of the current <see cref="PdfPath"/> to the specified location.
+        /// Move drawing of the current <see cref="PdfSubpath"/> to the specified location.
         /// </summary>
         public class Move : IPathCommand
         {
@@ -390,9 +372,9 @@
             }
 
             /// <inheritdoc />
-            public void WriteSvg(StringBuilder builder)
+            public void WriteSvg(StringBuilder builder, double height)
             {
-                builder.Append("M ").Append(Location.X).Append(' ').Append(Location.Y).Append(' ');
+                builder.Append($"M {Location.X} {height - Location.Y} ");
             }
 
             /// <inheritdoc />
@@ -456,9 +438,9 @@
             }
 
             /// <inheritdoc />
-            public void WriteSvg(StringBuilder builder)
+            public void WriteSvg(StringBuilder builder, double height)
             {
-                builder.AppendFormat("L {0} {1} ", To.X, To.Y);
+                builder.Append($"L {To.X} {height - To.Y} ");
             }
 
             /// <inheritdoc />
@@ -560,10 +542,9 @@
             }
 
             /// <inheritdoc />
-            public void WriteSvg(StringBuilder builder)
+            public void WriteSvg(StringBuilder builder, double height)
             {
-                builder.AppendFormat("C {0} {1}, {2} {3}, {4} {5} ", FirstControlPoint.X, FirstControlPoint.Y, SecondControlPoint.X, SecondControlPoint.Y,
-                    EndPoint.X, EndPoint.Y);
+                builder.Append($"C {FirstControlPoint.X} { height - FirstControlPoint.Y}, { SecondControlPoint.X} {height - SecondControlPoint.Y}, {EndPoint.X} {height - EndPoint.Y} ");
             }
 
             private bool TrySolveQuadratic(bool isX, double currentMin, double currentMax, out (double min, double max) solutions)
@@ -707,11 +688,11 @@
         }
 
         /// <summary>
-        /// Compares two <see cref="PdfPath"/>s for equality. Paths will only be considered equal if the commands which construct the paths are in the same order.
+        /// Compares two <see cref="PdfSubpath"/>s for equality. Paths will only be considered equal if the commands which construct the paths are in the same order.
         /// </summary>
         public override bool Equals(object obj)
         {
-            if (obj is PdfPath path)
+            if (obj is PdfSubpath path)
             {
                 if (Commands.Count != path.Commands.Count) return false;
 

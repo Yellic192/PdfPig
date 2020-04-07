@@ -1,34 +1,34 @@
-﻿namespace UglyToad.PdfPig.Graphics.Operations
+﻿namespace UglyToad.PdfPig.Graphics.Operations.PathPainting
 {
     using System.IO;
 
     /// <inheritdoc />
     /// <summary>
-    /// Stroke the path.
+    /// End path without filling or stroking.
     /// </summary>
-    public class StrokePath : IGraphicsStateOperation
+    public class EndPath : IGraphicsStateOperation
     {
         /// <summary>
         /// The symbol for this operation in a stream.
         /// </summary>
-        public const string Symbol = "S";
+        public const string Symbol = "n";
 
         /// <summary>
-        /// The instance of the <see cref="StrokePath"/> operation.
+        /// The instance of the <see cref="EndPath"/> operation.
         /// </summary>
-        public static readonly StrokePath Value = new StrokePath();
+        public static readonly EndPath Value = new EndPath();
 
         /// <inheritdoc />
         public string Operator => Symbol;
 
-        private StrokePath()
+        private EndPath()
         {
         }
 
         /// <inheritdoc />
         public void Run(IOperationContext operationContext)
         {
-            operationContext.StrokePath(false);
+            operationContext.EndPath();
         }
 
         /// <inheritdoc />
