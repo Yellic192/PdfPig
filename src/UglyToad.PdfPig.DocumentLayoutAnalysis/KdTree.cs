@@ -69,15 +69,21 @@
         /// </summary>
         /// <param name="elements">The elements used to build the tree.</param>
         /// <param name="elementsPointFunc">The function that converts the candidate elements into a <see cref="PdfPoint"/>.</param>
-        public KdTree(IReadOnlyList<T> elements, Func<T, PdfPoint> elementsPointFunc)
+        /// <param name="startAxis">0 for X axis, 1 for Y axis. Deafault is 0.</param>
+        public KdTree(IReadOnlyList<T> elements, Func<T, PdfPoint> elementsPointFunc, int startAxis = 0)
         {
             if (elements == null || elements.Count == 0)
             {
                 throw new ArgumentException("KdTree(): candidates cannot be null or empty.", nameof(elements));
             }
 
+            if (startAxis != 0 && startAxis != 1)
+            {
+                throw new ArgumentException("KdTree(): start axis should be either 0 or 1.", nameof(startAxis));
+            }
+
             Count = elements.Count;
-            Root = BuildTree(Enumerable.Range(0, elements.Count).Zip(elements, (e, p) => (e, elementsPointFunc(p), p)).ToArray(), 0);
+            Root = BuildTree(Enumerable.Range(0, Count).Zip(elements, (e, p) => (e, elementsPointFunc(p), p)).ToArray(), startAxis);
         }
 
         private KdTreeNode<T> BuildTree((int, PdfPoint, T)[] P, int depth)
