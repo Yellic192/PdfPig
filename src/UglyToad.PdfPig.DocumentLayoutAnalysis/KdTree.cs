@@ -59,6 +59,10 @@
         /// </summary>
         public readonly KdTreeNode<T> Root;
 
+        private KdTreeNode<T>[] heap;
+
+        private (int, PdfPoint, T)[] orig;
+
         /// <summary>
         /// Number of elements in the tree.
         /// </summary>
@@ -77,40 +81,75 @@
             }
 
             Count = elements.Count;
-            Root = BuildTree(Enumerable.Range(0, elements.Count).Zip(elements, (e, p) => (e, elementsPointFunc(p), p)).ToArray(), 0);
+            heap = new KdTreeNode<T>[2 * Count + 2]; // wrong, should be n
+            orig = Enumerable.Range(0, elements.Count).Zip(elements, (e, p) => (e, elementsPointFunc(p), p)).ToArray();
+            BuildTree(1, 0);
         }
 
-        private KdTreeNode<T> BuildTree((int, PdfPoint, T)[] P, int depth)
+        private void Swap(int i, int j)
         {
-            if (P.Length == 0)
-            {
-                return null;
-            }
-            else if (P.Length == 1)
-            {
-                return new KdTreeLeaf<T>(P[0], depth);
-            }
+            var tempNode = heap[i];
+            heap[i] = heap[j];
+            heap[j] = tempNode;
+        }
+
+        private void heapify(int index, int depth)
+        {
+            int parent = (int)Math.Floor((index - 1) / 2.0);
 
             if (depth % 2 == 0)
             {
-                Array.Sort(P, (p0, p1) => p0.Item2.X.CompareTo(p1.Item2.X));
+                if (parent >= 0 && heap[index].Value.X > heap[parent].Value.X)
+                {
+                    Swap(index, parent);
+                    heapify(parent, depth - 1);
+                }
             }
             else
             {
-                Array.Sort(P, (p0, p1) => p0.Item2.Y.CompareTo(p1.Item2.Y));
+                if (parent >= 0 && heap[index].Value.Y > heap[parent].Value.Y)
+                {
+                    Swap(index, parent);
+                    heapify(parent, depth - 1);
+                }
             }
+        }
 
-            if (P.Length == 2)
+        private void BuildTree((int, PdfPoint, T)[] P, int depth, int heapIndex)
+        {
+            if (P.Length == 1)
             {
-                return new KdTreeNode<T>(new KdTreeLeaf<T>(P[0], depth + 1), null, P[1], depth);
+                heap[heapIndex] = new KdTreeNode<T>(P[0], depth) { IsLeaf = true };
+                heapify(heapIndex, depth);
             }
+            else if (P.Length > 1)
+            {
+                if (depth % 2 == 0)
+                {
+                    Array.Sort(P, (p0, p1) => p0.Item2.X.CompareTo(p1.Item2.X));
+                }
+                else
+                {
+                    Array.Sort(P, (p0, p1) => p0.Item2.Y.CompareTo(p1.Item2.Y));
+                }
 
-            int median = P.Length / 2;
+                if (P.Length == 2)
+                {
+                    heap[heapIndex] = new KdTreeNode<T>(P[1], depth);
+                    heap[2 * heapIndex + 1] = new KdTreeNode<T>(P[0], depth + 1) { IsLeaf = true };
 
-            KdTreeNode<T> vLeft = BuildTree(P.Take(median).ToArray(), depth + 1);
-            KdTreeNode<T> vRight = BuildTree(P.Skip(median + 1).ToArray(), depth + 1);
+                    heapify(heapIndex, depth);
+                }
+                else
+                {
+                    int median = P.Length / 2;
+                    heap[heapIndex] = new KdTreeNode<T>(P[median], depth);
+                    heapify(heapIndex, depth);
 
-            return new KdTreeNode<T>(vLeft, vRight, P[median], depth);
+                    BuildTree(P.Take(median).ToArray(), depth + 1, 2 * heapIndex + 1);      // left
+                    BuildTree(P.Skip(median + 1).ToArray(), depth + 1, 2 * heapIndex + 2);  // right
+                }
+            }
         }
 
         #region NN
@@ -126,74 +165,74 @@
         /// <returns>The nearest neighbour's element.</returns>
         public T FindNearestNeighbour(T pivot, Func<T, PdfPoint> pivotPointFunc, Func<PdfPoint, PdfPoint, double> distanceMeasure, out int index, out double distance)
         {
-            var result = FindNearestNeighbour(Root, pivot, pivotPointFunc, distanceMeasure);
-            index = result.Item1 != null ? result.Item1.Index : -1;
+            var result = FindNearestNeighbour(0, pivot, pivotPointFunc, distanceMeasure);
+            index = result.Item1.HasValue ? heap[result.Item1.Value].Index : -1;
             distance = result.Item2 ?? double.NaN;
-            return result.Item1 != null ? result.Item1.Element : default;
+            return result.Item1.HasValue ? heap[result.Item1.Value].Element : default;
         }
 
-        private static (KdTreeNode<T>, double?) FindNearestNeighbour(KdTreeNode<T> node, T pivot, Func<T, PdfPoint> pivotPointFunc, Func<PdfPoint, PdfPoint, double> distance)
+        private (int?, double?) FindNearestNeighbour(int node, T pivot, Func<T, PdfPoint> pivotPointFunc, Func<PdfPoint, PdfPoint, double> distance)
         {
-            if (node == null)
+            if (heap[node] is null)
             {
                 return (null, null);
             }
-            else if (node.IsLeaf)
+            else if (heap[node].IsLeaf)
             {
-                if (node.Element.Equals(pivot))
+                if (heap[node].Element.Equals(pivot))
                 {
                     return (null, null);
                 }
-                return (node, distance(node.Value, pivotPointFunc(pivot)));
+                return (node, distance(heap[node].Value, pivotPointFunc(pivot)));
             }
             else
             {
                 var point = pivotPointFunc(pivot);
                 var currentNearestNode = node;
-                var currentDistance = distance(node.Value, point);
+                var currentDistance = distance(heap[node].Value, point);
 
-                KdTreeNode<T> newNode = null;
+                int? newNode = null;
                 double? newDist = null;
 
-                var pointValue = node.IsAxisCutX ? point.X : point.Y;
+                var pointValue = heap[node].IsAxisCutX ? point.X : point.Y;
 
-                if (pointValue < node.L)
+                if (pointValue < heap[node].L)
                 {
                     // start left
-                    (newNode, newDist) = FindNearestNeighbour(node.LeftChild, pivot, pivotPointFunc, distance);
+                    (newNode, newDist) = FindNearestNeighbour(node * 2 + 1, pivot, pivotPointFunc, distance);
 
-                    if (newDist.HasValue && newDist <= currentDistance && !newNode.Element.Equals(pivot))
+                    if (newDist.HasValue && newDist <= currentDistance && !heap[newNode.Value].Element.Equals(pivot))
                     {
                         currentDistance = newDist.Value;
-                        currentNearestNode = newNode;
+                        currentNearestNode = newNode.Value;
                     }
 
-                    if (node.RightChild != null && pointValue + currentDistance >= node.L)
+                    if (node * 2 + 2 < heap.Length && pointValue + currentDistance >= heap[node].L)
                     {
-                        (newNode, newDist) = FindNearestNeighbour(node.RightChild, pivot, pivotPointFunc, distance);
+                        (newNode, newDist) = FindNearestNeighbour(node * 2 + 2, pivot, pivotPointFunc, distance);
                     }
                 }
                 else
                 {
                     // start right
-                    (newNode, newDist) = FindNearestNeighbour(node.RightChild, pivot, pivotPointFunc, distance);
+                    (newNode, newDist) = FindNearestNeighbour(node * 2 + 2, pivot, pivotPointFunc, distance);
 
-                    if (newDist.HasValue && newDist <= currentDistance && !newNode.Element.Equals(pivot))
+                    if (newDist.HasValue && newDist <= currentDistance && !heap[newNode.Value].Element.Equals(pivot))
                     {
                         currentDistance = newDist.Value;
-                        currentNearestNode = newNode;
+                        currentNearestNode = newNode.Value;
                     }
 
-                    if (node.LeftChild != null && pointValue - currentDistance <= node.L)
+                    if (node * 2 + 1 < heap.Length && pointValue - currentDistance <= heap[node].L)
                     {
-                        (newNode, newDist) = FindNearestNeighbour(node.LeftChild, pivot, pivotPointFunc, distance);
+                        (newNode, newDist) = FindNearestNeighbour(node * 2 + 1, pivot, pivotPointFunc, distance);
                     }
                 }
 
-                if (newDist.HasValue && newDist <= currentDistance && !newNode.Element.Equals(pivot))
+                if (newDist.HasValue && newDist <= currentDistance && !heap[newNode.Value].Element.Equals(pivot))
                 {
                     currentDistance = newDist.Value;
-                    currentNearestNode = newNode;
+                    currentNearestNode = newNode.Value;
                 }
 
                 return (currentNearestNode, currentDistance);
@@ -205,7 +244,7 @@
         /// <summary>
         /// Get the k nearest neighbours to the pivot element.
         /// Might return more than k neighbours if points are equidistant.
-        /// <para>Use <see cref="FindNearestNeighbour(KdTreeNode{T}, T, Func{T, PdfPoint}, Func{PdfPoint, PdfPoint, double})"/> if only looking for the (single) closest point.</para>
+        /// <para>Use XXXXXXXXXX if only looking for the (single) closest point.</para>
         /// </summary>
         /// <param name="pivot">The element for which to find the k nearest neighbours.</param>
         /// <param name="k">The number of neighbours to return. Might return more than k neighbours if points are equidistant.</param>
@@ -222,6 +261,8 @@
         private static (KdTreeNode<T>, double) FindNearestNeighbours(KdTreeNode<T> node, T pivot, int k,
             Func<T, PdfPoint> pivotPointFunc, Func<PdfPoint, PdfPoint, double> distance, KNearestNeighboursQueue queue)
         {
+            throw new Exception();
+            /*
             if (node == null)
             {
                 return (null, double.NaN);
@@ -305,7 +346,7 @@
                 }
 
                 return (currentNearestNode, currentDistance);
-            }
+            }*/
         }
 
         private class KNearestNeighboursQueue : SortedList<double, HashSet<KdTreeNode<T>>>
@@ -351,28 +392,6 @@
         #endregion
 
         /// <summary>
-        /// K-D tree leaf.
-        /// </summary>
-        /// <typeparam name="Q"></typeparam>
-        public class KdTreeLeaf<Q> : KdTreeNode<Q>
-        {
-            /// <summary>
-            /// Return true if leaf.
-            /// </summary>
-            public override bool IsLeaf => true;
-
-            internal KdTreeLeaf((int, PdfPoint, Q) point, int depth)
-                : base(null, null, point, depth)
-            { }
-
-            /// <inheritdoc />
-            public override string ToString()
-            {
-                return "Leaf->" + Value.ToString();
-            }
-        }
-
-        /// <summary>
         /// K-D tree node.
         /// </summary>
         /// <typeparam name="Q"></typeparam>
@@ -387,16 +406,6 @@
             /// Split point.
             /// </summary>
             public PdfPoint Value { get; }
-
-            /// <summary>
-            /// Left child.
-            /// </summary>
-            public KdTreeNode<Q> LeftChild { get; internal set; }
-
-            /// <summary>
-            /// Right child.
-            /// </summary>
-            public KdTreeNode<Q> RightChild { get; internal set; }
 
             /// <summary>
             /// The node's element.
@@ -416,47 +425,21 @@
             /// <summary>
             /// Return true if leaf.
             /// </summary>
-            public virtual bool IsLeaf => false;
+            public bool IsLeaf { get; set; }
 
             /// <summary>
             /// The index of the element in the original array.
             /// </summary>
             public int Index { get; }
 
-            internal KdTreeNode(KdTreeNode<Q> leftChild, KdTreeNode<Q> rightChild, (int, PdfPoint, Q) point, int depth)
+            internal KdTreeNode((int, PdfPoint, Q) point, int depth)
             {
-                LeftChild = leftChild;
-                RightChild = rightChild;
                 Value = point.Item2;
                 Element = point.Item3;
                 Depth = depth;
                 IsAxisCutX = depth % 2 == 0;
                 Index = point.Item1;
-            }
-
-            /// <summary>
-            /// Get the leaves.
-            /// </summary>
-            public IEnumerable<KdTreeLeaf<Q>> GetLeaves()
-            {
-                var leaves = new List<KdTreeLeaf<Q>>();
-                RecursiveGetLeaves(LeftChild, ref leaves);
-                RecursiveGetLeaves(RightChild, ref leaves);
-                return leaves;
-            }
-
-            private void RecursiveGetLeaves(KdTreeNode<Q> leaf, ref List<KdTreeLeaf<Q>> leaves)
-            {
-                if (leaf == null) return;
-                if (leaf is KdTreeLeaf<Q> lLeaf)
-                {
-                    leaves.Add(lLeaf);
-                }
-                else
-                {
-                    RecursiveGetLeaves(leaf.LeftChild, ref leaves);
-                    RecursiveGetLeaves(leaf.RightChild, ref leaves);
-                }
+                IsLeaf = false;
             }
 
             /// <inheritdoc />

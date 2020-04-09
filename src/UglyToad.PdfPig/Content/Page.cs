@@ -36,7 +36,10 @@
         /// </summary>
         public CropBox CropBox { get; }
 
-        internal MediaBox MediaBox { get; }
+        /// <summary>
+        /// 
+        /// </summary>
+        public MediaBox MediaBox { get; }
 
         internal PageContent Content { get; }
 

@@ -3043,6 +3043,91 @@
             }
         };
 
+        public static IEnumerable<object[]> DataTreeK1Manhattan => new[]
+        {
+            new object[]
+            {
+                new PdfPoint(60, 50),
+                new object[]
+                {
+                    new object[]
+                    {
+                        10.0,
+                        5,
+                        new PdfPoint(50, 50),
+                    },
+                    new object[]
+                    {
+                        30.0,
+                        6,
+                        new PdfPoint(70, 70),
+                    },
+                    new object[]
+                    {
+                        30.0,
+                        8,
+                        new PdfPoint(60, 80),
+                    },
+                    new object[]
+                    {
+                        34.0,
+                        0,
+                        new PdfPoint(51, 75),
+                    },
+                }
+            },
+            new object[]
+            {
+                new PdfPoint(21.5, 50),
+                new object[]
+                {
+                    new object[]
+                    {
+                        13.9,
+                        1,
+                        new PdfPoint(25,40)
+                    },
+                    new object[]
+                    {
+                        28.9,
+                        5,
+                        new PdfPoint(50,50)
+                    },
+                    new object[]
+                    {
+                        31.9,
+                        2,
+                        new PdfPoint(10,30)
+                    }
+                }
+            },
+            new object[]
+            {
+                new PdfPoint(32.7, 51.8),
+                new object[]
+                {
+                    new object[]
+                    {
+                        19.1,
+                        5,
+                        new PdfPoint(50,50)
+                    },
+                    new object[]
+                    {
+                        19.5,
+                        1,
+                        new PdfPoint(25,40)
+                    },
+                    new object[]
+                    {
+                        40.5,
+                        4,
+                        new PdfPoint(35,90)
+                    }
+                }
+            }
+        };
+
 
         public static PdfPoint[] Tree2 = new PdfPoint[]
         {
@@ -6681,7 +6766,7 @@
             Assert.False(kdTree.Root.IsLeaf);
             Assert.True(kdTree.Root.IsAxisCutX);
 
-            // root -> left side
+            /*// root -> left side
             Assert.Equal(new PdfPoint(5, 4), kdTree.Root.LeftChild.Element, PointComparer);
             Assert.Equal(1, kdTree.Root.LeftChild.Depth);
             Assert.Equal(2, kdTree.Root.LeftChild.Index);
@@ -6726,7 +6811,7 @@
             Assert.Null(kdTree.Root.RightChild.LeftChild.LeftChild);
 
             // root -> right side -> right side
-            Assert.Null(kdTree.Root.RightChild.RightChild);
+            Assert.Null(kdTree.Root.RightChild.RightChild);*/
 
         }
 
@@ -6755,7 +6840,9 @@
 
             var nn = kdTree.FindNearestNeighbours(point, 3, Distances.Euclidean);
 
-            for (int i = 0; i < 3; i++)
+            Assert.Equal(expectedArr.Length, nn.Count);
+
+            for (int i = 0; i < expectedArr.Length; i++)
             {
                 var expected = (object[])expectedArr[i];
 
@@ -6770,6 +6857,34 @@
                 Assert.Equal(expectedPoint, result.Item1, PointComparer);
             }
         }
+
+
+        [Theory]
+        [MemberData(nameof(DataTreeK1Manhattan))]
+        public void FindNearestNeighbourK1Manhattan(PdfPoint point, object[] expectedArr)
+        {
+            KdTree kdTree = new KdTree(Tree1);
+
+            var nn = kdTree.FindNearestNeighbours(point, 3, Distances.Manhattan);
+
+            Assert.Equal(expectedArr.Length, nn.Count);
+
+            for (int i = 0; i < expectedArr.Length; i++)
+            {
+                var expected = (object[])expectedArr[i];
+
+                var expectedDistance = (double)expected[0];
+                var expectedIndex = (int)expected[1];
+                var expectedPoint = (PdfPoint)expected[2];
+
+                var result = nn[i];
+
+                Assert.Equal(expectedDistance, result.Item3, PreciseDoubleComparer);
+                Assert.Equal(expectedIndex, result.Item2);
+                Assert.Equal(expectedPoint, result.Item1, PointComparer);
+            }
+        }
+
 
         [Theory]
         [MemberData(nameof(DataTree2))]

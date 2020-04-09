@@ -9,7 +9,7 @@
     /// <remarks>
     /// See table 3.27 from the PDF specification version 1.7.
     /// </remarks>
-    internal class MediaBox
+    public class MediaBox
     {
         ///<summary>
         /// User space units per inch.
@@ -66,11 +66,24 @@
         /// </summary>
         public static readonly MediaBox A6 = new MediaBox(new PdfRectangle(0, 0, 105 * PointsPerMm, 148 * PointsPerMm));
 
+        /// <summary>
+        /// 
+        /// </summary>
         public PdfRectangle Bounds { get; }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="bounds"></param>
         public MediaBox(PdfRectangle? bounds)
         {
             Bounds = bounds ?? throw new ArgumentNullException(nameof(bounds));
+        }
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            return Bounds.ToString();
         }
     }
 }
