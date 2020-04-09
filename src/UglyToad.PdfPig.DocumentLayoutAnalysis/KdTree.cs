@@ -83,7 +83,7 @@
             Count = elements.Count;
             heap = new KdTreeNode<T>[2 * Count + 2]; // wrong, should be n
             orig = Enumerable.Range(0, elements.Count).Zip(elements, (e, p) => (e, elementsPointFunc(p), p)).ToArray();
-            BuildTree(1, 0);
+            BuildTree(orig, 1, 0);
         }
 
         private void Swap(int i, int j)
