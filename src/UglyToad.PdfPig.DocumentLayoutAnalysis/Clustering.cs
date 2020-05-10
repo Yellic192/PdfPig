@@ -243,7 +243,7 @@
             for (int p = 0; p < edges.Length; p++)
             {
                 if (isDone[p]) continue;
-                groupedIndexes.Add(DfsIterative(p, adjacency, ref isDone));
+                groupedIndexes.Add(BfsIterative(p, adjacency, ref isDone));
             }
             return groupedIndexes;
         }
@@ -281,13 +281,13 @@
             for (int p = 0; p < edges.Length; p++)
             {
                 if (isDone[p]) continue;
-                groupedIndexes.Add(DfsIterative(p, adjacency, ref isDone));
+                groupedIndexes.Add(BfsIterative(p, adjacency, ref isDone));
             }
             return groupedIndexes;
         }
 
         /// <summary>
-        /// Depth-first search
+        /// Depth-first search.
         /// <para>https://en.wikipedia.org/wiki/Depth-first_search</para>
         /// </summary>
         private static HashSet<int> DfsIterative(int s, int[][] adj, ref bool[] isDone)
@@ -306,6 +306,32 @@
                     foreach (var v in adj[u])
                     {
                         S.Push(v);
+                    }
+                }
+            }
+            return group;
+        }
+
+        /// <summary>
+        /// Breadth-first search.
+        /// <para>https://en.wikipedia.org/wiki/Breadth-first_search</para>
+        /// </summary>
+        private static HashSet<int> BfsIterative(int s, int[][] adj, ref bool[] isDone)
+        {
+            HashSet<int> group = new HashSet<int>();
+            Queue<int> Q = new Queue<int>();
+            Q.Enqueue(s);
+
+            while (Q.Count > 0)
+            {
+                var u = Q.Dequeue();
+                if (!isDone[u])
+                {
+                    group.Add(u);
+                    isDone[u] = true;
+                    foreach (var v in adj[u])
+                    {
+                        Q.Enqueue(v);
                     }
                 }
             }
