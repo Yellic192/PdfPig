@@ -5,6 +5,7 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
+    using UglyToad.PdfPig.Geometry;
 
     /// <summary>
     /// Clustering Algorithms.
@@ -49,6 +50,11 @@
              *  e.g. if we have indexes[i] = j, indexes[j] = k, indexes[m] = n and indexes[n] = -1
              *  (i,j,k) will form a group and (m,n) will form another group.
              *************************************************************************************/
+
+            if (elements.Count == 0)
+            {
+                yield return EmptyArray<T>.Instance;
+            }
 
             int[] indexes = Enumerable.Repeat(-1, elements.Count).ToArray();
             KdTree<T> kdTree = new KdTree<T>(elements, candidatesPoint);
@@ -118,6 +124,11 @@
              *  (i,j,k) will form a group and (m,n) will form another group.
              *************************************************************************************/
 
+            if (elements.Count == 0)
+            {
+                yield return EmptyArray<T>.Instance;
+            }
+
             int[] indexes = Enumerable.Repeat(-1, elements.Count).ToArray();
             KdTree<T> kdTree = new KdTree<T>(elements, candidatesPoint);
 
@@ -185,6 +196,11 @@
              *  e.g. if we have indexes[i] = j, indexes[j] = k, indexes[m] = n and indexes[n] = -1
              *  (i,j,k) will form a group and (m,n) will form another group.
              *************************************************************************************/
+
+            if (elements.Count == 0)
+            {
+                yield return EmptyArray<T>.Instance;
+            }
 
             int[] indexes = Enumerable.Repeat(-1, elements.Count).ToArray();
 
@@ -310,6 +326,73 @@
                 }
             }
             return group;
+        }
+
+        /// <summary>
+        /// Algorithm to group elements for which axis aligned rectangle representation intersect.
+        /// </summary>
+        /// <typeparam name="T">Images, Paths, Letter, Word, TextLine, etc.</typeparam>
+        /// <param name="elements">Array of elements to group.</param>
+        /// <param name="elementRectangle">The element's rectangle to use for clustering, e.g. the bounding box.
+        /// <para>Treated as axis aligned when chekcing for intersection.</para></param>
+        /// <param name="tolerance">The tolerance level to use when checking if two elements intersect.</param>
+        public static IEnumerable<IReadOnlyList<T>> IntersectAxisAligned<T>(IReadOnlyList<T> elements,
+            Func<T, PdfRectangle> elementRectangle, double tolerance = 0)
+        {
+            if (elements.Count == 0)
+            {
+                return EmptyArray<IReadOnlyList<T>>.Instance;
+            }
+
+            bool checkIntersects(PdfRectangle bbox, PdfRectangle other, double tol)
+            {
+                return !((bbox.TopRight.X < other.BottomLeft.X - tol) || (bbox.BottomLeft.X > other.TopRight.X + tol) ||
+                         (bbox.TopRight.Y < other.BottomLeft.Y - tol) || (bbox.BottomLeft.Y > other.TopRight.Y + tol));
+            }
+
+            // https://github.com/allenai/pdffigures2/blob/master/src/main/scala/org/allenai/pdffigures2/Box.scala
+            List<(T[], PdfRectangle)> currentBoxes = elements.Zip(elements.Select(x => elementRectangle(x)), (a, b) => (new[] { a }, b.Normalise())).ToList();
+
+            var foundIntersectingBoxes = true;
+
+            while (foundIntersectingBoxes)
+            {
+                foundIntersectingBoxes = false;
+
+                // The box we are going to check to see if there are any intersecting boxes, followed by
+                // any boxes that we have already check
+                var uncheckedS = new Stack<(T[], PdfRectangle)>(currentBoxes);
+                var checkedS = new Stack<(T[], PdfRectangle)>(new[] { uncheckedS.Pop() });
+
+                while (!foundIntersectingBoxes && uncheckedS.Count > 0)
+                {
+                    var head = checkedS.Pop();
+
+                    var inters = uncheckedS.ToLookup(x => checkIntersects(x.Item2, head.Item2, tolerance));
+                    var intersects = inters[true].ToList();
+
+                    if (intersects.Count > 0)
+                    {
+                        intersects.Add(head);
+                        var newBox = (intersects.SelectMany(x => x.Item1).ToArray(),
+                                                            new PdfRectangle(intersects.Min(b => b.Item2.BottomLeft.X),
+                                                                             intersects.Min(b => b.Item2.BottomLeft.Y),
+                                                                             intersects.Max(b => b.Item2.TopRight.X),
+                                                                             intersects.Max(b => b.Item2.TopRight.Y)));
+                        currentBoxes = inters[false].ToList(); // nonIntersects
+                        currentBoxes.Add(newBox);
+                        currentBoxes.AddRange(checkedS);
+                        foundIntersectingBoxes = true; // Exit this loop and re-enter the outer loop
+                    }
+                    else
+                    {
+                        checkedS.Push(head);
+                        checkedS.Push(uncheckedS.Pop());
+                    }
+                }
+            }
+
+            return currentBoxes.Select(x => x.Item1);
         }
     }
 }
