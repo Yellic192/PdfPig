@@ -55,32 +55,34 @@
             {
                 yield return EmptyArray<T>.Instance;
             }
-
-            int[] indexes = Enumerable.Repeat(-1, elements.Count).ToArray();
-            KdTree<T> kdTree = new KdTree<T>(elements, candidatesPoint);
-
-            ParallelOptions parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = maxDegreeOfParallelism };
-
-            // 1. Find nearest neighbours indexes
-            Parallel.For(0, elements.Count, parallelOptions, e =>
+            else
             {
-                var pivot = elements[e];
+                int[] indexes = Enumerable.Repeat(-1, elements.Count).ToArray();
+                KdTree<T> kdTree = new KdTree<T>(elements, candidatesPoint);
 
-                if (filterPivot(pivot))
+                ParallelOptions parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = maxDegreeOfParallelism };
+
+                // 1. Find nearest neighbours indexes
+                Parallel.For(0, elements.Count, parallelOptions, e =>
                 {
-                    var paired = kdTree.FindNearestNeighbour(pivot, pivotPoint, distMeasure, out int index, out double dist);
+                    var pivot = elements[e];
 
-                    if (index != -1 && filterFinal(pivot, paired) && dist < maxDistanceFunction(pivot, paired))
+                    if (filterPivot(pivot))
                     {
-                        indexes[e] = index;
-                    }
-                }
-            });
+                        var paired = kdTree.FindNearestNeighbour(pivot, pivotPoint, distMeasure, out int index, out double dist);
 
-            // 2. Group indexes
-            foreach (var group in GroupIndexes(indexes))
-            {
-                yield return group.Select(i => elements[i]).ToList();
+                        if (index != -1 && filterFinal(pivot, paired) && dist < maxDistanceFunction(pivot, paired))
+                        {
+                            indexes[e] = index;
+                        }
+                    }
+                });
+
+                // 2. Group indexes
+                foreach (var group in GroupIndexes(indexes))
+                {
+                    yield return group.Select(i => elements[i]).ToList();
+                }
             }
         }
 
@@ -128,34 +130,36 @@
             {
                 yield return EmptyArray<T>.Instance;
             }
-
-            int[] indexes = Enumerable.Repeat(-1, elements.Count).ToArray();
-            KdTree<T> kdTree = new KdTree<T>(elements, candidatesPoint);
-
-            ParallelOptions parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = maxDegreeOfParallelism };
-
-            // 1. Find nearest neighbours indexes
-            Parallel.For(0, elements.Count, parallelOptions, e =>
+            else
             {
-                var pivot = elements[e];
+                int[] indexes = Enumerable.Repeat(-1, elements.Count).ToArray();
+                KdTree<T> kdTree = new KdTree<T>(elements, candidatesPoint);
 
-                if (filterPivot(pivot))
+                ParallelOptions parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = maxDegreeOfParallelism };
+
+                // 1. Find nearest neighbours indexes
+                Parallel.For(0, elements.Count, parallelOptions, e =>
                 {
-                    foreach (var c in kdTree.FindNearestNeighbours(pivot, k, pivotPoint, distMeasure))
+                    var pivot = elements[e];
+
+                    if (filterPivot(pivot))
                     {
-                        if (filterFinal(pivot, c.Item1) && c.Item3 < maxDistanceFunction(pivot, c.Item1))
+                        foreach (var c in kdTree.FindNearestNeighbours(pivot, k, pivotPoint, distMeasure))
                         {
-                            indexes[e] = c.Item2;
-                            break;
+                            if (filterFinal(pivot, c.Item1) && c.Item3 < maxDistanceFunction(pivot, c.Item1))
+                            {
+                                indexes[e] = c.Item2;
+                                break;
+                            }
                         }
                     }
-                }
-            });
+                });
 
-            // 2. Group indexes
-            foreach (var group in GroupIndexes(indexes))
-            {
-                yield return group.Select(i => elements[i]).ToList();
+                // 2. Group indexes
+                foreach (var group in GroupIndexes(indexes))
+                {
+                    yield return group.Select(i => elements[i]).ToList();
+                }
             }
         }
 
@@ -201,35 +205,37 @@
             {
                 yield return EmptyArray<T>.Instance;
             }
-
-            int[] indexes = Enumerable.Repeat(-1, elements.Count).ToArray();
-
-            ParallelOptions parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = maxDegreeOfParallelism };
-
-            // 1. Find nearest neighbours indexes
-            Parallel.For(0, elements.Count, parallelOptions, e =>
+            else
             {
-                var pivot = elements[e];
+                int[] indexes = Enumerable.Repeat(-1, elements.Count).ToArray();
 
-                if (filterPivot(pivot))
+                ParallelOptions parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = maxDegreeOfParallelism };
+
+                // 1. Find nearest neighbours indexes
+                Parallel.For(0, elements.Count, parallelOptions, e =>
                 {
-                    int index = Distances.FindIndexNearest(pivot, elements, pivotLine, candidatesLine,  distMeasure, out double dist);
+                    var pivot = elements[e];
 
-                    if (index != -1)
+                    if (filterPivot(pivot))
                     {
-                        var paired = elements[index];
-                        if (filterFinal(pivot, paired) && dist < maxDistanceFunction(pivot, paired))
+                        int index = Distances.FindIndexNearest(pivot, elements, pivotLine, candidatesLine, distMeasure, out double dist);
+
+                        if (index != -1)
                         {
-                            indexes[e] = index;
+                            var paired = elements[index];
+                            if (filterFinal(pivot, paired) && dist < maxDistanceFunction(pivot, paired))
+                            {
+                                indexes[e] = index;
+                            }
                         }
                     }
-                }
-            });
+                });
 
-            // 2. Group indexes
-            foreach (var group in GroupIndexes(indexes))
-            {
-                yield return group.Select(i => elements[i]).ToList();
+                // 2. Group indexes
+                foreach (var group in GroupIndexes(indexes))
+                {
+                    yield return group.Select(i => elements[i]).ToList();
+                }
             }
         }
 
@@ -329,12 +335,12 @@
         }
 
         /// <summary>
-        /// Algorithm to group elements for which axis aligned rectangle representation intersect.
+        /// Algorithm to group elements for which axis-aligned rectangle representation intersect.
         /// </summary>
         /// <typeparam name="T">Images, Paths, Letter, Word, TextLine, etc.</typeparam>
         /// <param name="elements">Array of elements to group.</param>
         /// <param name="elementRectangle">The element's rectangle to use for clustering, e.g. the bounding box.
-        /// <para>Treated as axis aligned when chekcing for intersection.</para></param>
+        /// <para>Treated as axis-aligned when checking for intersection.</para></param>
         /// <param name="tolerance">The tolerance level to use when checking if two elements intersect.</param>
         public static IEnumerable<IReadOnlyList<T>> IntersectAxisAligned<T>(IReadOnlyList<T> elements,
             Func<T, PdfRectangle> elementRectangle, double tolerance = 0)
@@ -344,15 +350,15 @@
                 return EmptyArray<IReadOnlyList<T>>.Instance;
             }
 
-            bool checkIntersects(PdfRectangle bbox, PdfRectangle other, double tol)
+            bool intersectsWith(PdfRectangle bbox, PdfRectangle other, double tol)
             {
                 return !((bbox.TopRight.X < other.BottomLeft.X - tol) || (bbox.BottomLeft.X > other.TopRight.X + tol) ||
                          (bbox.TopRight.Y < other.BottomLeft.Y - tol) || (bbox.BottomLeft.Y > other.TopRight.Y + tol));
             }
 
-            // https://github.com/allenai/pdffigures2/blob/master/src/main/scala/org/allenai/pdffigures2/Box.scala
             List<(T[], PdfRectangle)> currentBoxes = elements.Zip(elements.Select(x => elementRectangle(x)), (a, b) => (new[] { a }, b.Normalise())).ToList();
 
+            // Adapted from https://github.com/allenai/pdffigures2/blob/master/src/main/scala/org/allenai/pdffigures2/Box.scala
             var foundIntersectingBoxes = true;
 
             while (foundIntersectingBoxes)
@@ -367,8 +373,7 @@
                 while (!foundIntersectingBoxes && uncheckedS.Count > 0)
                 {
                     var head = checkedS.Pop();
-
-                    var inters = uncheckedS.ToLookup(x => checkIntersects(x.Item2, head.Item2, tolerance));
+                    var inters = uncheckedS.ToLookup(x => intersectsWith(x.Item2, head.Item2, tolerance));
                     var intersects = inters[true].ToList();
 
                     if (intersects.Count > 0)
