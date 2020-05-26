@@ -365,8 +365,8 @@
             {
                 foundIntersectingBoxes = false;
 
-                // The box we are going to check to see if there are any intersecting boxes, followed by
-                // any boxes that we have already check
+                // The box we are going to check to see if there are any intersecting boxes,
+                // followed by any boxes that we have already check
                 var uncheckedS = new Stack<(T[], PdfRectangle)>(currentBoxes);
                 var checkedS = new Stack<(T[], PdfRectangle)>(new[] { uncheckedS.Pop() });
 
@@ -380,10 +380,10 @@
                     {
                         intersects.Add(head);
                         var newBox = (intersects.SelectMany(x => x.Item1).ToArray(),
-                                                            new PdfRectangle(intersects.Min(b => b.Item2.BottomLeft.X),
-                                                                             intersects.Min(b => b.Item2.BottomLeft.Y),
-                                                                             intersects.Max(b => b.Item2.TopRight.X),
-                                                                             intersects.Max(b => b.Item2.TopRight.Y)));
+                                      new PdfRectangle(intersects.Min(b => b.Item2.BottomLeft.X),
+                                                       intersects.Min(b => b.Item2.BottomLeft.Y),
+                                                       intersects.Max(b => b.Item2.TopRight.X),
+                                                       intersects.Max(b => b.Item2.TopRight.Y)));
                         currentBoxes = inters[false].ToList(); // nonIntersects
                         currentBoxes.Add(newBox);
                         currentBoxes.AddRange(checkedS);
