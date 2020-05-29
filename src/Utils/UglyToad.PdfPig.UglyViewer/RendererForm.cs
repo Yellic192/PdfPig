@@ -4,24 +4,27 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Drawing;
-    using System.Drawing.Drawing2D;
     using System.IO;
     using System.Linq;
-    using System.Text;
     using System.Windows.Forms;
     using Content;
+    using Core;
     using DocumentLayoutAnalysis.TableExtractor;
 
-    public partial class frmRenderer : Form
+    /// <summary>
+    /// Test form
+    /// </summary>
+    /// <seealso cref="System.Windows.Forms.Form" />
+    public partial class RendererForm : Form
     {
-        private List<ResultPage> _pages;
-        private List<Page> _documentPages = new List<Page>();
+        private List<ContentExtractor> contentExtractorResults;
+        private readonly List<Page> documentPages = new List<Page>();
 
-        private int _currentPageIndex = -1;
+        private int currentPageIndex = -1;
 
 
 
-        public frmRenderer()
+        public RendererForm()
         {
             InitializeComponent();
         }
@@ -39,15 +42,17 @@
         {
             using (var document = PdfDocument.Open(fileName))
             {
-                var documentPages = document.GetPages();
-                ContentExtractor contentExtractor = new ContentExtractor();
-                _pages = contentExtractor.Read(documentPages);
-                lblPages.Text = _pages.Count.ToString();
-
-                foreach (Page page in documentPages)
+                var dp = document.GetPages();
+                contentExtractorResults = new List<ContentExtractor>();
+                foreach (Page page in dp)
                 {
-                    _documentPages.Add(page);
+                    ContentExtractor contentExtractor = new ContentExtractor();
+                    contentExtractor.Read(page.ExperimentalAccess.Paths, page.GetWords());
+                    contentExtractorResults.Add(contentExtractor);
+                    this.documentPages.Add(page);
                 }
+                lblPages.Text = contentExtractorResults.Count.ToString();
+
 
                 DrawPage(0);
 
@@ -57,29 +62,29 @@
 
         private void DrawPage(int pageIndex)
         {
-            _currentPageIndex = pageIndex;
+            currentPageIndex = pageIndex;
 
-            if (!_pages[pageIndex].IsRefreshed)
+            if (!contentExtractorResults[pageIndex].IsRefreshed)
             {
-                _pages[pageIndex].DetermineTableStructures();
-                _pages[pageIndex].DetermineParagraphs();
+                contentExtractorResults[pageIndex].DetermineTableStructures();
+                contentExtractorResults[pageIndex].DetermineParagraphs();
 
-                _pages[pageIndex].FillContent();
+                contentExtractorResults[pageIndex].FillContent();
             }
 
             txtPage.Text = (pageIndex + 1).ToString();
-            txtPageContent.Text = _pages[pageIndex].ToString();
+            txtPageContent.Text = contentExtractorResults[pageIndex].ToString();
             RedrawLines();
 
         }
 
         private void RedrawLines()
         {
-            if (_currentPageIndex < 0)
+            if (currentPageIndex < 0)
                 return;
 
-            ResultPage currentPage = _pages[_currentPageIndex];
-            Page documentPage = _documentPages[_currentPageIndex];
+            var currentPage = contentExtractorResults[currentPageIndex];
+            Page documentPage = documentPages[currentPageIndex];
 
             float maxY = (float)documentPage.Height;
 
@@ -89,14 +94,14 @@
 
                 if (chkLines.Checked)
                 {
-                    foreach (Line line in currentPage.AllLines)
-                        g.DrawLine(Pens.DarkGray, (float)line.StartPoint.X, (float)line.StartPoint.Y, (float)line.EndPoint.X, (float)line.EndPoint.Y);
+                    foreach (PdfSubpath.Line line in currentPage.AllLines)
+                        g.DrawLine(Pens.DarkGray, (float)line.From.X, (float)line.From.Y, (float)line.To.X, (float)line.To.Y);
 
-                    foreach (Line line in currentPage.JoinedHorizontalLines)
-                        g.DrawLine(Pens.Blue, (float)line.StartPoint.X + 2, (float)line.StartPoint.Y + 2, (float)line.EndPoint.X + 2, (float) line.EndPoint.Y + 2);
+                    foreach (PdfSubpath.Line line in currentPage.JoinedHorizontalLines)
+                        g.DrawLine(Pens.Blue, (float)line.From.X + 2, (float)line.From.Y + 2, (float)line.To.X + 2, (float) line.To.Y + 2);
 
-                    foreach (Line line in currentPage.JoinedVerticalLines)
-                        g.DrawLine(Pens.Blue, (float)line.StartPoint.X + 2, (float)line.StartPoint.Y + 2, (float)line.EndPoint.X + 2, (float) line.EndPoint.Y + 2);
+                    foreach (PdfSubpath.Line line in currentPage.JoinedVerticalLines)
+                        g.DrawLine(Pens.Blue, (float)line.From.X + 2, (float)line.From.Y + 2, (float)line.To.X + 2, (float) line.To.Y + 2);
                 }
 
                 if (chkTables.Checked)
@@ -194,29 +199,29 @@
 
         private void MoveNextPage()
         {
-            if (_currentPageIndex < 0)
+            if (currentPageIndex < 0)
                 return;
-            if (_currentPageIndex < _pages.Count - 1)
-                DrawPage(_currentPageIndex + 1);
+            if (currentPageIndex < contentExtractorResults.Count - 1)
+                DrawPage(currentPageIndex + 1);
         }
 
         private void MovePreviousPage()
         {
-            if (_currentPageIndex < 0)
+            if (currentPageIndex < 0)
                 return;
-            if (_currentPageIndex > 0)
-                DrawPage(_currentPageIndex - 1);
+            if (currentPageIndex > 0)
+                DrawPage(currentPageIndex - 1);
         }
 
         private void btnLast_Click(object sender, EventArgs e)
         {
-            DrawPage(_pages.Count - 1);
+            DrawPage(contentExtractorResults.Count - 1);
         }
 
         private void btnGo_Click(object sender, EventArgs e)
         {
             int page;
-            if (int.TryParse(txtPage.Text, out page) && page > 0 && page <= _pages.Count)
+            if (int.TryParse(txtPage.Text, out page) && page > 0 && page <= contentExtractorResults.Count)
                 DrawPage(page - 1);
 
         }
@@ -236,7 +241,7 @@
         private void btnHtmlExport_Click(object sender, EventArgs e)
         {
             string htmlFileName = fileOpen.Text + ".html";
-            File.WriteAllText(htmlFileName, HtmlConverter.Convert(_pages));
+            File.WriteAllText(htmlFileName, HtmlConverter.Convert(contentExtractorResults.Select(_ => _.Contents).ToList()));
             Process.Start(htmlFileName);
         }
 

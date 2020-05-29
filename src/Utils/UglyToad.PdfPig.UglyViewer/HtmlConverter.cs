@@ -6,14 +6,14 @@
 
     public static class HtmlConverter
     {
-        public static string Convert(IEnumerable<ResultPage> pages)
+        public static string Convert(IEnumerable<IEnumerable<IPageContent>> pagescontents)
         {
             string content = string.Empty;
-            foreach (var page in pages)
+            foreach (var page in pagescontents)
             {
                 if (!string.IsNullOrEmpty(content))
                     content += "<hr/>";
-                foreach (IPageContent pageContent in page.Contents)
+                foreach (IPageContent pageContent in page)
                 {
                     if (pageContent is Paragraph)
                     {

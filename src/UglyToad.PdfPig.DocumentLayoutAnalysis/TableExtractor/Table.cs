@@ -160,48 +160,51 @@
         /// Determines whether this table contains the line.
         /// </summary>
         /// <param name="line">The line.</param>
+        /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         ///   <c>true</c> if the table contains the specified line; otherwise, <c>false</c>.
         /// </returns>
-        public bool Contains(Line line)
+        public bool Contains(PdfSubpath.Line line, float tolerance)
         {
             return
-                TopLeftPoint.Y - ContentExtractor.Tolerance <= line.StartPoint.Y &&
-                line.EndPoint.Y <= BottomRightPoint.Y + ContentExtractor.Tolerance
+                TopLeftPoint.Y - tolerance <= line.From.Y &&
+                line.To.Y <= BottomRightPoint.Y + tolerance
                 &&
-                TopLeftPoint.X - ContentExtractor.Tolerance <= line.StartPoint.X &&
-                line.EndPoint.X <= BottomRightPoint.X + ContentExtractor.Tolerance;
+                TopLeftPoint.X - tolerance <= line.From.X &&
+                line.To.X <= BottomRightPoint.X + tolerance;
         }
 
         /// <summary>
         /// Determines whether this instance contains the y coordinate (horizontal line at y coordinate).
         /// </summary>
         /// <param name="y">The y coordinate.</param>
+        /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         ///   <c>true</c> if the table contains the specified coordinate; otherwise, <c>false</c>.
         /// </returns>
-        public bool Contains(double y)
+        public bool Contains(double y, float tolerance)
         {
             return
-                TopLeftPoint.Y - ContentExtractor.Tolerance <= y &&
-                y <= BottomRightPoint.Y + ContentExtractor.Tolerance;
+                TopLeftPoint.Y - tolerance <= y &&
+                y <= BottomRightPoint.Y + tolerance;
         }
 
         /// <summary>
         /// Determines whether this instance contains the point.
         /// </summary>
         /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         ///   <c>true</c> if the table contains the specified point; otherwise, <c>false</c>.
         /// </returns>
-        public bool Contains(PdfPoint point)
+        public bool Contains(PdfPoint point, float tolerance)
         {
             return
-                TopLeftPoint.Y - ContentExtractor.Tolerance <= point.Y &&
-                point.Y <= BottomRightPoint.Y - ContentExtractor.Tolerance
+                TopLeftPoint.Y - tolerance <= point.Y &&
+                point.Y <= BottomRightPoint.Y - tolerance
                 &&
-                TopLeftPoint.X - ContentExtractor.Tolerance <= point.X &&
-                point.X <= BottomRightPoint.X - ContentExtractor.Tolerance;
+                TopLeftPoint.X - tolerance <= point.X &&
+                point.X <= BottomRightPoint.X - tolerance;
         }
 
         internal void CreateContent()
@@ -213,19 +216,18 @@
         /// Adds the text at the specified position
         /// </summary>
         /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance.</param>
         /// <param name="content">The content.</param>
-        /// <exception cref="InvalidOperationException">
-        /// Content is not initialized. Please call CreateContent first
+        /// <exception cref="InvalidOperationException">Content is not initialized. Please call CreateContent first
         /// or
-        /// The point is outside the table
-        /// </exception>
-        public void AddText(PdfPoint point, string content)
+        /// The point is outside the table</exception>
+        public void AddText(PdfPoint point, float tolerance, string content)
         {
             if (this.content == null)
                 throw new InvalidOperationException("Content is not initialized. Please call CreateContent first");
 
             // The text can be also on the left or on the right of the table
-            Row row = FindRow(point.Y);
+            Row row = FindRow(point.Y, tolerance);
             if (row == null)
                 throw new InvalidOperationException("The point is outside the table");
 
@@ -268,12 +270,15 @@
         /// Null if y is outside the table.
         /// </summary>
         /// <param name="y">The y.</param>
-        /// <returns>The row or null if y is outside the table</returns>
-        private Row FindRow(double y)
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// The row or null if y is outside the table
+        /// </returns>
+        private Row FindRow(double y, float tolerance)
         {
             Row row = Rows.FirstOrDefault(_ => _.BeginY <= y && y <= _.EndY);
             if (row == null)
-                row = Rows.FirstOrDefault(_ => _.BeginY - ContentExtractor.Tolerance <= y && y <= _.EndY + ContentExtractor.Tolerance);
+                row = Rows.FirstOrDefault(_ => _.BeginY - tolerance <= y && y <= _.EndY + tolerance);
             return row;
         }
 

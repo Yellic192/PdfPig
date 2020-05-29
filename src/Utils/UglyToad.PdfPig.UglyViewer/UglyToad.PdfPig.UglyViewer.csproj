@@ -57,11 +57,11 @@
     <Compile Include="frmNotepad.Designer.cs">
       <DependentUpon>frmNotepad.cs</DependentUpon>
     </Compile>
-    <Compile Include="frmRenderer.cs">
+    <Compile Include="RendererForm.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="frmRenderer.Designer.cs">
-      <DependentUpon>frmRenderer.cs</DependentUpon>
+    <Compile Include="RendererForm.Designer.cs">
+      <DependentUpon>RendererForm.cs</DependentUpon>
     </Compile>
     <Compile Include="HtmlConverter.cs" />
     <Compile Include="Program.cs" />
@@ -72,8 +72,8 @@
     <EmbeddedResource Include="frmNotepad.resx">
       <DependentUpon>frmNotepad.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="frmRenderer.resx">
-      <DependentUpon>frmRenderer.cs</DependentUpon>
+    <EmbeddedResource Include="RendererForm.resx">
+      <DependentUpon>RendererForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

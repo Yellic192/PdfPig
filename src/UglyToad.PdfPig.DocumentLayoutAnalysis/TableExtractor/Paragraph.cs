@@ -63,10 +63,11 @@
         /// </summary>
         /// <param name="point">The point.</param>
         /// <param name="content">The content.</param>
+        /// <param name="tolerance">The tolerance.</param>
         /// <exception cref="InvalidOperationException">The point is not on the paragraph</exception>
-        public void AddText(PdfPoint point, string content)
+        public void AddText(PdfPoint point, float tolerance, string content)
         {
-            if (!Contains(point))
+            if (!Contains(point, tolerance))
                 throw new InvalidOperationException("The point is not on the paragraph");
 
             _Contents.Add(new ParagraphContent(point, content));
@@ -76,24 +77,26 @@
         /// Determines whether this instance contains the point.
         /// </summary>
         /// <param name="point">The point.</param>
+        /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         ///   <c>true</c> if the paragraph content contains the specified point; otherwise, <c>false</c>.
         /// </returns>
-        public bool Contains(PdfPoint point)
+        public bool Contains(PdfPoint point, float tolerance)
         {
-            return Y - ContentExtractor.Tolerance < point.Y && point.Y < Y + ContentExtractor.Tolerance * 3;
+            return Y - tolerance < point.Y && point.Y < Y + tolerance * 3;
         }
 
         /// <summary>
         /// Determines whether this paragraph contains the y coordinate.
         /// </summary>
         /// <param name="y">The y coordinate.</param>
+        /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         ///   <c>true</c> if the paragraph contains the specified y coordinate; otherwise, <c>false</c>.
         /// </returns>
-        public bool Contains(double y)
+        public bool Contains(double y, float tolerance)
         {
-            return Y - ContentExtractor.Tolerance < y && y < Y + ContentExtractor.Tolerance * 3;
+            return Y - tolerance < y && y < Y + tolerance * 3;
         }
 
         #region IFormattable

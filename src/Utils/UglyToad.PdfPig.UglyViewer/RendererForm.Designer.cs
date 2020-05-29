@@ -1,6 +1,6 @@
 ﻿namespace UglyToad.PdfPig.UglyViewer
 {
-    partial class frmRenderer
+    partial class RendererForm
     {
         /// <summary>
         /// Required designer variable.
@@ -302,7 +302,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(695, 456);
             this.Controls.Add(this.splitContainer);
-            this.Name = "frmRenderer";
+            this.Name = "RendererForm";
             this.Text = "Form1";
             this.splitContainer.Panel1.ResumeLayout(false);
             this.splitContainer.Panel1.PerformLayout();
