@@ -4,7 +4,7 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis.TableExtractor
 {
     using Core;
 
-    static class PdfPigHelper
+    static class PdfPointHelper
     {
         /// <summary>
         /// Returns true if this point is valid.
@@ -23,12 +23,12 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis.TableExtractor
             return true;
         }
 
-        public static bool Equals(this Point point, Point other, float tolerance)
+        public static bool Equals(this PdfPoint point, PdfPoint other, float tolerance)
         {
             return Math.Abs(point.X - other.X) < tolerance && Math.Abs(point.Y - other.Y) < tolerance;
         }
 
-        public static int CompareTo(this Point left, Point right, float tolerance)
+        public static int CompareTo(this PdfPoint left, PdfPoint right, float tolerance)
         {
             if (Math.Abs(left.X - right.X) < tolerance)
             {

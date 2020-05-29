@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
     using Content;
+    using Core;
 
     /// <summary>
     /// A Pdf page
@@ -140,7 +141,7 @@
                 Table tableStructure = new Table()
                 {
                     TopLeftPoint = horizontalLine.StartPoint,
-                    BottomRightPoint = new Point(horizontalLine.EndPoint.X, tableLine.Value.EndPoint.Y)
+                    BottomRightPoint = new PdfPoint(horizontalLine.EndPoint.X, tableLine.Value.EndPoint.Y)
                 };
 
                 Tables.Add(tableStructure);
@@ -315,7 +316,7 @@
 
             foreach (var line in textBlockLines)
             {
-                if (!Paragraphs.Any(t => t.Contains(new Point(line.BoundingBox.Left, line.BoundingBox.Top)) ))
+                if (!Paragraphs.Any(t => t.Contains(new PdfPoint(line.BoundingBox.Left, line.BoundingBox.Top)) ))
                     Paragraphs.Add(new Paragraph(line.BoundingBox.Top));
             }
         }
@@ -336,7 +337,7 @@
             foreach (var line in textBoxLines.Where(_ => _.BoundingBox.TopLeft.IsValid()))
             {
                 IPageContent targetPageContent = Contents.First(_ => _.Contains(line.BoundingBox.Top));
-                targetPageContent.AddText(new Point(line.BoundingBox.Left, line.BoundingBox.Top), line.Text);
+                targetPageContent.AddText(new PdfPoint(line.BoundingBox.Left, line.BoundingBox.Top), line.Text);
             }
         }
 

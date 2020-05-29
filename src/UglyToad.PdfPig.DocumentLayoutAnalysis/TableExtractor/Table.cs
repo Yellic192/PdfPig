@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
+    using Core;
 
     /// <summary>
     /// Table
@@ -28,14 +29,14 @@
         /// <value>
         /// The top left point.
         /// </value>
-        public Point TopLeftPoint { get; set; }
+        public PdfPoint TopLeftPoint { get; set; }
         /// <summary>
         /// Gets or sets the bottom right point.
         /// </summary>
         /// <value>
         /// The bottom right point.
         /// </value>
-        public Point BottomRightPoint { get; set; }
+        public PdfPoint BottomRightPoint { get; set; }
 
         /// <summary>
         /// Gets the rows.
@@ -193,7 +194,7 @@
         /// <returns>
         ///   <c>true</c> if the table contains the specified point; otherwise, <c>false</c>.
         /// </returns>
-        public bool Contains(Point point)
+        public bool Contains(PdfPoint point)
         {
             return
                 TopLeftPoint.Y - ContentExtractor.Tolerance <= point.Y &&
@@ -218,7 +219,7 @@
         /// or
         /// The point is outside the table
         /// </exception>
-        public void AddText(Point point, string content)
+        public void AddText(PdfPoint point, string content)
         {
             if (this.content == null)
                 throw new InvalidOperationException("Content is not initialized. Please call CreateContent first");

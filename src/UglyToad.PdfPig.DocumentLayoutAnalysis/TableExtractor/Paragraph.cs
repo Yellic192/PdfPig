@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
+    using Core;
 
     /// <summary>
     /// A paragraph (text not contained in tables)
@@ -63,7 +64,7 @@
         /// <param name="point">The point.</param>
         /// <param name="content">The content.</param>
         /// <exception cref="InvalidOperationException">The point is not on the paragraph</exception>
-        public void AddText(Point point, string content)
+        public void AddText(PdfPoint point, string content)
         {
             if (!Contains(point))
                 throw new InvalidOperationException("The point is not on the paragraph");
@@ -78,7 +79,7 @@
         /// <returns>
         ///   <c>true</c> if the paragraph content contains the specified point; otherwise, <c>false</c>.
         /// </returns>
-        public bool Contains(Point point)
+        public bool Contains(PdfPoint point)
         {
             return Y - ContentExtractor.Tolerance < point.Y && point.Y < Y + ContentExtractor.Tolerance * 3;
         }
@@ -155,13 +156,13 @@
 
         private class ParagraphContent
         {
-            public ParagraphContent(Point point, string content)
+            public ParagraphContent(PdfPoint point, string content)
             {
                 Point = point;
                 Content = content;
             }
 
-            public Point Point { get; private set; }
+            public PdfPoint Point { get; private set; }
             public string Content { get; private set; }
         }
 

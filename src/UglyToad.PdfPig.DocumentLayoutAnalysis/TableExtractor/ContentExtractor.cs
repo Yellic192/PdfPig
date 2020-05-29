@@ -71,7 +71,7 @@
                 foreach (var subPath in path)
                 {
                     PdfSubpath.Move move = new PdfSubpath.Move(new PdfPoint());
-                    var lastPosition = Point.Origin;
+                    var lastPosition = PdfPoint.Origin;
                     foreach (var command in subPath.Commands)
                     {
                         if (command is PdfSubpath.Move m)
@@ -80,8 +80,8 @@
                         }
                         else if (command is PdfSubpath.Line l)
                         {
-                            var from = new Point(l.From.X, l.From.Y);
-                            var to = new Point(l.To.X, l.To.Y);
+                            var from = new PdfPoint(l.From.X, l.From.Y);
+                            var to = new PdfPoint(l.To.X, l.To.Y);
                             if (!from.Equals(to, Tolerance))
                                 resultPage.AllLines.Add(new Line(from, to));
                             lastPosition = to;
@@ -90,11 +90,11 @@
                         {
                             continue;
                         } 
-                        else if (command is PdfSubpath.Close cl)
+                        else if (command is PdfSubpath.Close)
                         {
                             
                             var from = lastPosition;
-                            var to = new Point(move.Location.X, move.Location.Y);
+                            var to = new PdfPoint(move.Location.X, move.Location.Y);
                             if (!from.Equals(to, Tolerance))
                                 resultPage.AllLines.Add(new Line(from, to));
                             

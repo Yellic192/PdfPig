@@ -1,6 +1,7 @@
 ﻿namespace UglyToad.PdfPig.DocumentLayoutAnalysis.TableExtractor
 {
     using System;
+    using Core;
 
     /// <summary>
     /// A single page content
@@ -12,7 +13,7 @@
         /// </summary>
         /// <param name="point">The point.</param>
         /// <param name="content">The content.</param>
-        void AddText(Point point, string content);
+        void AddText(PdfPoint point, string content);
 
         /// <summary>
         /// Determines whether the item content contains the point.
@@ -21,7 +22,7 @@
         /// <returns>
         ///   <c>true</c> if the item contains the specified point; otherwise, <c>false</c>.
         /// </returns>
-        bool Contains(Point point);
+        bool Contains(PdfPoint point);
 
         /// <summary>
         /// Determines whether this item contains the y coordinate.

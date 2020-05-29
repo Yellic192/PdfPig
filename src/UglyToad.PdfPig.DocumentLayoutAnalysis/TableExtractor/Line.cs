@@ -1,6 +1,7 @@
 ﻿namespace UglyToad.PdfPig.DocumentLayoutAnalysis.TableExtractor
 {
     using System;
+    using Core;
 
     /// <summary>
     /// Class that handles lines. Comparers are based on tolerance
@@ -18,18 +19,18 @@
         {
             if (startX > endX)
             {
-                EndPoint = new Point(startX, startY);
-                StartPoint = new Point(endX, endY);
+                EndPoint = new PdfPoint(startX, startY);
+                StartPoint = new PdfPoint(endX, endY);
             }
             else if (startY > endY)
             {
-                EndPoint = new Point(startX, startY);
-                StartPoint = new Point(endX, endY);
+                EndPoint = new PdfPoint(startX, startY);
+                StartPoint = new PdfPoint(endX, endY);
             }
             else
             {
-                StartPoint = new Point(startX, startY);
-                EndPoint = new Point(endX, endY);
+                StartPoint = new PdfPoint(startX, startY);
+                EndPoint = new PdfPoint(endX, endY);
             }
 
             if (StartPoint.Equals(EndPoint, ContentExtractor.Tolerance))
@@ -41,7 +42,7 @@
         /// </summary>
         /// <param name="startPoint">The start point.</param>
         /// <param name="endPoint">The end point.</param>
-        public Line(Point startPoint, Point endPoint)
+        public Line(PdfPoint startPoint, PdfPoint endPoint)
         {
             if (startPoint.Equals(endPoint, ContentExtractor.Tolerance))
                 throw new InvalidOperationException("The line is a single point");
@@ -61,12 +62,12 @@
         /// <summary>
         /// The start point
         /// </summary>
-        public readonly Point StartPoint;
+        public readonly PdfPoint StartPoint;
 
         /// <summary>
         /// The end point
         /// </summary>
-        public readonly Point EndPoint;
+        public readonly PdfPoint EndPoint;
 
 
         /// <summary>
