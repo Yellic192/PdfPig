@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Content;
 
     /// <summary>
     /// A Pdf page
@@ -97,7 +98,7 @@
         /// <value>
         /// The text blocks.
         /// </value>
-        public IEnumerable<TextBlock> TextBlocks { get; set; }
+        public IEnumerable<Word> Words { get; set; }
 
         /// <summary>
         /// Deletes the wrong lines.
@@ -307,7 +308,7 @@
         {
             Paragraphs = new List<Paragraph>();
 
-            var textBlockLines = TextBlocks.SelectMany(_ => _.TextLines)
+            var textBlockLines = Words
                 .Where(_ => !string.IsNullOrWhiteSpace(_.Text))
                 .Where(_ => !Tables.Any(t => t.Contains(_.BoundingBox.Top)))
                 .OrderBy(_ => _.BoundingBox.Top);
@@ -328,7 +329,7 @@
             Contents = new List<IPageContent>();
             Contents.AddRange(Paragraphs.Cast<IPageContent>().Union(Tables).OrderBy(_ => _.Y));
 
-            var textBoxLines = TextBlocks.SelectMany(_ => _.TextLines)
+            var textBoxLines = Words
                 .Where(_ => !string.IsNullOrWhiteSpace(_.Text))
                 .OrderBy(_ => _.BoundingBox.Top).ThenBy(_ => _.BoundingBox.Left);
 

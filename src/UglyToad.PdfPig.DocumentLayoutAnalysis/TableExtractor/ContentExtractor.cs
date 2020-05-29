@@ -38,6 +38,24 @@
         /// </summary>
         public List<string> Errors = new List<string>();
 
+
+        /// <summary>
+        /// Reads the specified pages.
+        /// </summary>
+        /// <param name="pages">The pages.</param>
+        /// <returns></returns>
+        public List<ResultPage> Read(IEnumerable<Page> pages)
+        {
+            var result = new List<ResultPage>();
+            foreach (Page page in pages)
+            {
+                result.Add(Read(page));
+            }
+
+            return result;
+        }
+
+
         /// <summary>
         /// Reads the specified page.
         /// </summary>
@@ -47,10 +65,13 @@
         {
             var resultPage = new ResultPage();
 
+            resultPage.Words = page.GetWords();
+
             foreach (var path in page.ExperimentalAccess.Paths)
             {
                 foreach (var subPath in path)
                 {
+                    var lastPosition = Point.Origin;
                     PdfSubpath.Move move = new PdfSubpath.Move(new PdfPoint());
                     foreach (var command in subPath.Commands)
                     {
@@ -60,7 +81,10 @@
                         }
                         else if (command is PdfSubpath.Line l)
                         {
-                            resultPage.AllLines.Add(new Line(new Point(l.From.X, l.From.Y), new Point(l.To.X, l.From.Y)));
+                            var from = new Point(l.From.X, l.From.Y);
+                            var to = new Point(l.To.X, l.To.Y);
+                            if (from != to)
+                                resultPage.AllLines.Add(new Line(from, to));
                         } 
                         else if (command is PdfSubpath.BezierCurve)
                         {
@@ -68,7 +92,12 @@
                         } 
                         else if (command is PdfSubpath.Close cl)
                         {
-                            resultPage.AllLines.Add(new Line(resultPage.AllLines.Last().EndPoint, new Point(move.Location.X, move.Location.Y)));
+                            
+                            var from = resultPage.AllLines.Last().EndPoint;
+                            var to = new Point(move.Location.X, move.Location.Y);
+                            if (from != to)
+                                resultPage.AllLines.Add(new Line(from, to));
+                            
                         }
                         else
                         {

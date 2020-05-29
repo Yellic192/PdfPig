@@ -1,0 +1,141 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{DF805107-8789-4B69-8BE0-74AAF113AC79}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>UglyToad.PdfPig.UglyViewer</RootNamespace>
+    <AssemblyName>UglyToad.PdfPig.UglyViewer</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="FileOpen.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="FileOpen.designer.cs">
+      <DependentUpon>FileOpen.cs</DependentUpon>
+    </Compile>
+    <Compile Include="FileSystemBrowserHelper.cs" />
+    <Compile Include="frmNotepad.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmNotepad.Designer.cs">
+      <DependentUpon>frmNotepad.cs</DependentUpon>
+    </Compile>
+    <Compile Include="frmRenderer.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmRenderer.Designer.cs">
+      <DependentUpon>frmRenderer.cs</DependentUpon>
+    </Compile>
+    <Compile Include="HtmlConverter.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="FileOpen.resx">
+      <DependentUpon>FileOpen.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmNotepad.resx">
+      <DependentUpon>frmNotepad.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmRenderer.resx">
+      <DependentUpon>frmRenderer.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\HTML_Header.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\HTML_Footer.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\UglyToad.PdfPig.Core\UglyToad.PdfPig.Core.csproj">
+      <Project>{a7e1dd9f-92b7-4061-9ba5-6e06c06175f9}</Project>
+      <Name>UglyToad.PdfPig.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\UglyToad.PdfPig.DocumentLayoutAnalysis\UglyToad.PdfPig.DocumentLayoutAnalysis.csproj">
+      <Project>{60126bca-6c52-48a9-a0a6-51796c8b0be7}</Project>
+      <Name>UglyToad.PdfPig.DocumentLayoutAnalysis</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\UglyToad.PdfPig.Fonts\UglyToad.PdfPig.Fonts.csproj">
+      <Project>{bbc8f94c-6e94-43ff-ab2e-47ff3c2b999f}</Project>
+      <Name>UglyToad.PdfPig.Fonts</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\UglyToad.PdfPig.Tokenization\UglyToad.PdfPig.Tokenization.csproj">
+      <Project>{fd005c50-cd2c-497e-8f7e-6d791091e9b0}</Project>
+      <Name>UglyToad.PdfPig.Tokenization</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\UglyToad.PdfPig.Tokens\UglyToad.PdfPig.Tokens.csproj">
+      <Project>{d840ff69-4250-4b05-9829-5abec43ec82c}</Project>
+      <Name>UglyToad.PdfPig.Tokens</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\UglyToad.PdfPig\UglyToad.PdfPig.csproj">
+      <Project>{57d0610c-87d3-4e0b-b7c2-ec8b765a8288}</Project>
+      <Name>UglyToad.PdfPig</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
