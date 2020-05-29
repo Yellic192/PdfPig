@@ -2,8 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
-    using Content;
+unu    using Content;
     using Core;
 
     /// <summary>
@@ -71,8 +70,8 @@
             {
                 foreach (var subPath in path)
                 {
-                    var lastPosition = Point.Origin;
                     PdfSubpath.Move move = new PdfSubpath.Move(new PdfPoint());
+                    var lastPosition = Point.Origin;
                     foreach (var command in subPath.Commands)
                     {
                         if (command is PdfSubpath.Move m)
@@ -85,6 +84,7 @@
                             var to = new Point(l.To.X, l.To.Y);
                             if (from != to)
                                 resultPage.AllLines.Add(new Line(from, to));
+                            lastPosition = to;
                         } 
                         else if (command is PdfSubpath.BezierCurve)
                         {
@@ -93,7 +93,7 @@
                         else if (command is PdfSubpath.Close cl)
                         {
                             
-                            var from = resultPage.AllLines.Last().EndPoint;
+                            var from = lastPosition;
                             var to = new Point(move.Location.X, move.Location.Y);
                             if (from != to)
                                 resultPage.AllLines.Add(new Line(from, to));
