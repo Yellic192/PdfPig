@@ -23,5 +23,26 @@ namespace UglyToad.PdfPig.DocumentLayoutAnalysis.TableExtractor
             return true;
         }
 
+        public static bool Equals(this Point point, Point other, float tolerance)
+        {
+            return Math.Abs(point.X - other.X) < tolerance && Math.Abs(point.Y - other.Y) < tolerance;
+        }
+
+        public static int CompareTo(this Point left, Point right, float tolerance)
+        {
+            if (Math.Abs(left.X - right.X) < tolerance)
+            {
+                if (Math.Abs(left.Y - right.Y) < tolerance)
+                    // Equal point
+                    return 0;
+                else
+                    return left.Y.CompareTo(right.Y);
+            }
+            else
+            {
+                return left.X.CompareTo(right.X);
+            }
+        }
+
     }
 }

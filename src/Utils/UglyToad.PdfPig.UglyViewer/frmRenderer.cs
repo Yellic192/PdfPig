@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Drawing;
+    using System.Drawing.Drawing2D;
     using System.IO;
     using System.Linq;
     using System.Text;
@@ -80,9 +81,10 @@
             ResultPage currentPage = _pages[_currentPageIndex];
             Page documentPage = _documentPages[_currentPageIndex];
 
+            float maxY = (float)documentPage.Height;
+
             using (var g = splitContainer.Panel2.CreateGraphics())
             {
-
                 g.Clear(splitContainer.Panel2.BackColor);
 
                 if (chkLines.Checked)
@@ -151,7 +153,7 @@
                     else
                     {
                         foreach (var line in currentPage.Words)
-                            g.DrawString(line.Text, this.Font, Brushes.Black, (float)line.BoundingBox.Left + 4, (float)line.BoundingBox.Top + 4);
+                            g.DrawString(line.Text, this.Font, Brushes.Black, (float)line.BoundingBox.Left + 4, maxY - (float)line.BoundingBox.Top + 4);
                     }
                 }
             }

@@ -82,7 +82,7 @@
                         {
                             var from = new Point(l.From.X, l.From.Y);
                             var to = new Point(l.To.X, l.To.Y);
-                            if (from != to)
+                            if (!from.Equals(to, Tolerance))
                                 resultPage.AllLines.Add(new Line(from, to));
                             lastPosition = to;
                         } 
@@ -95,7 +95,7 @@
                             
                             var from = lastPosition;
                             var to = new Point(move.Location.X, move.Location.Y);
-                            if (from != to)
+                            if (!from.Equals(to, Tolerance))
                                 resultPage.AllLines.Add(new Line(from, to));
                             
                         }

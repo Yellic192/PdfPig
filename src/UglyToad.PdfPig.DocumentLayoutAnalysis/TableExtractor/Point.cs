@@ -13,6 +13,7 @@
         /// </summary>
         public static readonly Point Origin = new Point(0, 0);
 
+        /*
         #region ==
 
         /// <summary>
@@ -79,7 +80,9 @@
         }
 
         #endregion
+        */
 
+        /*
         #region >, >=, <, <=
 
         /// <summary>
@@ -180,6 +183,7 @@
         }
 
         #endregion
+        */
 
         /// <summary>
         /// The x coordinate of the point
@@ -199,19 +203,6 @@
         {
             X = x;
             Y = y;
-        }
-
-        /// <summary>
-        /// Parses the specified raw content.
-        /// </summary>
-        /// <param name="rawContent">Content of the raw.</param>
-        /// <returns></returns>
-        public static Point Parse(string rawContent)
-        {
-            var splittedRawContent = rawContent.Split(new[] {' '}, StringSplitOptions.RemoveEmptyEntries);
-            float x = float.Parse(splittedRawContent[0], NumberFormatInfo.InvariantInfo);
-            float y = float.Parse(splittedRawContent[1], NumberFormatInfo.InvariantInfo);
-            return new Point(x, y);
         }
 
         /// <summary>

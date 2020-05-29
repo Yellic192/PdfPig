@@ -32,7 +32,7 @@
                 EndPoint = new Point(endX, endY);
             }
 
-            if (StartPoint == EndPoint)
+            if (StartPoint.Equals(EndPoint, ContentExtractor.Tolerance))
                 throw new InvalidOperationException("The line is a single point");
         }
 
@@ -43,10 +43,10 @@
         /// <param name="endPoint">The end point.</param>
         public Line(Point startPoint, Point endPoint)
         {
-            if (startPoint == endPoint)
+            if (startPoint.Equals(endPoint, ContentExtractor.Tolerance))
                 throw new InvalidOperationException("The line is a single point");
 
-            if (startPoint > endPoint)
+            if (startPoint.CompareTo(endPoint, ContentExtractor.Tolerance) == 1)
             {
                 EndPoint = startPoint;
                 StartPoint = endPoint;
@@ -104,10 +104,13 @@
         /// Determines whether the specified line is coincident with this line.
         /// </summary>
         /// <param name="line">The line.</param>
-        /// <returns>True if the lines are coincident; otherwise false</returns>
-        public bool IsCoincident(Line line)
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// True if the lines are coincident; otherwise false
+        /// </returns>
+        public bool IsCoincident(Line line, float tolerance)
         {
-            return this == line;
+            return this.Equals(line, tolerance);
         }
 
         /// <summary>
@@ -116,16 +119,19 @@
         /// of the end point of the other line or vice versa. Also overlapped lines can be consecutive
         /// </summary>
         /// <param name="line">The line.</param>
-        /// <returns>True if the line is consecutive to this line</returns>
-        public bool IsConsecutive(Line line)
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// True if the line is consecutive to this line
+        /// </returns>
+        public bool IsConsecutive(Line line, float tolerance)
         {
-            if (this.StartPoint == line.StartPoint)
+            if (this.StartPoint.Equals(line.StartPoint, tolerance))
                 return true;
-            if (this.StartPoint == line.EndPoint)
+            if (this.StartPoint.Equals(line.EndPoint, tolerance))
                 return true;
-            if (this.EndPoint == line.StartPoint)
+            if (this.EndPoint.Equals(line.StartPoint, tolerance))
                 return true;
-            if (this.EndPoint == line.EndPoint)
+            if (this.EndPoint.Equals(line.EndPoint, tolerance))
                 return true;
             return false;
         }
@@ -134,9 +140,12 @@
         /// Determines whether the specified line is partially or totally overlapped with this line.
         /// </summary>
         /// <param name="line">The line.</param>
-        /// <returns>True if this line is partially or totally overlapped with the specified line</returns>
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// True if this line is partially or totally overlapped with the specified line
+        /// </returns>
         /// <exception cref="InvalidOperationException">IsOverlapped works only on horizontal and vertical lines</exception>
-        public bool IsOverlapped(Line line)
+        public bool IsOverlapped(Line line, float tolerance)
         {
             if (
                 !this.IsHorizontal() && !this.IsVertical() ||
@@ -144,18 +153,18 @@
                 this.IsHorizontal() != line.IsHorizontal())
                 return false;
 
-            if (!this.IsAlignedHorizontally(line) && !this.IsAlignedVertically(line))
+            if (!this.IsAlignedHorizontally(line, tolerance) && !this.IsAlignedVertically(line, tolerance))
                 return false;
 
-            if (IsConsecutive(line))
+            if (IsConsecutive(line, tolerance))
                 return true;
-            else if (IsCoincident(line))
+            else if (IsCoincident(line, tolerance))
                 return true;
-            else if (this.StartPoint <= line.StartPoint && line.StartPoint <= this.EndPoint)
+            else if (this.StartPoint.CompareTo(line.StartPoint, tolerance) <= 0 && line.StartPoint.CompareTo(this.EndPoint, tolerance) <= 0)
                 return true;
-            else if (this.StartPoint <= line.EndPoint && line.EndPoint <= this.EndPoint)
+            else if (this.StartPoint.CompareTo(line.EndPoint, tolerance) <= 0 && line.EndPoint.CompareTo(this.EndPoint, tolerance) <= 0)
                 return true;
-            else if (line.StartPoint <= this.StartPoint && this.EndPoint <= line.EndPoint)
+            else if (line.StartPoint.CompareTo(this.StartPoint, tolerance) <= 0 && this.EndPoint.CompareTo(line.EndPoint, tolerance) <= 0)
                 return true;
             else
                 return false;
@@ -168,30 +177,31 @@
         /// a new line if the lines are partially overlapped
         /// </summary>
         /// <param name="line">The line.</param>
-        /// <returns>The joined line</returns>
-        /// <exception cref="InvalidOperationException">
-        /// The lines are not overlapped
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// The joined line
+        /// </returns>
+        /// <exception cref="InvalidOperationException">The lines are not overlapped
         /// or
-        /// The lines are not aligned
-        /// </exception>
-        public Line Join(Line line)
+        /// The lines are not aligned</exception>
+        public Line Join(Line line, float tolerance)
         {
-            if (!this.IsOverlapped(line))
+            if (!this.IsOverlapped(line, tolerance))
                 throw new InvalidOperationException("The lines are not overlapped");
 
-            if (!this.IsAlignedHorizontally(line) && !this.IsAlignedVertically(line))
+            if (!this.IsAlignedHorizontally(line, tolerance) && !this.IsAlignedVertically(line, tolerance))
                 throw new InvalidOperationException("The lines are not aligned");
 
-            if (this.IsCoincident(line))
+            if (this.IsCoincident(line, tolerance))
                 return this;
 
-            if (this.StartPoint <= line.StartPoint && line.EndPoint <= this.EndPoint)
+            if (this.StartPoint.CompareTo(line.StartPoint, tolerance) <= 0 && line.EndPoint.CompareTo(this.EndPoint, tolerance) <= 0)
                 return this;
-            else if (this.StartPoint <= line.StartPoint && line.StartPoint <= this.EndPoint && this.EndPoint <= line.EndPoint && this.StartPoint != line.EndPoint)
+            else if (this.StartPoint.CompareTo(line.StartPoint, tolerance) <= 0 && line.StartPoint.CompareTo(this.EndPoint, tolerance) <= 0 && this.EndPoint.CompareTo(line.EndPoint, tolerance) <= 0 && !this.StartPoint.Equals(line.EndPoint, ContentExtractor.Tolerance))
                 return new Line(this.StartPoint, line.EndPoint);
-            else if (line.StartPoint <= this.StartPoint && this.StartPoint <= line.EndPoint && line.EndPoint <= this.EndPoint && line.StartPoint != this.EndPoint)
+            else if (line.StartPoint.CompareTo(this.StartPoint, tolerance) <= 0 && this.StartPoint.CompareTo(line.EndPoint, tolerance) <= 0 && line.EndPoint.CompareTo(this.EndPoint, tolerance) <= 0 && !line.StartPoint.Equals(this.EndPoint, ContentExtractor.Tolerance))
                 return new Line(line.StartPoint, this.EndPoint);
-            else if (line.StartPoint <= this.StartPoint && this.EndPoint <= line.EndPoint)
+            else if (line.StartPoint.CompareTo(this.StartPoint, tolerance) <= 0 && this.EndPoint.CompareTo(line.EndPoint, tolerance) <= 0)
                 return line;
             return this;
         }
@@ -200,12 +210,15 @@
         /// Determines whether this line and the specified line are aligned vertically.
         /// </summary>
         /// <param name="line">The line.</param>
-        /// <returns>True if the lines are aligned; otherwise false</returns>
-        public bool IsAlignedVertically(Line line)
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// True if the lines are aligned; otherwise false
+        /// </returns>
+        public bool IsAlignedVertically(Line line, float tolerance)
         {
             if (!this.IsVertical() || !line.IsVertical())
                 return false;
-            else if (Math.Abs(this.StartPoint.X - line.StartPoint.X) < ContentExtractor.Tolerance)
+            else if (Math.Abs(this.StartPoint.X - line.StartPoint.X) < tolerance)
                 return true;
             else
                 return false;
@@ -215,12 +228,15 @@
         /// Determines whether this line and the specified line are aligned horizontally.
         /// </summary>
         /// <param name="line">The line.</param>
-        /// <returns>True if the lines are aligned; otherwise false</returns>
-        public bool IsAlignedHorizontally(Line line)
+        /// <param name="tolerance">The tolerance.</param>
+        /// <returns>
+        /// True if the lines are aligned; otherwise false
+        /// </returns>
+        public bool IsAlignedHorizontally(Line line, float tolerance)
         {
             if (!this.IsHorizontal() || !line.IsHorizontal())
                 return false;
-            else if (Math.Abs(this.StartPoint.Y - line.StartPoint.Y) < ContentExtractor.Tolerance)
+            else if (Math.Abs(this.StartPoint.Y - line.StartPoint.Y) < tolerance)
                 return true;
             else
                 return false;
@@ -232,70 +248,17 @@
         /// Determines whether the specified line, is equal to this line.
         /// </summary>
         /// <param name="other">The Line to compare with this instance.</param>
+        /// <param name="tolerance">The tolerance.</param>
         /// <returns>
         ///   <c>true</c> if the specified Line is equal to this instance; otherwise, <c>false</c>.
         /// </returns>
-        public bool Equals(Line other)
+        public bool Equals(Line other, float tolerance)
         {
             return 
-                StartPoint == other.StartPoint && EndPoint == other.EndPoint ||
-                StartPoint == other.EndPoint && EndPoint == other.StartPoint;
+                StartPoint.Equals(other.StartPoint, tolerance) && EndPoint.Equals(other.EndPoint, tolerance) ||
+                StartPoint.Equals(other.EndPoint, tolerance) && EndPoint.Equals(other.StartPoint, tolerance);
 
         }
-
-        /// <summary>
-        /// Determines whether the specified <see cref="System.Object" />, is equal to this instance.
-        /// </summary>
-        /// <param name="obj">The <see cref="System.Object" /> to compare with this instance.</param>
-        /// <returns>
-        ///   <c>true</c> if the specified <see cref="System.Object" /> is equal to this instance; otherwise, <c>false</c>.
-        /// </returns>
-        public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj)) return false;
-            return obj is Line && Equals((Line)obj);
-        }
-
-        /// <summary>
-        /// Returns a hash code for this instance.
-        /// </summary>
-        /// <returns>
-        /// A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table. 
-        /// </returns>
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                return (StartPoint.GetHashCode() * 397) ^ EndPoint.GetHashCode();
-            }
-        }
-
-        /// <summary>
-        /// Implements the operator ==.
-        /// </summary>
-        /// <param name="left">The left.</param>
-        /// <param name="right">The right.</param>
-        /// <returns>
-        /// The result of the operator.
-        /// </returns>
-        public static bool operator ==(Line left, Line right)
-        {
-            return left.Equals(right);
-        }
-
-        /// <summary>
-        /// Implements the operator !=.
-        /// </summary>
-        /// <param name="left">The left.</param>
-        /// <param name="right">The right.</param>
-        /// <returns>
-        /// The result of the operator.
-        /// </returns>
-        public static bool operator !=(Line left, Line right)
-        {
-            return !left.Equals(right);
-        }
-
         #endregion
 
 

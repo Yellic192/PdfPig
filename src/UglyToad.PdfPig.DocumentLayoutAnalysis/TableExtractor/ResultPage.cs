@@ -129,7 +129,7 @@
                     continue;
 
                 Line? tableLine = JoinedVerticalLines
-                    .Where(_ => _.StartPoint == horizontalLine.StartPoint || _.StartPoint == horizontalLine.EndPoint)
+                    .Where(_ => _.StartPoint.Equals(horizontalLine.StartPoint, ContentExtractor.Tolerance) || _.StartPoint.Equals(horizontalLine.EndPoint, ContentExtractor.Tolerance))
                     .OrderByDescending(_ => _.EndPoint.Y - _.StartPoint.Y)
                     .Cast<Line?>()
                     .FirstOrDefault();
@@ -260,11 +260,11 @@
             {
                 if (lines.Count == 0)
                     lines.Add(verticalLine);
-                else if (verticalLine.IsCoincident(lines[lines.Count - 1]))
+                else if (verticalLine.IsCoincident(lines[lines.Count - 1], ContentExtractor.Tolerance))
                     continue;
-                else if (verticalLine.IsOverlapped(lines[lines.Count - 1]))
+                else if (verticalLine.IsOverlapped(lines[lines.Count - 1], ContentExtractor.Tolerance))
                 {
-                    var joinedLine = lines[lines.Count - 1].Join(verticalLine);
+                    var joinedLine = lines[lines.Count - 1].Join(verticalLine, ContentExtractor.Tolerance);
                     lines.RemoveAt(lines.Count - 1);
                     lines.Add(joinedLine);
                 }
@@ -285,11 +285,11 @@
             {
                 if (lines.Count == 0)
                     lines.Add(horizontalLine);
-                else if (horizontalLine.IsCoincident(lines[lines.Count - 1]))
+                else if (horizontalLine.IsCoincident(lines[lines.Count - 1], ContentExtractor.Tolerance))
                     continue;
-                else if (horizontalLine.IsOverlapped(lines[lines.Count - 1]))
+                else if (horizontalLine.IsOverlapped(lines[lines.Count - 1], ContentExtractor.Tolerance))
                 {
-                    var joinedLine = horizontalLine.Join(lines[lines.Count - 1]);
+                    var joinedLine = horizontalLine.Join(lines[lines.Count - 1], ContentExtractor.Tolerance);
                     lines.RemoveAt(lines.Count - 1);
                     lines.Add(joinedLine);
                 }
