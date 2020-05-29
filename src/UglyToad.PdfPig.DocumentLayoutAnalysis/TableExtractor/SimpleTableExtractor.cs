@@ -3,14 +3,14 @@
     using System;
     using System.Collections.Generic;
     using Content;
-    using Core;
+    using UglyToad.PdfPig.Core;
     using System.Linq;
     using Graphics;
 
     /// <summary>
     /// The content extractor
     /// </summary>
-    public class ContentExtractor
+    public class SimpleTableExtractor : ITableExtractor
     {
         /// <summary>
         /// The ignore white lines
@@ -24,7 +24,18 @@
         /// Often the right parameter is determined by the line boldness. Bold lines, 
         /// in pdf files, are box filled
         /// </summary>
-        public float Tolerance { get; set; }= 2f;
+        public float Tolerance { get; set; } = 2f;
+
+        /// <summary>
+        /// .
+        /// </summary>
+        /// <param name="paths"></param>
+        /// <returns></returns>
+        public IReadOnlyList<TableBlock> Get(IReadOnlyList<PdfPath> paths)
+        {
+            Read(paths, null);
+            return Tables;
+        }
 
         /// <summary>
         /// Reads the specified page.
@@ -35,15 +46,15 @@
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         public IEnumerable<IPageContent> Read(IEnumerable<PdfPath> paths, IEnumerable<Word> words)
         {
-
             Words = words;
 
             foreach (var path in paths)
             {
+                // check for stroke / fill / colors here
+
                 foreach (var subPath in path)
                 {
                     PdfSubpath.Move move = new PdfSubpath.Move(new PdfPoint());
-                    var lastPosition = PdfPoint.Origin;
                     foreach (var command in subPath.Commands)
                     {
                         if (command is PdfSubpath.Move m)
@@ -52,35 +63,30 @@
                         }
                         else if (command is PdfSubpath.Line l)
                         {
-                            var from = new PdfPoint(l.From.X, l.From.Y);
-                            var to = new PdfPoint(l.To.X, l.To.Y);
-                            switch (from.CompareTo(to, Tolerance))
+                            switch (l.From.CompareTo(l.To, Tolerance))
                             {
                                 case -1:
-                                    AllLines.Add(new PdfSubpath.Line(from, to));
+                                    AllLines.Add(l);
                                     break;
                                 case 1:
-                                    AllLines.Add(new PdfSubpath.Line(to, from));
+                                    AllLines.Add(new PdfSubpath.Line(l.To, l.From));
                                     break;
                             }
-                            lastPosition = to;
-                        } 
+                        }
                         else if (command is PdfSubpath.BezierCurve)
                         {
                             continue;
-                        } 
+                        }
                         else if (command is PdfSubpath.Close)
                         {
-                            
-                            var from = lastPosition;
-                            var to = new PdfPoint(move.Location.X, move.Location.Y);
-                            switch (from.CompareTo(to, Tolerance))
+                            var from = AllLines.Last().To;
+                            switch (from.CompareTo(move.Location, Tolerance))
                             {
                                 case -1:
-                                    AllLines.Add(new PdfSubpath.Line(from, to));
+                                    AllLines.Add(new PdfSubpath.Line(from, move.Location));
                                     break;
                                 case 1:
-                                    AllLines.Add(new PdfSubpath.Line(to, from));
+                                    AllLines.Add(new PdfSubpath.Line(move.Location, from));
                                     break;
                             }
                         }
@@ -90,21 +96,17 @@
                         }
                     }
                 }
-
             }
 
             DeleteWrongLines();
 
             DetermineTableStructures();
-            DetermineParagraphs();
+            //DetermineParagraphs();
 
             FillContent();
 
-
             return Contents;
         }
-
-
 
         /// <summary>
         /// Gets all lines.
@@ -152,7 +154,7 @@
         /// <value>
         /// The table structures.
         /// </value>
-        public List<Table> Tables { get; } = new List<Table>();
+        public List<TableBlock> Tables { get; } = new List<TableBlock>();
 
         /// <summary>
         /// Gets or sets the paragraphs.
@@ -160,7 +162,7 @@
         /// <value>
         /// The paragraphs.
         /// </value>
-        public List<Paragraph> Paragraphs { get; set; }
+        public List<TextBlock> Paragraphs { get; set; }
 
         /// <summary>
         /// Gets or sets the contents.
@@ -220,29 +222,30 @@
                     .OrderByDescending(_ => _.To.Y - _.From.Y)
                     .FirstOrDefault();
 
-                if (tableLine == null)
-                    continue;
+                if (tableLine == null) continue;
 
-                Table tableStructure = new Table()
+                TableBlock tableStructure = new TableBlock()
                 {
-                    TopLeftPoint = horizontalLine.From,
-                    BottomRightPoint = new PdfPoint(horizontalLine.To.X, tableLine.To.Y)
+                    BoundingBox = new PdfRectangle(horizontalLine.From.X,
+                                                   tableLine.To.Y,
+                                                   horizontalLine.To.X,
+                                                   horizontalLine.From.Y)
                 };
 
                 Tables.Add(tableStructure);
             }
 
             // Add the first row and the first column to all tables
-            foreach (Table tableStructure in Tables)
+            foreach (TableBlock tableStructure in Tables)
             {
-                tableStructure.Rows.Add(new Row() { BeginY = tableStructure.TopLeftPoint.Y });
-                tableStructure.Columns.Add(new Column() { BeginX = tableStructure.TopLeftPoint.X });
+                tableStructure.Rows.Add(new TableBlock.Row() { BeginY = tableStructure.TopLeftPoint.Y });
+                tableStructure.Columns.Add(new TableBlock.Column() { BeginX = tableStructure.TopLeftPoint.X });
             }
 
             // Find rows
             foreach (PdfSubpath.Line horizontalLine in JoinedHorizontalLines.OrderBy(_ => _.From.Y))
             {
-                var tableStructure = Tables.FirstOrDefault(_ => _.Contains(horizontalLine, Tolerance));
+                var tableStructure = Tables.Find(_ => _.Contains(horizontalLine, Tolerance));
                 // No table contains this line
                 if (tableStructure == null)
                     continue;
@@ -255,13 +258,13 @@
                 if (tableStructure.BottomRightPoint.Y - horizontalLine.From.Y < Tolerance)
                     continue;
 
-                tableStructure.Rows.Add(new Row() { BeginY = horizontalLine.From.Y });
+                tableStructure.Rows.Add(new TableBlock.Row() { BeginY = horizontalLine.From.Y });
             }
 
             // Find columns
             foreach (PdfSubpath.Line verticalLine in JoinedVerticalLines.OrderBy(_ => _.From.X))
             {
-                var tableStructure = Tables.FirstOrDefault(_ => _.Contains(verticalLine, Tolerance));
+                var tableStructure = Tables.Find(_ => _.Contains(verticalLine, Tolerance));
                 // No table contains this line
                 if (tableStructure == null)
                     continue;
@@ -274,13 +277,11 @@
                 if (tableStructure.BottomRightPoint.X - verticalLine.From.X < Tolerance)
                     continue;
 
-
-                tableStructure.Columns.Add(new Column() { BeginX = verticalLine.From.X });
+                tableStructure.Columns.Add(new TableBlock.Column() { BeginX = verticalLine.From.X });
             }
 
-
             // Fix EndX and EndY and indexes
-            foreach (Table tableStructure in Tables)
+            foreach (TableBlock tableStructure in Tables)
             {
                 // Fix EndYs
                 for (int i = 0; i < tableStructure.Rows.Count - 1; i++)
@@ -288,16 +289,13 @@
 
                 tableStructure.Rows[tableStructure.Rows.Count - 1].EndY = tableStructure.BottomRightPoint.Y;
 
-
                 // Fix EndXs
                 for (int i = 0; i < tableStructure.Columns.Count - 1; i++)
                     tableStructure.Columns[i].EndX = tableStructure.Columns[i + 1].BeginX - Tolerance * 0.1f;
 
                 tableStructure.Columns[tableStructure.Columns.Count - 1].EndX = tableStructure.BottomRightPoint.X;
 
-                int index;
-
-                index = 0;
+                int index = 0;
                 foreach (var column in tableStructure.Columns.OrderBy(_ => _.BeginX))
                 {
                     column.Index = index;
@@ -312,11 +310,8 @@
                 }
 
                 tableStructure.CreateContent();
-
             }
-
         }
-
 
         /// <summary>
         /// Joins the horizontal and vertical lines.
@@ -389,13 +384,13 @@
             return lines;
         }
 
-
+        /*
         /// <summary>
         /// Determines the paragraphs.
         /// </summary>
         public void DetermineParagraphs()
         {
-            Paragraphs = new List<Paragraph>();
+            Paragraphs = new List<TextBlock>();
 
             var textBlockLines = Words
                 .Where(_ => !string.IsNullOrWhiteSpace(_.Text))
@@ -408,13 +403,14 @@
                     Paragraphs.Add(new Paragraph(line.BoundingBox.Top));
             }
         }
-
+        */
 
         /// <summary>
         /// Fills the content.
         /// </summary>
         public void FillContent()
         {
+            /*
             Contents = new List<IPageContent>();
             Contents.AddRange(Paragraphs.Cast<IPageContent>().Union(Tables).OrderBy(_ => _.Y));
 
@@ -427,13 +423,14 @@
                 IPageContent targetPageContent = Contents.First(_ => _.Contains(line.BoundingBox.Top, Tolerance));
                 targetPageContent.AddText(new PdfPoint(line.BoundingBox.Left, line.BoundingBox.Top), Tolerance, line.Text);
             }
+            */
         }
 
         /// <summary>
         /// Converts to string.
         /// </summary>
         /// <returns>
-        /// A <see cref="System.String" /> that represents this instance.
+        /// A <see cref="string" /> that represents this instance.
         /// </returns>
         public override string ToString()
         {
@@ -445,8 +442,5 @@
             }
             return pageContent;
         }
-
-
-
     }
 }

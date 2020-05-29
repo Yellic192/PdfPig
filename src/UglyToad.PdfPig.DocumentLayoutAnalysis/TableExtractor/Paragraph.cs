@@ -1,4 +1,4 @@
-﻿namespace UglyToad.PdfPig.DocumentLayoutAnalysis.TableExtractor
+﻿/*namespace UglyToad.PdfPig.DocumentLayoutAnalysis.TableExtractor
 {
     using System;
     using System.Collections.Generic;
@@ -172,3 +172,4 @@
     }
 
 }
+*/

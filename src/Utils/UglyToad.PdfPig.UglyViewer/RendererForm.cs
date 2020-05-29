@@ -17,7 +17,7 @@
     /// <seealso cref="System.Windows.Forms.Form" />
     public partial class RendererForm : Form
     {
-        private List<ContentExtractor> contentExtractorResults;
+        private List<SimpleTableExtractor> contentExtractorResults;
         private readonly List<Page> documentPages = new List<Page>();
 
         private int currentPageIndex = -1;
@@ -43,10 +43,10 @@
             using (var document = PdfDocument.Open(fileName))
             {
                 var dp = document.GetPages();
-                contentExtractorResults = new List<ContentExtractor>();
+                contentExtractorResults = new List<SimpleTableExtractor>();
                 foreach (Page page in dp)
                 {
-                    ContentExtractor contentExtractor = new ContentExtractor();
+                    SimpleTableExtractor contentExtractor = new SimpleTableExtractor();
                     contentExtractor.Read(page.ExperimentalAccess.Paths, page.GetWords());
                     contentExtractorResults.Add(contentExtractor);
                     this.documentPages.Add(page);
@@ -67,7 +67,7 @@
             if (!contentExtractorResults[pageIndex].IsRefreshed)
             {
                 contentExtractorResults[pageIndex].DetermineTableStructures();
-                contentExtractorResults[pageIndex].DetermineParagraphs();
+                //contentExtractorResults[pageIndex].DetermineParagraphs();
 
                 contentExtractorResults[pageIndex].FillContent();
             }
@@ -106,17 +106,17 @@
 
                 if (chkTables.Checked)
                 {
-                    foreach (Table tableStructure in currentPage.Tables)
+                    foreach (TableBlock tableStructure in currentPage.Tables)
                     {
                         g.DrawRectangle(Pens.OrangeRed, (float)tableStructure.TopLeftPoint.X + 4, (float)tableStructure.TopLeftPoint.Y + 4, (float)tableStructure.Width, (float) tableStructure.Heigth);
 
                         if (chkLines.Checked)
                         {
                             // To avoid too many lines
-                            foreach (Row row in tableStructure.Rows)
+                            foreach (TableBlock.Row row in tableStructure.Rows)
                                 g.FillRectangle(Brushes.OrangeRed, (float)tableStructure.TopLeftPoint.X + 5, (float) row.EndY + 5, 4, 4);
 
-                            foreach (Column column in tableStructure.Columns)
+                            foreach (TableBlock.Column column in tableStructure.Columns)
                                 g.FillRectangle(Brushes.OrangeRed, (float)column.BeginX + 5, (float) tableStructure.BottomRightPoint.Y + 5, 4, 4);
 
                         }
@@ -124,13 +124,13 @@
                         {
                             for (int i = 0; i < tableStructure.Rows.Count - 1; i++)
                             {
-                                Row row = tableStructure.Rows[i];
+                                TableBlock.Row row = tableStructure.Rows[i];
                                 g.DrawLine(Pens.OrangeRed, (float)tableStructure.TopLeftPoint.X + 5, (float)row.EndY + 5, (float)tableStructure.BottomRightPoint.X + 5, (float)row.EndY + 5);
                             }
 
                             for (int i = 1; i < tableStructure.Columns.Count; i++)
                             {
-                                Column column = tableStructure.Columns[i];
+                                TableBlock.Column column = tableStructure.Columns[i];
                                 g.DrawLine(Pens.OrangeRed, (float)column.BeginX + 5, (float)tableStructure.BottomRightPoint.Y + 5, (float)column.BeginX + 5, (float)tableStructure.TopLeftPoint.Y + 5);
                             }
                         }
@@ -139,8 +139,10 @@
 
                 if (chkParagraphs.Checked)
                 {
+                    /*
                     foreach (Paragraph paragraph in currentPage.Paragraphs)
                         g.FillRectangle(Brushes.OrangeRed, 0, (float)paragraph.Y + 5, 10, 4);
+                    */
                 }
 
                 if (chkText.Checked)

@@ -15,13 +15,16 @@
                     content += "<hr/>";
                 foreach (IPageContent pageContent in page)
                 {
+                    /*
                     if (pageContent is Paragraph)
                     {
                         content += string.Format("<p>{0}</p>", ((Paragraph)pageContent).Content);
                     }
-                    else if (pageContent is Table)
+                    else 
+                    */
+                    if (pageContent is TableBlock)
                     {
-                        Table table = (Table)pageContent;
+                        TableBlock table = (TableBlock)pageContent;
                         content += "<table>";
                         for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++)
                         {

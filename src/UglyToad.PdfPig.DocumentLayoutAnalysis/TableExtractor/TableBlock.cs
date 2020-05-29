@@ -9,15 +9,15 @@
     /// <summary>
     /// Table
     /// </summary>
-    /// <seealso cref="UglyToad.PdfPig.DocumentLayoutAnalysis.TableExtractor.IPageContent" />
-    /// <seealso cref="System.IFormattable" />
+    /// <seealso cref="IPageContent" />
+    /// <seealso cref="IFormattable" />
     [DebuggerDisplay("{DebuggerDisplay}")]
-    public class Table : IPageContent, IFormattable
+    public class TableBlock : IPageContent, IFormattable
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Table"/> class.
+        /// Initializes a new instance of the <see cref="TableBlock"/> class.
         /// </summary>
-        public Table()
+        public TableBlock()
         {
             Rows = new List<Row>();
             Columns = new List<Column>();
@@ -29,14 +29,20 @@
         /// <value>
         /// The top left point.
         /// </value>
-        public PdfPoint TopLeftPoint { get; set; }
+        public PdfPoint TopLeftPoint => BoundingBox.TopLeft;
+
         /// <summary>
         /// Gets or sets the bottom right point.
         /// </summary>
         /// <value>
         /// The bottom right point.
         /// </value>
-        public PdfPoint BottomRightPoint { get; set; }
+        public PdfPoint BottomRightPoint => BoundingBox.BottomRight;
+
+        /// <summary>
+        /// the bbox.
+        /// </summary>
+        public PdfRectangle BoundingBox { get; set; }
 
         /// <summary>
         /// Gets the rows.
@@ -44,14 +50,15 @@
         /// <value>
         /// The rows.
         /// </value>
-        public List<Row> Rows { get; private set; }
+        public List<Row> Rows { get; }
+
         /// <summary>
         /// Gets the columns.
         /// </summary>
         /// <value>
         /// The columns.
         /// </value>
-        public List<Column> Columns { get; private set; }
+        public List<Column> Columns { get; }
 
         /// <summary>
         /// Gets the width.
@@ -59,42 +66,43 @@
         /// <value>
         /// The width.
         /// </value>
-        public double Width { get { return BottomRightPoint.X - TopLeftPoint.X; } }
+        public double Width => BoundingBox.Width;
+
         /// <summary>
         /// Gets the heigth.
         /// </summary>
         /// <value>
         /// The heigth.
         /// </value>
-        public double Heigth { get { return BottomRightPoint.Y - TopLeftPoint.Y; } }
+        public double Heigth => BoundingBox.Height;
 
-        private string[,] content;
+        private Cell[,] content;
 
         /// <summary>
-        /// Gets or sets the <see cref="System.String"/> with the specified row.
+        /// Gets or sets the <see cref="string"/> with the specified row.
         /// </summary>
         /// <value>
-        /// The <see cref="System.String"/>.
+        /// The <see cref="string"/>.
         /// </value>
         /// <param name="row">The row.</param>
         /// <param name="column">The column.</param>
         /// <returns></returns>
-        public string this[int row, int column]
+        public Cell this[int row, int column]
         {
             get { return content[row, column]; }
             set { content[row, column] = value; }
         }
 
         /// <summary>
-        /// Gets or sets the <see cref="System.String"/> with the specified row.
+        /// Gets or sets the <see cref="string"/> with the specified row.
         /// </summary>
         /// <value>
-        /// The <see cref="System.String"/>.
+        /// The <see cref="string"/>.
         /// </value>
         /// <param name="row">The row.</param>
         /// <param name="columnName">Name of the column.</param>
         /// <returns></returns>
-        public string this[int row, string columnName]
+        public Cell this[int row, string columnName]
         {
             get
             {
@@ -118,7 +126,7 @@
 
             for (int i = 1; i < content.GetLength(1) - 1; i++)
             {
-                if (String.Equals(content[0, i].Trim(), columnName, StringComparison.CurrentCultureIgnoreCase))
+                if (string.Equals(content[0, i].Text, columnName, StringComparison.CurrentCultureIgnoreCase))
                     return true;
             }
             return false;
@@ -130,7 +138,7 @@
         /// <param name="row">The row.</param>
         /// <param name="columnName">Name of the column.</param>
         /// <returns></returns>
-        public string GetValueOrNull(int row, string columnName)
+        public Cell GetValueOrNull(int row, string columnName)
         {
             if (!ColumnExists(columnName))
                 return null;
@@ -147,14 +155,12 @@
 
             for (int i = 1; i < content.GetLength(1) - 1; i++)
             {
-                if (String.Equals(content[0, i].Trim(), columnName, StringComparison.CurrentCultureIgnoreCase))
+                if (string.Equals(content[0, i].Text, columnName, StringComparison.CurrentCultureIgnoreCase))
                     return i;
             }
 
-            throw new ArgumentException(string.Format("Column '{0}' not found", columnName), "columnName");
-
+            throw new ArgumentException(string.Format("Column '{0}' not found", columnName), nameof(columnName));
         }
-
 
         /// <summary>
         /// Determines whether this table contains the line.
@@ -209,7 +215,7 @@
 
         internal void CreateContent()
         {
-            content = new string[Rows.Count, Columns.Count + 2];
+            content = new Cell[Rows.Count, Columns.Count + 2];
         }
 
         /// <summary>
@@ -234,12 +240,12 @@
             int columnIndex = FindColumnIndex(point.X);
             int rowIndex = Rows.Count - row.Index - 1;
 
-            if (string.IsNullOrEmpty(this.content[rowIndex, columnIndex]))
-                this.content[rowIndex, columnIndex] = content;
-            else if (this.content[rowIndex, columnIndex].EndsWith(" "))
-                this.content[rowIndex, columnIndex] += content;
+            if (string.IsNullOrEmpty(this.content[rowIndex, columnIndex].Text))
+                this.content[rowIndex, columnIndex].Text = content;
+            else if (this.content[rowIndex, columnIndex].Text.EndsWith(" "))
+                this.content[rowIndex, columnIndex].Text += content;
             else
-                this.content[rowIndex, columnIndex] += " " + content;
+                this.content[rowIndex, columnIndex].Text += " " + content;
         }
 
         /// <summary>
@@ -257,10 +263,7 @@
             if (BottomRightPoint.X < x)
                 return Columns.Count + 1;
 
-            Column column = Columns.SingleOrDefault(_ => _.BeginX <= x && x <= _.EndX);
-
-            if (column == null)
-                column = Columns.OrderBy(_ => _.Index).Last(_ => x <= _.EndX);
+            Column column = Columns.SingleOrDefault(_ => _.BeginX <= x && x <= _.EndX) ?? Columns.OrderBy(_ => _.Index).Last(_ => x <= _.EndX);
 
             return column.Index + 1;
         }
@@ -276,23 +279,19 @@
         /// </returns>
         private Row FindRow(double y, float tolerance)
         {
-            Row row = Rows.FirstOrDefault(_ => _.BeginY <= y && y <= _.EndY);
-            if (row == null)
-                row = Rows.FirstOrDefault(_ => _.BeginY - tolerance <= y && y <= _.EndY + tolerance);
-            return row;
+            return Rows.Find(_ => _.BeginY <= y && y <= _.EndY) ?? Rows.Find(_ => _.BeginY - tolerance <= y && y <= _.EndY + tolerance);
         }
 
         double IPageContent.Y { get { return TopLeftPoint.Y; } }
 
         #region IFormattable
-
         private string DebuggerDisplay { get { return ToString("d"); } }
 
         /// <summary>
         /// Converts to string.
         /// </summary>
         /// <returns>
-        /// A <see cref="System.String" /> that represents this instance.
+        /// A <see cref="string" /> that represents this instance.
         /// </returns>
         public override string ToString()
         {
@@ -304,7 +303,7 @@
         /// </summary>
         /// <param name="format">The format.</param>
         /// <returns>
-        /// A <see cref="System.String" /> that represents this instance.
+        /// A <see cref="string" /> that represents this instance.
         /// </returns>
         /// <exception cref="FormatException"></exception>
         public string ToString(string format)
@@ -342,15 +341,103 @@
         /// <param name="format">The format.</param>
         /// <param name="formatProvider">The format provider.</param>
         /// <returns>
-        /// A <see cref="System.String" /> that represents this instance.
+        /// A <see cref="string" /> that represents this instance.
         /// </returns>
         public string ToString(string format, IFormatProvider formatProvider)
         {
             return ToString(format);
         }
-
-
         #endregion
 
+        /// <summary>
+        /// Table cell
+        /// </summary>
+        public class Cell
+        {
+            /// <summary>
+            /// .
+            /// </summary>
+            public string Text { get; set; }
+        }
+
+        /// <summary>
+        /// Table row
+        /// </summary>
+        public class Row
+        {
+            /// <summary>
+            /// Gets or sets the topmost y coordinate of this row.
+            /// </summary>
+            /// <value>
+            /// The topmost y of this row.
+            /// </value>
+            public double BeginY { get; set; }
+            /// <summary>
+            /// Gets or sets the bottommost y coordinate of this row.
+            /// </summary>
+            /// <value>
+            /// The bottommost y coordinate of this row.
+            /// </value>
+            public double EndY { get; set; }
+            /// <summary>
+            /// Gets or sets the index of the row
+            /// </summary>
+            /// <value>
+            /// The index.
+            /// </value>
+            public int Index { get; set; }
+
+            /// <summary>
+            /// Converts to string.
+            /// </summary>
+            /// <returns>
+            /// A <see cref="string" /> that represents this instance.
+            /// </returns>
+            public override string ToString()
+            {
+                return string.Format("Index: {0}, {1}-{2}", Index, BeginY, EndY);
+            }
+        }
+
+        /// <summary>
+        /// Table column
+        /// </summary>
+        public class Column
+        {
+            /// <summary>
+            /// Gets or sets the leftmost X coordinate of the column.
+            /// </summary>
+            /// <value>
+            /// The begin x.
+            /// </value>
+            public double BeginX { get; set; }
+
+            /// <summary>
+            /// Gets or sets the rightmost X coordinate of the column.
+            /// </summary>
+            /// <value>
+            /// The end x.
+            /// </value>
+            public double EndX { get; set; }
+
+            /// <summary>
+            /// Gets or sets the index.
+            /// </summary>
+            /// <value>
+            /// The index.
+            /// </value>
+            public int Index { get; set; }
+
+            /// <summary>
+            /// Converts to string.
+            /// </summary>
+            /// <returns>
+            /// A <see cref="string" /> that represents this instance.
+            /// </returns>
+            public override string ToString()
+            {
+                return string.Format("Index: {0}, {1}-{2}", Index, BeginX, EndX);
+            }
+        }
     }
 }
