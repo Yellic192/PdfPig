@@ -6,12 +6,12 @@
     using UglyToad.PdfPig.Core;
 
     /// <summary>
-    /// 
+    /// TableBlock
     /// </summary>
     public class TableBlock : BaseBlock
     {
         /// <summary>
-        /// 
+        /// Cells
         /// </summary>
         public IReadOnlyList<TableCell> Cells { get; }
 
@@ -50,7 +50,7 @@
         }
 
         /// <summary>
-        /// 
+        /// TableBlock
         /// </summary>
         /// <param name="cells"></param>
         public TableBlock(IEnumerable<TableCell> cells)
@@ -64,37 +64,37 @@
     }
 
     /// <summary>
-    /// 
+    /// Table Cell
     /// </summary>
     public class TableCell : BaseBlock
     {
         /// <summary>
-        /// 
+        /// Index
         /// </summary>
         public int Index { get; }
 
         /// <summary>
-        /// 
+        /// TableCellType
         /// </summary>
         public TableCellType Type { get; }
 
         /// <summary>
-        /// 
+        /// IsMerged
         /// </summary>
         public bool IsMerged => RowSpan.Length > 0 || ColumnSpan.Length > 0;
 
         /// <summary>
-        /// 
+        /// RowSpan
         /// </summary>
         public CellSpan RowSpan { get; }
 
         /// <summary>
-        /// 
+        /// ColumnSpan
         /// </summary>
         public CellSpan ColumnSpan { get; }
 
         /// <summary>
-        /// 
+        /// UpdateRowSpan
         /// </summary>
         /// <param name="row"></param>
         public void UpdateRowSpan(int row)
@@ -119,16 +119,16 @@
         }
 
         /// <summary>
-        /// 
+        /// SetContent
         /// </summary>
         /// <param name="content"></param>
         public void SetContent(TextBlock content)
         {
-            Children = new[] { content };
+            Children = new List<TextBlock>() { content };
         }
 
         /// <summary>
-        /// 
+        /// UpdateColumnSpan
         /// </summary>
         /// <param name="column"></param>
         public void UpdateColumnSpan(int column)
@@ -153,7 +153,7 @@
         }
 
         /// <summary>
-        /// 
+        /// Table Cell
         /// </summary>
         /// <param name="boundingBox"></param>
         /// <param name="content"></param>
@@ -170,7 +170,7 @@
         }
 
         /// <summary>
-        /// 
+        /// Table Cell
         /// </summary>
         /// <param name="boundingBox"></param>
         /// <param name="content"></param>
@@ -181,22 +181,19 @@
 
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <returns></returns>
+        /// <inheritdoc />
         public override string ToString()
         {
             return Index + ", r=" + RowSpan.ToString() + ", c=" + ColumnSpan.ToString();
         }
 
         /// <summary>
-        /// 
+        /// Table Cell Types
         /// </summary>
         public enum TableCellType
         {
             /// <summary>
-            /// 
+            /// Unknown Table Cell Type
             /// </summary>
             Unknown,
 
@@ -229,12 +226,12 @@
         }
 
         /// <summary>
-        /// 
+        /// Cell Span
         /// </summary>
         public class CellSpan
         {
             /// <summary>
-            /// 
+            /// Cell Span
             /// </summary>
             /// <param name="start"></param>
             /// <param name="end"></param>
@@ -250,7 +247,7 @@
             }
 
             /// <summary>
-            /// 
+            /// Cell Span
             /// </summary>
             public CellSpan()
             {
@@ -259,22 +256,22 @@
             }
 
             /// <summary>
-            /// 
+            ///Start
             /// </summary>
             public int Start { get; internal set; }
 
             /// <summary>
-            /// 
+            /// End
             /// </summary>
             public int End { get; internal set; }
 
             /// <summary>
-            /// 
+            /// Length
             /// </summary>
             public int Length => End - Start + 1;
 
             /// <summary>
-            /// 
+            /// Decrease
             /// </summary>
             public void Decrease()
             {
@@ -289,11 +286,11 @@
             /// <returns></returns>
             public bool IsIn(int cellIndex)
             {
-                return (cellIndex >= Start && cellIndex <= End);
+                return cellIndex >= Start && cellIndex <= End;
             }
 
             /// <summary>
-            /// 
+            /// Contains
             /// </summary>
             /// <param name="cellSpan"></param>
             /// <returns></returns>
@@ -303,7 +300,7 @@
             }
 
             /// <summary>
-            /// 
+            /// Equals
             /// </summary>
             /// <param name="obj"></param>
             /// <returns></returns>
@@ -316,19 +313,13 @@
                 return false;
             }
 
-            /// <summary>
-            /// 
-            /// </summary>
-            /// <returns></returns>
+            /// <inheritdoc />
             public override int GetHashCode()
             {
                 return (Start, End).GetHashCode();
             }
 
-            /// <summary>
-            /// 
-            /// </summary>
-            /// <returns></returns>
+            /// <inheritdoc />
             public override string ToString()
             {
                 if (Start == End) return "[" + Start + "]";

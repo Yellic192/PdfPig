@@ -10,9 +10,9 @@
     public abstract class BaseBlock
     {
         /// <summary>
-        /// 
+        /// Children
         /// </summary>
-        public IReadOnlyList<BaseBlock> Children { get; protected set; }
+        public IReadOnlyList<TextBlock> Children { get; protected set; }
 
         /// <summary>
         /// The rectangle completely containing the block.
