@@ -20,6 +20,8 @@
 
         public TransformationMatrix CurrentTransformationMatrix => GetCurrentState().CurrentTransformationMatrix;
 
+        public PdfSubpath CurrentSubpath { get; set; }
+
         public PdfPath CurrentPath { get; set; }
 
         public IColorSpaceContext ColorSpaceContext { get; }
@@ -29,7 +31,7 @@
         public TestOperationContext()
         {
             StateStack.Push(new CurrentGraphicsState());
-            CurrentPath = new PdfPath();
+            CurrentSubpath = new PdfSubpath();
             ColorSpaceContext = new ColorSpaceContext(GetCurrentState, new ResourceStore(new TestPdfTokenScanner(), new TestFontFactory()));
         }
 
@@ -64,10 +66,29 @@
         {
         }
 
+        public PdfPoint? CloseSubpath()
+        {
+            return new PdfPoint();
+        }
+
+        public void AddCurrentSubpath()
+        {
+
+        }
+
         public void StrokePath(bool close)
         {
         }
-        public void FillPath(bool close)
+
+        public void FillPath(FillingRule fillingRule, bool close)
+        {
+        }
+        public void FillStrokePath(FillingRule fillingRule, bool close)
+        {
+
+        }
+
+        public void EndPath()
         {
         }
 
@@ -99,7 +120,7 @@
         {
         }
 
-        public void ModifyClippingIntersect(ClippingRule clippingRule)
+        public void ModifyClippingIntersect(FillingRule clippingRule)
         {
         }
 

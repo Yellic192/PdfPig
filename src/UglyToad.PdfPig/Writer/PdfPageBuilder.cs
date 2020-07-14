@@ -1,8 +1,5 @@
 ﻿namespace UglyToad.PdfPig.Writer
 {
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
     using Content;
     using Core;
     using Fonts;
@@ -16,7 +13,12 @@
     using Graphics.Operations.TextShowing;
     using Graphics.Operations.TextState;
     using Images;
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using PdfFonts;
     using Tokens;
+    using Graphics.Operations.PathPainting;
 
     /// <summary>
     /// A builder used to add construct a page in a PDF document.
@@ -387,7 +389,7 @@
 
                 var documentSpace = textMatrix.Transform(renderingMatrix.Transform(fontMatrix.Transform(rect)));
 
-                var letter = new Letter(c.ToString(), documentSpace, advanceRect.BottomLeft, advanceRect.BottomRight, width, (double)fontSize, font.Name,
+                var letter = new Letter(c.ToString(), documentSpace, advanceRect.BottomLeft, advanceRect.BottomRight, width, (double)fontSize, FontDetails.GetDefault(font.Name),
                     GrayColor.Black,
                     (double)fontSize,
                     textSequence);

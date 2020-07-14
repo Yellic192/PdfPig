@@ -114,9 +114,11 @@
             switch (descriptor.FontFile.FileType)
             {
                 case DescriptorFontFile.FontFileType.TrueType:
+                {
                     var input = new TrueTypeDataBytes(new ByteArrayInputBytes(fontFile));
                     var ttf = TrueTypeFontParser.Parse(input);
                     return new PdfCidTrueTypeFont(ttf);
+                }
                 case DescriptorFontFile.FontFileType.FromSubtype:
                     {
                         if (!DirectObjectFinder.TryGet(descriptor.FontFile.ObjectKey, pdfScanner, out StreamToken str))
@@ -139,14 +141,12 @@
 
                         if (subtypeName == NameToken.OpenType)
                         {
-
+                            var bytes = str.Decode(filterProvider);
+                            var ttf = TrueTypeFontParser.Parse(new TrueTypeDataBytes(new ByteArrayInputBytes(bytes)));
+                            return new PdfCidTrueTypeFont(ttf);
                         }
-                        else
-                        {
-                            throw new PdfDocumentFormatException($"Unexpected subtype for CID font: {subtypeName}.");
-                        }
-
-                        throw new NotSupportedException($"Cannot read CID font from subtype: {subtypeName}.");
+                        
+                        throw new PdfDocumentFormatException($"Unexpected subtype for CID font: {subtypeName}.");
                     }
                 default:
                     throw new NotSupportedException("Currently only TrueType fonts are supported.");
@@ -157,7 +157,7 @@
         {
             var widths = new Dictionary<int, double>();
 
-            if (!dict.TryGet(NameToken.W, out var widthsItem) || !(widthsItem is ArrayToken widthArray))
+            if (!dict.TryGet(NameToken.W, pdfScanner, out ArrayToken widthArray))
             {
                 return widths;
             }
@@ -166,7 +166,7 @@
             var counter = 0;
             while (counter < size)
             {
-                var firstCode = (NumericToken)widthArray.Data[counter++];
+                var firstCode = DirectObjectFinder.Get<NumericToken>(widthArray.Data[counter++], pdfScanner);
                 var next = widthArray.Data[counter++];
                 if (DirectObjectFinder.TryGet(next, pdfScanner, out ArrayToken array))
                 {
@@ -175,14 +175,14 @@
 
                     for (var i = 0; i < arraySize; i++)
                     {
-                        var width = (NumericToken)array.Data[i];
+                        var width = DirectObjectFinder.Get<NumericToken>(array.Data[i], pdfScanner);
                         widths[startRange + i] = width.Double;
                     }
                 }
                 else
                 {
-                    var secondCode = (NumericToken)next;
-                    var rangeWidth = (NumericToken)widthArray.Data[counter++];
+                    var secondCode = DirectObjectFinder.Get<NumericToken>(next, pdfScanner);
+                    var rangeWidth = DirectObjectFinder.Get<NumericToken>(widthArray.Data[counter++], pdfScanner);
                     var startRange = firstCode.Int;
                     var endRange = secondCode.Int;
                     var width = rangeWidth.Double;

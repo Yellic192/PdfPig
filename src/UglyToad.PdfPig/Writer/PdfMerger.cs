@@ -24,8 +24,7 @@
     {
         private static readonly ILog Log = new NoOpLog();
 
-        private static readonly IFilterProvider FilterProvider = new MemoryFilterProvider(new DecodeParameterResolver(Log),
-            new PngPredictor(), Log);
+        private static readonly IFilterProvider FilterProvider = DefaultFilterProvider.Instance;
 
         /// <summary>
         /// Merge two PDF documents together with the pages from <paramref name="file1"/> followed by <paramref name="file2"/>.
@@ -47,6 +46,28 @@
                 File.ReadAllBytes(file1),
                 File.ReadAllBytes(file2)
             });
+        }
+
+        /// <summary>
+        /// Merge multiple PDF documents together with the pages in the order the file paths are provided.
+        /// </summary>
+        public static byte[] Merge(params string[] filePaths)
+        {
+            var bytes = new List<byte[]>(filePaths.Length);
+
+            for (var i = 0; i < filePaths.Length; i++)
+            {
+                var filePath = filePaths[i];
+
+                if (filePath == null)
+                {
+                    throw new ArgumentNullException(nameof(filePaths), $"Null filepath at index {i}.");
+                }
+
+                bytes.Add(File.ReadAllBytes(filePath));
+            }
+
+            return Merge(bytes);
         }
 
         /// <summary>

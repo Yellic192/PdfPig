@@ -16,7 +16,7 @@
         /// K-D tree data structure of <see cref="PdfPoint"/>.
         /// </summary>
         /// <param name="points">The points used to build the tree.</param>
-        public KdTree(PdfPoint[] points) : base(points, p => p)
+        public KdTree(IReadOnlyList<PdfPoint> points) : base(points, p => p)
         { }
 
         /// <summary>
@@ -250,7 +250,7 @@
                 var point = pivotPointFunc(pivot);
                 var currentNearestNode = node;
                 var currentDistance = distance(node.Value, point);
-                if (!queue.IsFull || currentDistance <= queue.LastDistance)
+                if ((!queue.IsFull || currentDistance <= queue.LastDistance) && !node.Element.Equals(pivot))
                 {
                     queue.Add(currentDistance, currentNearestNode);
                     currentDistance = queue.LastDistance;

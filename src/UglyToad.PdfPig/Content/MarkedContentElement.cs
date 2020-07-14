@@ -2,8 +2,8 @@
 {
     using System;
     using System.Collections.Generic;
-    using Core;
     using Tokens;
+    using UglyToad.PdfPig.Graphics;
 
     /// <summary>
     /// A marked content element can be used to provide application specific data in the

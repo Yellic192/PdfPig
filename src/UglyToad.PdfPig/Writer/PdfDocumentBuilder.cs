@@ -1,4 +1,5 @@
-﻿namespace UglyToad.PdfPig.Writer
+﻿
+namespace UglyToad.PdfPig.Writer
 {
     using System;
     using System.Collections.Generic;
@@ -12,6 +13,7 @@
     using PdfPig.Fonts.Standard14Fonts;
     using PdfPig.Fonts.TrueType.Parser;
     using Tokens;
+
     using Util.JetBrains.Annotations;
 
     /// <summary>
@@ -23,6 +25,11 @@
         private readonly Dictionary<int, PdfPageBuilder> pages = new Dictionary<int, PdfPageBuilder>();
         private readonly Dictionary<Guid, FontStored> fonts = new Dictionary<Guid, FontStored>();
         private readonly Dictionary<Guid, ImageStored> images = new Dictionary<Guid, ImageStored>();
+
+        /// <summary>
+        /// The standard of PDF/A compliance of the generated document. Defaults to <see cref="PdfAStandard.None"/>.
+        /// </summary>
+        public PdfAStandard ArchiveStandard { get; set; } = PdfAStandard.None;
 
         /// <summary>
         /// Whether to include the document information dictionary in the produced document.
@@ -128,6 +135,11 @@
         /// <returns>An identifier which can be passed to <see cref="PdfPageBuilder.AddText"/>.</returns>
         public AddedFont AddStandard14Font(Standard14Font type)
         {
+            if (ArchiveStandard != PdfAStandard.None)
+            {
+                throw new NotSupportedException($"PDF/A {ArchiveStandard} requires the font to be embedded in the file, only {nameof(AddTrueTypeFont)} is supported.");
+            }
+
             var id = Guid.NewGuid();
             var name = NameToken.Create($"F{fonts.Count}");
             var added = new AddedFont(id, name);
@@ -321,11 +333,32 @@
 
                 var pagesRef = context.WriteObject(memory, pagesDictionary, reserved);
 
-                var catalog = new DictionaryToken(new Dictionary<NameToken, IToken>
+                var catalogDictionary = new Dictionary<NameToken, IToken>
                 {
-                    { NameToken.Type, NameToken.Catalog },
-                    { NameToken.Pages, new IndirectReferenceToken(pagesRef.Number) }
-                });
+                    {NameToken.Type, NameToken.Catalog},
+                    {NameToken.Pages, new IndirectReferenceToken(pagesRef.Number)}
+                };
+
+                if (ArchiveStandard != PdfAStandard.None)
+                {
+                    Func<IToken, ObjectToken> writerFunc = x => context.WriteObject(memory, x);
+
+                    PdfABaselineRuleBuilder.Obey(catalogDictionary, writerFunc, DocumentInformation, ArchiveStandard);
+
+                    switch (ArchiveStandard)
+                    {
+                        case PdfAStandard.A1A:
+                            PdfA1ARuleBuilder.Obey(catalogDictionary);
+                            break;
+                        case PdfAStandard.A2B:
+                            break;
+                        case PdfAStandard.A2A:
+                            PdfA1ARuleBuilder.Obey(catalogDictionary);
+                            break;
+                    }
+                }
+
+                var catalog = new DictionaryToken(catalogDictionary);
 
                 var catalogRef = context.WriteObject(memory, catalog);
 

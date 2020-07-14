@@ -494,6 +494,41 @@
             }
         }
 
+        [Theory]
+        [InlineData(PdfAStandard.A1B)]
+        [InlineData(PdfAStandard.A1A)]
+        [InlineData(PdfAStandard.A2B)]
+        [InlineData(PdfAStandard.A2A)]
+        public void CanGeneratePdfAFile(PdfAStandard standard)
+        {
+            var builder = new PdfDocumentBuilder
+            {
+                ArchiveStandard = standard
+            };
+
+            var page = builder.AddPage(PageSize.A4);
+
+            var imgBytes = File.ReadAllBytes(IntegrationHelpers.GetDocumentPath("smile-250-by-160.jpg", false));
+            page.AddJpeg(imgBytes, new PdfRectangle(50, 70, 150, 130));
+
+            var font = builder.AddTrueTypeFont(TrueTypeTestHelper.GetFileBytes("Roboto-Regular.ttf"));
+
+            page.AddText($"Howdy PDF/{standard}!", 10, new PdfPoint(25, 700), font);
+
+            var bytes = builder.Build();
+
+            WriteFile(nameof(CanGeneratePdfAFile) + standard, bytes);
+
+            using (var pdf = PdfDocument.Open(bytes, ParsingOptions.LenientParsingOff))
+            {
+                Assert.Equal(1, pdf.NumberOfPages);
+
+                Assert.True(pdf.TryGetXmpMetadata(out var xmp));
+
+                Assert.NotNull(xmp.GetXDocument());
+            }
+        }
+
         private static void WriteFile(string name, byte[] bytes)
         {
             try

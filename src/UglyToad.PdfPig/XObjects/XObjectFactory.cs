@@ -1,4 +1,6 @@
-﻿namespace UglyToad.PdfPig.XObjects
+﻿using UglyToad.PdfPig.Parser.Parts;
+
+namespace UglyToad.PdfPig.XObjects
 {
     using System;
     using System.Collections.Generic;
@@ -66,7 +68,40 @@
             var interpolate = dictionary.TryGet(NameToken.Interpolate, pdfScanner, out BooleanToken interpolateToken)
                               && interpolateToken.Data;
 
-            var decodedBytes = new Lazy<IReadOnlyList<byte>>(() => xObject.Stream.Decode(filterProvider));
+            DictionaryToken filterDictionary = xObject.Stream.StreamDictionary;
+            if (xObject.Stream.StreamDictionary.TryGet(NameToken.Filter, out var filterToken)
+                && filterToken is IndirectReferenceToken)
+            {
+                if (filterDictionary.TryGet(NameToken.Filter, pdfScanner, out ArrayToken filterArray))
+                {
+                    filterDictionary = filterDictionary.With(NameToken.Filter, filterArray);
+                }
+                else if (filterDictionary.TryGet(NameToken.Filter, pdfScanner, out NameToken filterNameToken))
+                {
+                    filterDictionary = filterDictionary.With(NameToken.Filter, filterNameToken);
+                }
+                else
+                {
+                    filterDictionary = null;
+                }
+            }
+
+            var supportsFilters = filterDictionary != null;
+            if (filterDictionary != null)
+            {
+                var filters = filterProvider.GetFilters(filterDictionary);
+                foreach (var filter in filters)
+                {
+                    if (!filter.IsSupported)
+                    {
+                        supportsFilters = false;
+                        break;
+                    }
+                }
+            }
+
+            var decodedBytes = supportsFilters ? new Lazy<IReadOnlyList<byte>>(() => xObject.Stream.Decode(filterProvider))
+                : null;
 
             var decode = EmptyArray<decimal>.Instance;
 

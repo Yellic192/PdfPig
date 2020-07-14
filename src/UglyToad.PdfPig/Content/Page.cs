@@ -4,12 +4,12 @@
     using System.Collections.Generic;
     using System.Text;
     using Annotations;
-    using Core;
     using Graphics.Operations;
     using Tokens;
     using Util;
     using Util.JetBrains.Annotations;
     using Tokenization.Scanner;
+    using Graphics;
 
     /// <summary>
     /// Contains the content and provides access to methods of a single page in the <see cref="PdfDocument"/>.
@@ -189,15 +189,6 @@
             public IEnumerable<Annotation> GetAnnotations()
             {
                 return annotationProvider.GetAnnotations();
-            }
-
-            /// <summary>
-            /// Gets the calculated letter size in points.
-            /// This is considered experimental because the calculated value is incorrect for some documents at present.
-            /// </summary>
-            public double GetPointSize(Letter letter)
-            {
-                return letter.PointSize;
             }
         }
     }
