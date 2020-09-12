@@ -2,10 +2,11 @@ name: .NET Core
 
 on:
   push:
-    branches: [ master, linux-bbox ]
+    branches:
+      - '*'
   pull_request:
-    branches: [ master, linux-bbox ]
-
+    branches:
+      - '*'
 jobs:
   build:
 
