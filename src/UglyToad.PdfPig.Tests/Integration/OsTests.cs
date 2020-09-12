@@ -26,6 +26,7 @@ namespace UglyToad.PdfPig.Tests.Integration
         public void GetCorrectBBoxLinux(string name, object[][] expected)
         {
             // success on windows
+            // to test on linux
             using (var document = PdfDocument.Open(DlaHelper.GetDocumentPath(name)))
             {
                 var page = document.GetPage(1);
