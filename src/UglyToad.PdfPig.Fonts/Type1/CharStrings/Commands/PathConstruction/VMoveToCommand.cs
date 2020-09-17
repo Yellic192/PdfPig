@@ -31,7 +31,8 @@
                 var x = context.CurrentPosition.X;
 
                 context.CurrentPosition = new PdfPoint(x, y);
-                context.Path.MoveTo(x, y);
+                context.Path.Add(new Core.PdfSubpath());
+                context.Path[context.Path.Count - 1].MoveTo(x, y);
             }
 
             context.Stack.Clear();

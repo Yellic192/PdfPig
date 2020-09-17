@@ -17,7 +17,8 @@
         
         public static void Run(Type1BuildCharContext context)
         {
-            context.Path.CloseSubpath();
+            context.Path[context.Path.Count - 1].CloseSubpath();
+            //context.Path.Add(new Core.PdfSubpath()); // not here because would add an empty at the last position
             context.Stack.Clear();
         }
     }

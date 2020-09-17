@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using CharStrings;
     using Core;
     using Tokens;
@@ -67,9 +68,29 @@
                 return null;
             }
 
-            var bbox = glyph.GetBoundingRectangle();
+            var bbox = GetCharacterBoundingBox(glyph);
 
             return bbox;
+        }
+
+        private PdfRectangle? GetCharacterBoundingBox(List<PdfSubpath> subPaths)
+        {
+            if (subPaths.Count == 0)
+            {
+                return null;
+            }
+
+            var bboxes = subPaths.Select(x => x.GetBoundingRectangle()).Where(x => x.HasValue).Select(x => x.Value).ToList();
+            if (bboxes.Count == 0)
+            {
+                return null;
+            }
+
+            var minX = bboxes.Min(x => x.Left);
+            var minY = bboxes.Min(x => x.Bottom);
+            var maxX = bboxes.Max(x => x.Right);
+            var maxY = bboxes.Max(x => x.Top);
+            return new PdfRectangle(minX, minY, maxX, maxY);
         }
 
         /// <summary>

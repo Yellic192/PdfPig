@@ -62,8 +62,11 @@
             var builder = new StringBuilder("<!DOCTYPE html><html><head></head><body>");
             foreach (var charString in result.CharStrings.CharStrings)
             {
-                Assert.True(result.CharStrings.TryGenerate(charString.Key, out var path));
-                builder.AppendLine(path.ToFullSvg(0));
+                Assert.True(result.CharStrings.TryGenerate(charString.Key, out var paths));
+                foreach (var path in paths)
+                {
+                    builder.AppendLine(path.ToFullSvg(0));
+                }
             }
 
             builder.Append("</body></html>");
