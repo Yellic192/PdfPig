@@ -6,6 +6,7 @@
     using ClipperLibrary;
     using Core;
     using Graphics;
+    using UglyToad.PdfPig.Logging;
     using static Core.PdfSubpath;
 
     /// <summary>
@@ -23,7 +24,7 @@
         /// <summary>
         /// Generates the result of applying a clipping path to another path.
         /// </summary>
-        public static PdfPath Clip(this PdfPath clipping, PdfPath subject)
+        public static PdfPath Clip(this PdfPath clipping, PdfPath subject, ILog log = null)
         {
             if (clipping == null)
             {
@@ -61,17 +62,30 @@
                     subPathClipping.CloseSubpath();
                 }
 
-                clipper.AddPath(subPathClipping.ToClipperPolygon().ToList(), ClipperPolyType.Clip, true);
+                if (!clipper.AddPath(subPathClipping.ToClipperPolygon().ToList(), ClipperPolyType.Clip, true))
+                {
+                    log?.Error("ClippingExtensions.Clip(): failed to add clipping path.");
+                }
             }
 
             // Subject path
             // Filled and clipping path need to be closed
             bool subjectClose = subject.IsFilled || subject.IsClipping;
+
             foreach (var subPathSubject in subject)
             {
                 if (subPathSubject.Commands.Count == 0)
                 {
                     continue;
+                }
+
+                if (subjectClose && !subPathSubject.IsClosed() && subPathSubject.Commands.Count(sp => (sp is Line) || (sp is BezierCurve)) < 2)
+                {
+                    // strange here:
+                    // the subpath contains strictly less than 2 lines or curves
+                    // it cannot be filled or a be clipping path
+                    // cancel closing the path/subpath
+                    subjectClose = false;
                 }
 
                 // Force close subject if need be
@@ -80,7 +94,11 @@
                     subPathSubject.CloseSubpath();
                 }
 
-                clipper.AddPath(subPathSubject.ToClipperPolygon().ToList(), ClipperPolyType.Subject, subjectClose);
+                var test = subPathSubject.ToClipperPolygon().ToList();
+                if (!clipper.AddPath(subPathSubject.ToClipperPolygon().ToList(), ClipperPolyType.Subject, subjectClose))
+                {
+                    log?.Error("ClippingExtensions.Clip(): failed to add subject path for clipping.");
+                }
             }
 
             var clippingFillType = clipping.FillingRule == FillingRule.NonZeroWinding ? ClipperPolyFillType.NonZero : ClipperPolyFillType.EvenOdd;
