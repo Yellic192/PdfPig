@@ -64,7 +64,7 @@
 
                 if (!clipper.AddPath(subPathClipping.ToClipperPolygon().ToList(), ClipperPolyType.Clip, true))
                 {
-                    log?.Error("ClippingExtensions.Clip(): failed to add clipping path.");
+                    log?.Error("ClippingExtensions.Clip(): failed to add clipping subpath.");
                 }
             }
 
@@ -79,10 +79,12 @@
                     continue;
                 }
 
-                if (subjectClose && !subPathSubject.IsClosed() && subPathSubject.Commands.Count(sp => (sp is Line) || (sp is BezierCurve)) < 2)
+                if (subjectClose && !subPathSubject.IsClosed()
+                    && subPathSubject.Commands.Count(sp => sp is Line) < 2
+                    && subPathSubject.Commands.Count(sp => sp is BezierCurve) == 0)
                 {
                     // strange here:
-                    // the subpath contains strictly less than 2 lines or curves
+                    // the subpath contains maximum 1 line and no curves
                     // it cannot be filled or a be clipping path
                     // cancel closing the path/subpath
                     subjectClose = false;
@@ -94,10 +96,9 @@
                     subPathSubject.CloseSubpath();
                 }
 
-                var test = subPathSubject.ToClipperPolygon().ToList();
                 if (!clipper.AddPath(subPathSubject.ToClipperPolygon().ToList(), ClipperPolyType.Subject, subjectClose))
                 {
-                    log?.Error("ClippingExtensions.Clip(): failed to add subject path for clipping.");
+                    log?.Error("ClippingExtensions.Clip(): failed to add subject subpath for clipping.");
                 }
             }
 
@@ -182,11 +183,11 @@
                 yield break;
             }
 
-            if (pdfPath.Commands[0] is Move currentMove)
+            ClipperIntPoint movePoint;
+            if (pdfPath.Commands[0] is Move move)
             {
-                var previous = currentMove.Location.ToClipperIntPoint();
-
-                yield return previous;
+                movePoint = move.Location.ToClipperIntPoint();
+                yield return movePoint;
 
                 if (pdfPath.Commands.Count == 1)
                 {
@@ -203,7 +204,7 @@
                 var command = pdfPath.Commands[i];
                 if (command is Move)
                 {
-                    throw new ArgumentException("ToClipperPolygon():only one move allowed per subpath.", nameof(pdfPath));
+                    throw new ArgumentException("ToClipperPolygon(): only one move allowed per subpath.", nameof(pdfPath));
                 }
 
                 if (command is Line line)
@@ -221,7 +222,7 @@
                 }
                 else if (command is Close)
                 {
-                    yield return currentMove.Location.ToClipperIntPoint();
+                    yield return movePoint;
                 }
             }
         }
