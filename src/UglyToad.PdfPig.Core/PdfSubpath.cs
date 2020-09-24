@@ -699,7 +699,7 @@
             }
 
             /// <summary>
-            /// Converts the bezier curve into approximated lines.
+            /// Converts the bezier curve into n approximated lines.
             /// </summary>
             /// <param name="n">Number of lines required (minimum is 1).</param>
             /// <returns></returns>

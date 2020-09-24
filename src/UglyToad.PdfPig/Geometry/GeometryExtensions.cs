@@ -838,6 +838,63 @@
                     new BezierCurve(points[3][0], points[2][1], points[1][2], points[0][3]));
         }
 
+        internal static void RecursiveSplitToLines(BezierCurve bezierCurve, ref List<Line> lines)
+        {
+            if (bezierCurve.IsStraightLine())
+            {
+                lines.Add(new Line(bezierCurve.StartPoint, bezierCurve.EndPoint)); // not good enought
+                // need to assess in which order the points are
+                // e.g. StartPoint could be 'between' FirstCP and Sencond CP
+            }
+            else
+            {
+                var (b1, b2) = bezierCurve.Split(0.5);
+                RecursiveSplitToLines(b1, ref lines);
+                RecursiveSplitToLines(b2, ref lines);
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="bezierCurve"></param>
+        /// <param name="e"></param>
+        /// <returns></returns>
+        public static bool IsStraightLine(this BezierCurve bezierCurve, double e = 0.1)
+        {
+            // all point are verticaly aligned
+            if (Math.Abs(bezierCurve.StartPoint.X - bezierCurve.FirstControlPoint.X) < e &&
+                Math.Abs(bezierCurve.StartPoint.X - bezierCurve.SecondControlPoint.X) < e &&
+                Math.Abs(bezierCurve.StartPoint.X - bezierCurve.EndPoint.X) < e)
+            {
+                return true;
+            }
+
+            if (Math.Abs(bezierCurve.FirstControlPoint.X - bezierCurve.StartPoint.X) < e)
+            {
+                // these 2 points are verticaly aligned, but not all are
+                return false;
+            }
+            var slope1 = (bezierCurve.FirstControlPoint.Y - bezierCurve.StartPoint.Y) / (bezierCurve.FirstControlPoint.X - bezierCurve.StartPoint.X);
+
+            if (Math.Abs(bezierCurve.SecondControlPoint.X - bezierCurve.StartPoint.X) < e)
+            {
+                // these 2 points are verticaly aligned, but not all are
+                return false;
+            }
+            var slope2 = (bezierCurve.SecondControlPoint.Y - bezierCurve.StartPoint.Y) / (bezierCurve.SecondControlPoint.X - bezierCurve.StartPoint.X);
+
+            if (Math.Abs(slope1 - slope2) < e)
+            {
+                // same slope
+                // don't check for verticaly aligned
+                var slope3 = (bezierCurve.EndPoint.Y - bezierCurve.StartPoint.Y) / (bezierCurve.EndPoint.X - bezierCurve.StartPoint.X);
+                return Math.Abs(slope1 - slope3) < e;
+            }
+
+            return false;
+        }
+
         /// <summary>
         /// Checks if the curve and the line are intersecting.
         /// <para>Avoid using this method as it is not optimised. Use <see cref="Intersect(BezierCurve, PdfLine)"/> instead.</para>
