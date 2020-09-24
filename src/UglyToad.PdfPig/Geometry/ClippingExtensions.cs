@@ -62,10 +62,11 @@
                     subPathClipping.CloseSubpath();
                 }
 
-                if (!clipper.AddPath(subPathClipping.ToClipperPolygon().ToList(), ClipperPolyType.Clip, true))
+                clipper.AddPath(subPathClipping.ToClipperPolygon().ToList(), ClipperPathType.Clip, true);
+                /*if (!clipper.AddPath(subPathClipping.ToClipperPolygon().ToList(), ClipperPolyType.Clip, true))
                 {
                     log?.Error("ClippingExtensions.Clip(): failed to add clipping subpath.");
-                }
+                }*/
             }
 
             // Subject path
@@ -95,94 +96,80 @@
                     subPathSubject.CloseSubpath();
                 }
 
+                clipper.AddPath(subPathSubject.ToClipperPolygon().ToList(), ClipperPathType.Subject, subjectClose);
+                /*
                 if (!clipper.AddPath(subPathSubject.ToClipperPolygon().ToList(), ClipperPolyType.Subject, subjectClose))
                 {
                     log?.Error("ClippingExtensions.Clip(): failed to add subject subpath for clipping.");
                 }
+                */
             }
 
-            var clippingFillType = clipping.FillingRule == FillingRule.NonZeroWinding ? ClipperPolyFillType.NonZero : ClipperPolyFillType.EvenOdd;
-            var subjectFillType = subject.FillingRule == FillingRule.NonZeroWinding ? ClipperPolyFillType.NonZero : ClipperPolyFillType.EvenOdd;
+            //var clippingFillType = clipping.FillingRule == FillingRule.NonZeroWinding ? ClipperFillRule.NonZero : ClipperFillRule.EvenOdd;
+            var subjectFillType = subject.FillingRule == FillingRule.NonZeroWinding ? ClipperFillRule.NonZero : ClipperFillRule.EvenOdd;
 
-            if (!subjectClose)
+            PdfPath clippedPath = subject.CloneEmpty();
+
+            // Case where subject is closed
+            var solutionsClosed = new List<List<ClipperPoint64>>();
+            var solutionsOpen = new List<List<ClipperPoint64>>();
+            if (!clipper.Execute(ClipperClipType.Intersection, solutionsClosed, solutionsOpen, subjectFillType))
             {
-                PdfPath clippedPath = subject.CloneEmpty();
-
-                // Case where subject is not closed
-                var solutions = new ClipperPolyTree();
-                if (clipper.Execute(ClipperClipType.Intersection, solutions, subjectFillType, clippingFillType))
-                {
-                    foreach (var solution in solutions.Children)
-                    {
-                        if (solution.Contour.Count > 0)
-                        {
-                            PdfSubpath clippedSubpath = new PdfSubpath();
-                            clippedSubpath.MoveTo(solution.Contour[0].X / Factor, solution.Contour[0].Y / Factor);
-
-                            for (int i = 1; i < solution.Contour.Count; i++)
-                            {
-                                clippedSubpath.LineTo(solution.Contour[i].X / Factor, solution.Contour[i].Y / Factor);
-                            }
-                            clippedPath.Add(clippedSubpath);
-                        }
-                    }
-
-                    if (clippedPath.Count > 0)
-                    {
-                        return clippedPath;
-                    }
-                }
-
                 return null;
             }
-            else
+
+            foreach (var solution in solutionsClosed)
             {
-                PdfPath clippedPath = subject.CloneEmpty();
-
-                // Case where subject is closed
-                var solutions = new List<List<ClipperIntPoint>>();
-                if (!clipper.Execute(ClipperClipType.Intersection, solutions, subjectFillType, clippingFillType))
+                if (solutionsClosed.Count > 0)
                 {
-                    return null;
-                }
+                    PdfSubpath clippedSubpath = new PdfSubpath();
+                    clippedSubpath.MoveTo(solution[0].X / Factor, solution[0].Y / Factor);
 
-                foreach (var solution in solutions)
-                {
-                    if (solution.Count > 0)
+                    for (int i = 1; i < solutionsClosed.Count; i++)
                     {
-                        PdfSubpath clippedSubpath = new PdfSubpath();
-                        clippedSubpath.MoveTo(solution[0].X / Factor, solution[0].Y / Factor);
-
-                        for (int i = 1; i < solution.Count; i++)
-                        {
-                            clippedSubpath.LineTo(solution[i].X / Factor, solution[i].Y / Factor);
-                        }
-                        clippedSubpath.CloseSubpath();
-                        clippedPath.Add(clippedSubpath);
+                        clippedSubpath.LineTo(solution[i].X / Factor, solution[i].Y / Factor);
                     }
+                    clippedSubpath.CloseSubpath();
+                    clippedPath.Add(clippedSubpath);
                 }
-
-                if (clippedPath.Count > 0)
-                {
-                    return clippedPath;
-                }
-
-                return null;
             }
+
+            foreach (var solution in solutionsOpen)
+            {
+                if (solutionsOpen.Count > 0)
+                {
+                    PdfSubpath clippedSubpath = new PdfSubpath();
+                    clippedSubpath.MoveTo(solution[0].X / Factor, solution[0].Y / Factor);
+
+                    for (int i = 1; i < solutionsOpen.Count; i++)
+                    {
+                        clippedSubpath.LineTo(solution[i].X / Factor, solution[i].Y / Factor);
+                    }
+                    //clippedSubpath.CloseSubpath();
+                    clippedPath.Add(clippedSubpath);
+                }
+            }
+
+            if (clippedPath.Count > 0)
+            {
+                return clippedPath;
+            }
+
+            return null;
         }
 
         /// <summary>
         /// Converts a path to a set of points for the Clipper algorithm to use.
         /// Allows duplicate points as they will be removed by Clipper.
         /// </summary>
-        internal static IEnumerable<ClipperIntPoint> ToClipperPolygon(this PdfSubpath pdfPath)
+        internal static IEnumerable<ClipperPoint64> ToClipperPolygon(this PdfSubpath pdfPath)
         {
             if (pdfPath.Commands.Count == 0)
             {
                 yield break;
             }
 
-            ClipperIntPoint movePoint;
+            ClipperPoint64 movePoint;
             if (pdfPath.Commands[0] is Move move)
             {
                 movePoint = move.Location.ToClipperIntPoint();
@@ -231,7 +218,7 @@
             }
         }
 
-        internal static IEnumerable<ClipperIntPoint> ToClipperPolygon(this PdfRectangle rectangle)
+        internal static IEnumerable<ClipperPoint64> ToClipperPolygon(this PdfRectangle rectangle)
         {
             yield return rectangle.BottomLeft.ToClipperIntPoint();
             yield return rectangle.TopLeft.ToClipperIntPoint();
@@ -239,14 +226,14 @@
             yield return rectangle.BottomRight.ToClipperIntPoint();
         }
 
-        internal static ClipperIntPoint ToClipperIntPoint(this PdfPoint point)
+        internal static ClipperPoint64 ToClipperIntPoint(this PdfPoint point)
         {
-            return new ClipperIntPoint(point.X * Factor, point.Y * Factor);
+            return new ClipperPoint64(point.X * Factor, point.Y * Factor);
         }
 
-        internal static List<ClipperIntPoint> ToClipperIntPoint(this PdfLine line)
+        internal static List<ClipperPoint64> ToClipperIntPoint(this PdfLine line)
         {
-            return new List<ClipperIntPoint>() { line.Point1.ToClipperIntPoint(), line.Point2.ToClipperIntPoint() };
+            return new List<ClipperPoint64>() { line.Point1.ToClipperIntPoint(), line.Point2.ToClipperIntPoint() };
         }
     }
 }

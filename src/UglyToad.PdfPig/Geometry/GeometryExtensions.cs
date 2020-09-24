@@ -510,21 +510,22 @@
         public static List<PdfLine> Intersect(this PdfRectangle rectangle, List<PdfLine> lines)
         {
             var clipper = new Clipper();
-            clipper.AddPath(rectangle.ToClipperPolygon().ToList(), ClipperPolyType.Clip, true);
+            clipper.AddPath(rectangle.ToClipperPolygon().ToList(), ClipperPathType.Clip, true);
 
             foreach (var line in lines)
             {
-                clipper.AddPath(line.ToClipperIntPoint(), ClipperPolyType.Subject, false);
+                clipper.AddPath(line.ToClipperIntPoint(), ClipperPathType.Subject, false);
             }
 
             var solutions = new ClipperPolyTree();
-            if (clipper.Execute(ClipperClipType.Intersection, solutions))
+            var solutionOpen = new List<List<ClipperPoint64>>();
+            if (clipper.Execute(ClipperClipType.Intersection, solutions, solutionOpen))
             {
                 List<PdfLine> rv = new List<PdfLine>();
-                foreach (var solution in solutions.Children)
+                foreach (var solution in solutionOpen)
                 {
-                    rv.Add(new PdfLine(new PdfPoint(solution.Contour[0].X / ClippingExtensions.Factor, solution.Contour[0].Y / ClippingExtensions.Factor),
-                                      new PdfPoint(solution.Contour[1].X / ClippingExtensions.Factor, solution.Contour[1].Y / ClippingExtensions.Factor)));
+                    rv.Add(new PdfLine(new PdfPoint(solution[0].X / ClippingExtensions.Factor, solution[0].Y / ClippingExtensions.Factor),
+                                       new PdfPoint(solution[1].X / ClippingExtensions.Factor, solution[1].Y / ClippingExtensions.Factor)));
                 }
                 return rv;
             }
@@ -743,25 +744,26 @@
         private static PdfPoint[] Intersect(PdfRectangle rectangle, PdfPoint pl1, PdfPoint pl2)
         {
             var clipper = new Clipper();
-            clipper.AddPath(rectangle.ToClipperPolygon().ToList(), ClipperPolyType.Clip, true);
+            clipper.AddPath(rectangle.ToClipperPolygon().ToList(), ClipperPathType.Clip, true);
 
-            clipper.AddPath(new List<ClipperIntPoint>() { pl1.ToClipperIntPoint(), pl2.ToClipperIntPoint() }, ClipperPolyType.Subject, false);
+            clipper.AddPath(new List<ClipperPoint64>() { pl1.ToClipperIntPoint(), pl2.ToClipperIntPoint() }, ClipperPathType.Subject, false);
 
             var solutions = new ClipperPolyTree();
-            if (clipper.Execute(ClipperClipType.Intersection, solutions))
+            var solutionsOpen = new List<List<ClipperPoint64>>();
+            if (clipper.Execute(ClipperClipType.Intersection, solutions,solutionsOpen))
             {
-                if (solutions.Children.Count == 0)
+                if (solutionsOpen.Count == 0)
                 {
                     return null;
                 }
-                else if (solutions.Children.Count == 1)
+                else if (solutions.Childs.Count == 1)
                 {
-                    var solution = solutions.Children[0];
+                    var solution = solutionsOpen[0];
 
                     return new[]
                     {
-                        new PdfPoint(solution.Contour[0].X / ClippingExtensions.Factor, solution.Contour[0].Y / ClippingExtensions.Factor),
-                        new PdfPoint(solution.Contour[1].X / ClippingExtensions.Factor, solution.Contour[1].Y / ClippingExtensions.Factor)
+                        new PdfPoint(solutionsOpen[0][0].X / ClippingExtensions.Factor, solutionsOpen[0][0].Y / ClippingExtensions.Factor),
+                        new PdfPoint(solutionsOpen[0][1].X / ClippingExtensions.Factor, solutionsOpen[0][1].Y / ClippingExtensions.Factor)
                     };
                 }
                 else
@@ -783,14 +785,15 @@
         public static bool IntersectsWith(PdfRectangle rectangle, PdfPoint pl1, PdfPoint pl2)
         {
             var clipper = new Clipper();
-            clipper.AddPath(rectangle.ToClipperPolygon().ToList(), ClipperPolyType.Clip, true);
+            clipper.AddPath(rectangle.ToClipperPolygon().ToList(), ClipperPathType.Clip, true);
 
-            clipper.AddPath(new List<ClipperIntPoint>() { pl1.ToClipperIntPoint(), pl2.ToClipperIntPoint() }, ClipperPolyType.Subject, false);
+            clipper.AddPath(new List<ClipperPoint64>() { pl1.ToClipperIntPoint(), pl2.ToClipperIntPoint() }, ClipperPathType.Subject, false);
 
             var solutions = new ClipperPolyTree();
-            if (clipper.Execute(ClipperClipType.Intersection, solutions))
+            var solutionsOpen = new List<List<ClipperPoint64>>();
+            if (clipper.Execute(ClipperClipType.Intersection, solutions, solutionsOpen))
             {
-                return solutions.Children.Count > 0;
+                return solutionsOpen.Count > 0;
             }
             return false;
         }
@@ -961,7 +964,7 @@
         // Ported from Angus Johnson's Delphi Pascal code (Clipper's author)
         // Might be made available in the next Clipper release?
 
-        private static double CrossProduct(ClipperIntPoint pt1, ClipperIntPoint pt2, ClipperIntPoint pt3)
+        private static double CrossProduct(ClipperPoint64 pt1, ClipperPoint64 pt2, ClipperPoint64 pt3)
         {
             return (pt2.X - pt1.X) * (pt3.Y - pt2.Y) - (pt2.Y - pt1.Y) * (pt3.X - pt2.X);
         }
@@ -969,17 +972,17 @@
         /// <summary>
         /// nb: returns MaxInt ((2^32)-1) when pt is on a line
         /// </summary>
-        private static int PointInPathsWindingCount(ClipperIntPoint pt, List<List<ClipperIntPoint>> paths)
+        private static int PointInPathsWindingCount(ClipperPoint64 pt, List<List<ClipperPoint64>> paths)
         {
             var result = 0;
             for (int i = 0; i < paths.Count; i++)
             {
                 int j = 0;
-                List<ClipperIntPoint> p = paths[i];
+                List<ClipperPoint64> p = paths[i];
                 int len = p.Count;
 
                 if (len < 3) continue;
-                ClipperIntPoint prevPt = p[len - 1];
+                ClipperPoint64 prevPt = p[len - 1];
 
                 while ((j < len) && (p[j].Y == prevPt.Y)) j++;
                 if (j == len) continue;
@@ -1040,7 +1043,7 @@
             return result;
         }
 
-        private static bool PointInPaths(ClipperIntPoint pt, List<List<ClipperIntPoint>> paths, ClipperPolyFillType fillRule, bool includeBorder)
+        private static bool PointInPaths(ClipperPoint64 pt, List<List<ClipperPoint64>> paths, ClipperFillRule fillRule, bool includeBorder)
         {
             int wc = PointInPathsWindingCount(pt, paths);
             if (wc == int.MaxValue)
@@ -1051,10 +1054,10 @@
             switch (fillRule)
             {
                 default:
-                case ClipperPolyFillType.EvenOdd:
+                case ClipperFillRule.EvenOdd:
                     return wc % 2 != 0;
 
-                case ClipperPolyFillType.NonZero:
+                case ClipperFillRule.NonZero:
                     return wc != 0;
             }
         }
@@ -1070,8 +1073,8 @@
         public static bool Contains(this PdfSubpath subpath, PdfPoint point, bool includeBorder = false)
         {
             return PointInPaths(point.ToClipperIntPoint(),
-                new List<List<ClipperIntPoint>>() { subpath.ToClipperPolygon().ToList() },
-                ClipperPolyFillType.EvenOdd,
+                new List<List<ClipperPoint64>>() { subpath.ToClipperPolygon().ToList() },
+                ClipperFillRule.EvenOdd,
                 includeBorder);
         }
 
@@ -1085,10 +1088,10 @@
         public static bool Contains(this PdfSubpath subpath, PdfRectangle rectangle, bool includeBorder = false)
         {
             // NB, For later dev: Might not work for concave outer subpath, as it can contain all the points of the rectangle, but have overlapping edges.
-            var clipperPaths = new List<List<ClipperIntPoint>>() { subpath.ToClipperPolygon().ToList() };
+            var clipperPaths = new List<List<ClipperPoint64>>() { subpath.ToClipperPolygon().ToList() };
             foreach (var point in rectangle.ToClipperPolygon())
             {
-                if (!PointInPaths(point, clipperPaths, ClipperPolyFillType.EvenOdd, includeBorder)) return false;
+                if (!PointInPaths(point, clipperPaths, ClipperFillRule.EvenOdd, includeBorder)) return false;
             }
 
             return true;
@@ -1104,10 +1107,10 @@
         public static bool Contains(this PdfSubpath subpath, PdfSubpath other, bool includeBorder = false)
         {
             // NB, For later dev: Might not work for concave outer subpath, as it can contain all the points of the inner subpath, but have overlapping edges.
-            var clipperPaths = new List<List<ClipperIntPoint>>() { subpath.ToClipperPolygon().ToList() };
+            var clipperPaths = new List<List<ClipperPoint64>>() { subpath.ToClipperPolygon().ToList() };
             foreach (var pt in other.ToClipperPolygon())
             {
-                if (!PointInPaths(pt, clipperPaths, ClipperPolyFillType.EvenOdd, includeBorder)) return false;
+                if (!PointInPaths(pt, clipperPaths, ClipperFillRule.EvenOdd, includeBorder)) return false;
             }
             return true;
         }
@@ -1118,6 +1121,8 @@
         /// <param name="path"></param>
         public static double GetArea(this PdfPath path)
         {
+            throw new NotImplementedException();
+            /*
             var clipperPaths = path.Select(sp => sp.ToClipperPolygon().ToList()).ToList();
             var simplifieds = Clipper.SimplifyPolygons(clipperPaths, path.FillingRule == FillingRule.NonZeroWinding ? ClipperPolyFillType.NonZero : ClipperPolyFillType.EvenOdd);
             double sum = 0;
@@ -1126,6 +1131,7 @@
                 sum += Clipper.Area(simplified);
             }
             return sum;
+            */
         }
 
         /// <summary>
@@ -1139,7 +1145,7 @@
             var clipperPaths = path.Select(sp => sp.ToClipperPolygon().ToList()).ToList();
             return PointInPaths(point.ToClipperIntPoint(),
                 clipperPaths,
-                path.FillingRule == FillingRule.NonZeroWinding ? ClipperPolyFillType.NonZero : ClipperPolyFillType.EvenOdd,
+                path.FillingRule == FillingRule.NonZeroWinding ? ClipperFillRule.NonZero : ClipperFillRule.EvenOdd,
                 includeBorder);
         }
 
@@ -1153,7 +1159,7 @@
         {
             // NB, For later dev: Might not work for concave outer path, as it can contain all the points of the inner rectangle, but have overlapping edges.
             var clipperPaths = path.Select(sp => sp.ToClipperPolygon().ToList()).ToList();
-            var fillType = path.FillingRule == FillingRule.NonZeroWinding ? ClipperPolyFillType.NonZero : ClipperPolyFillType.EvenOdd;
+            var fillType = path.FillingRule == FillingRule.NonZeroWinding ? ClipperFillRule.NonZero : ClipperFillRule.EvenOdd;
             foreach (var point in rectangle.ToClipperPolygon())
             {
                 if (!PointInPaths(point, clipperPaths, fillType, includeBorder)) return false;
@@ -1172,7 +1178,7 @@
         {
             // NB, For later dev: Might not work for concave outer path, as it can contain all the points of the inner subpath, but have overlapping edges.
             var clipperPaths = path.Select(sp => sp.ToClipperPolygon().ToList()).ToList();
-            var fillType = path.FillingRule == FillingRule.NonZeroWinding ? ClipperPolyFillType.NonZero : ClipperPolyFillType.EvenOdd;
+            var fillType = path.FillingRule == FillingRule.NonZeroWinding ? ClipperFillRule.NonZero : ClipperFillRule.EvenOdd;
             foreach (var p in subpath.ToClipperPolygon())
             {
                 if (!PointInPaths(p, clipperPaths, fillType, includeBorder)) return false;
@@ -1190,7 +1196,7 @@
         {
             // NB, For later dev: Might not work for concave outer path, as it can contain all the points of the inner path, but have overlapping edges.
             var clipperPaths = path.Select(sp => sp.ToClipperPolygon().ToList()).ToList();
-            var fillType = path.FillingRule == FillingRule.NonZeroWinding ? ClipperPolyFillType.NonZero : ClipperPolyFillType.EvenOdd;
+            var fillType = path.FillingRule == FillingRule.NonZeroWinding ? ClipperFillRule.NonZero : ClipperFillRule.EvenOdd;
             foreach (var subpath in other)
             {
                 foreach (var p in subpath.ToClipperPolygon())
