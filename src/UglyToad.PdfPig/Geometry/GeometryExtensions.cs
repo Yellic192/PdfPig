@@ -838,20 +838,34 @@
                     new BezierCurve(points[3][0], points[2][1], points[1][2], points[0][3]));
         }
 
-        internal static void RecursiveSplitToLines(BezierCurve bezierCurve, ref List<Line> lines)
+        /// <summary>
+        /// Recursively split a bezier curve until each curve is a straight line.
+        /// </summary>
+        /// <param name="bezierCurve"></param>
+        /// <param name="result"></param>
+        internal static void RecursiveSplitToLines(BezierCurve bezierCurve, ref List<Line> result)
         {
-            if (bezierCurve.IsStraightLine())
+            if (bezierCurve.IsFlat())
             {
-                lines.Add(new Line(bezierCurve.StartPoint, bezierCurve.EndPoint)); // not good enought
+                result.Add(new Line(bezierCurve.StartPoint, bezierCurve.EndPoint)); // not good enought
                 // need to assess in which order the points are
                 // e.g. StartPoint could be 'between' FirstCP and Sencond CP
             }
             else
             {
                 var (b1, b2) = bezierCurve.Split(0.5);
-                RecursiveSplitToLines(b1, ref lines);
-                RecursiveSplitToLines(b2, ref lines);
+                RecursiveSplitToLines(b1, ref result);
+                RecursiveSplitToLines(b2, ref result);
             }
+        }
+
+        public static double DistanceFromLineSqrd(PdfPoint ln1, PdfPoint ln2, PdfPoint pt)
+        {
+            double a = ln1.Y - ln2.Y;
+            double b = ln2.X - ln1.X;
+            double c = a * ln1.X + b * ln1.Y;
+            c = a * pt.X + b * pt.Y - c;
+            return (c * c) / (a * a + b * b);
         }
 
         /// <summary>
@@ -859,9 +873,14 @@
         /// </summary>
         /// <param name="bezierCurve"></param>
         /// <param name="e"></param>
-        /// <returns></returns>
-        public static bool IsStraightLine(this BezierCurve bezierCurve, double e = 0.1)
+        public static bool IsFlat(this BezierCurve bezierCurve, double e = 0.1)
         {
+            double d2 = DistanceFromLineSqrd(bezierCurve.StartPoint, bezierCurve.EndPoint, bezierCurve.FirstControlPoint);
+            if (d2 > e * e) return false;
+            double d3 = DistanceFromLineSqrd(bezierCurve.StartPoint, bezierCurve.EndPoint, bezierCurve.SecondControlPoint);
+            return (d3 <= e * e);
+
+            /*
             // all point are verticaly aligned
             if (Math.Abs(bezierCurve.StartPoint.X - bezierCurve.FirstControlPoint.X) < e &&
                 Math.Abs(bezierCurve.StartPoint.X - bezierCurve.SecondControlPoint.X) < e &&
@@ -893,6 +912,7 @@
             }
 
             return false;
+            */
         }
 
         /// <summary>
