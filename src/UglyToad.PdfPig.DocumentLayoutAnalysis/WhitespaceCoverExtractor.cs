@@ -1,11 +1,13 @@
 ﻿namespace UglyToad.PdfPig.DocumentLayoutAnalysis
 {
-    using Content;
-    using Core;
-    using Geometry;
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using UglyToad.PdfPig.Content;
+    using UglyToad.PdfPig.Core;
+    using UglyToad.PdfPig.DocumentLayoutAnalysis;
+    using UglyToad.PdfPig.Geometry;
+    using UglyToad.PdfPig.Graphics;
 
     /// <summary>
     /// A top-down algorithm that finds a cover of the background whitespace of a document in terms of maximal empty rectangles.
@@ -13,18 +15,22 @@
     /// </summary>
     public static class WhitespaceCoverExtractor
     {
+
         /// <summary>
         /// Gets the cover of the background whitespace of a page in terms of maximal empty rectangles.
         /// </summary>
         /// <param name="words">The words in the page.</param>
         /// <param name="images">The images in the page.</param>
+        /// <param name="paths">The paths drawn in the page.</param>
         /// <param name="maxRectangleCount">The maximum number of rectangles to find.</param>
         /// <param name="maxBoundQueueSize">The maximum size of the queue used in the algorithm.</param>
         /// <returns>The identified whitespace rectangles.</returns>
-        public static IReadOnlyList<PdfRectangle> GetWhitespaces(IEnumerable<Word> words, IEnumerable<IPdfImage> images = null, int maxRectangleCount = 40, int maxBoundQueueSize = 0)
+        public static IReadOnlyList<PdfRectangle> GetWhitespaces(IEnumerable<Word> words, IEnumerable<IPdfImage> images = null, IEnumerable<PdfPath> paths = null,
+            int maxRectangleCount = 40, int maxBoundQueueSize = 0)
         {
             return GetWhitespaces(words,
                                   images,
+                                  paths,
                                   words.SelectMany(w => w.Letters).Select(x => x.GlyphRectangle.Width).Mode() * 1.25,
                                   words.SelectMany(w => w.Letters).Select(x => x.GlyphRectangle.Height).Mode() * 1.25,
                                   maxRectangleCount: maxRectangleCount,
@@ -36,6 +42,7 @@
         /// </summary>
         /// <param name="words">The words in the page.</param>
         /// <param name="images">The images in the page.</param>
+        /// <param name="paths">The paths drawn in the page.</param>
         /// <param name="minWidth">Lower bounds for the width of rectangles.</param>
         /// <param name="minHeight">Lower bounds for the height of rectangles.</param>
         /// <param name="maxRectangleCount">The maximum number of rectangles to find.</param>
@@ -43,7 +50,7 @@
         /// surrounding obstacles by some percent. Default value is 15%.</param>
         /// <param name="maxBoundQueueSize">The maximum size of the queue used in the algorithm.</param>
         /// <returns>The identified whitespace rectangles.</returns>
-        public static IReadOnlyList<PdfRectangle> GetWhitespaces(IEnumerable<Word> words, IEnumerable<IPdfImage> images,
+        public static IReadOnlyList<PdfRectangle> GetWhitespaces(IEnumerable<Word> words, IEnumerable<IPdfImage> images, IEnumerable<PdfPath> paths,
             double minWidth, double minHeight, int maxRectangleCount = 40, double whitespaceFuzziness = 0.15, int maxBoundQueueSize = 0)
         {
             var bboxes = words.Where(w => w.BoundingBox.Width > 0 && w.BoundingBox.Height > 0)
@@ -54,7 +61,19 @@
                 bboxes.AddRange(images.Where(w => w.Bounds.Width > 0 && w.Bounds.Height > 0).Select(o => o.Bounds));
             }
 
-            return GetWhitespaces(bboxes,
+            if (paths?.Any() == true)
+            {
+                foreach (var path in paths)
+                {
+                    var bbox = path.GetBoundingRectangle();
+                    if (bbox.HasValue && bbox.Value.Width > 0 && bbox.Value.Height > 0)
+                    {
+                        bboxes.Add(bbox.Value);
+                    }
+                }
+            }
+
+            return GetWhitespaces(bboxes.Select(b => b.Normalise()), // normalise
                                   minWidth: minWidth,
                                   minHeight: minHeight,
                                   maxRectangleCount: maxRectangleCount,
@@ -78,7 +97,7 @@
         {
             if (!boundingboxes.Any()) return EmptyArray<PdfRectangle>.Instance;
 
-            var obstacles = new HashSet<PdfRectangle>(boundingboxes);
+            var obstacles = boundingboxes.Distinct(); // distinct
             var pageBound = GetBound(obstacles);
             return GetMaximalRectangles(pageBound,
                                         obstacles,
@@ -89,21 +108,24 @@
                                         maxBoundQueueSize: maxBoundQueueSize);
         }
 
-        private static IReadOnlyList<PdfRectangle> GetMaximalRectangles(PdfRectangle bound,
-            HashSet<PdfRectangle> obstacles, double minWidth, double minHeight, int maxRectangleCount,
+        private static IReadOnlyList<PdfRectangle> GetMaximalRectangles(double[] bound,
+            IEnumerable<PdfRectangle> obstacles, double minWidth, double minHeight, int maxRectangleCount,
             double whitespaceFuzziness, int maxBoundQueueSize)
         {
-            QueueEntries queueEntries = new QueueEntries(maxBoundQueueSize);
-            queueEntries.Enqueue(new QueueEntry(bound, obstacles, whitespaceFuzziness));
-
-            HashSet<PdfRectangle> selected = new HashSet<PdfRectangle>();
+            HashSet<double[]> selected = new HashSet<double[]>();
             HashSet<QueueEntry> holdList = new HashSet<QueueEntry>();
+
+            QuadTree<double[]> obstaclesTree = new QuadTree<double[]>(new PdfRectangle(bound[0], bound[1], bound[2], bound[3]),
+                obstacles.Select(o => new double[] { o.Left, o.Bottom, o.Right, o.Top }), x => new PdfRectangle(x[0], x[1], x[2], x[3]));
+
+            QueueEntries queueEntries = new QueueEntries(maxBoundQueueSize);
+            queueEntries.Enqueue(new QueueEntry(bound, obstaclesTree, whitespaceFuzziness));
 
             while (queueEntries.Any())
             {
                 var current = queueEntries.Dequeue();
 
-                if (current.IsEmptyEnough(obstacles))
+                if (current.IsEmptyEnough(obstaclesTree))
                 {
                     if (selected.Any(c => Inside(c, current.Bound))) continue;
 
@@ -121,9 +143,9 @@
 
                     selected.Add(current.Bound);
 
-                    if (selected.Count >= maxRectangleCount) return selected.ToList();
+                    if (selected.Count >= maxRectangleCount) return selected.Select(x => new PdfRectangle(x[0], x[1], x[2], x[3])).ToList();
 
-                    obstacles.Add(current.Bound);
+                    obstaclesTree.Add(current.Bound);
 
                     // Each time a new rectangle is identified and accepted, this hold list 
                     // will be added back to the queue in case any of them will have become valid.
@@ -147,89 +169,80 @@
                 var pivot = current.GetPivot();
                 var b = current.Bound;
 
-                List<PdfRectangle> subRectangles = new List<PdfRectangle>();
-
-                var rRight = new PdfRectangle(pivot.Right, b.Bottom, b.Right, b.Top);
-                if (b.Right > pivot.Right && rRight.Height > minHeight && rRight.Width > minWidth)
+                if (b[2] > pivot[2] && (b[3] - b[1]) > minHeight && (b[2] - pivot[2]) > minWidth)
                 {
-                    queueEntries.Enqueue(new QueueEntry(rRight,
-                        new HashSet<PdfRectangle>(current.Obstacles.Where(o => OverlapsHard(rRight, o))),
-                        whitespaceFuzziness));
+                    var rRight = new double[] { pivot[2], b[1], b[2], b[3] };
+                    queueEntries.Enqueue(new QueueEntry(rRight, current.Obstacles.Where(o => OverlapsHard(rRight, o)), whitespaceFuzziness));
                 }
 
-                var rLeft = new PdfRectangle(b.Left, b.Bottom, pivot.Left, b.Top);
-                if (b.Left < pivot.Left && rLeft.Height > minHeight && rLeft.Width > minWidth)
+                if (b[0] < pivot[0] && (b[3] - b[1]) > minHeight && (pivot[0] - b[0]) > minWidth)
                 {
-                    queueEntries.Enqueue(new QueueEntry(rLeft,
-                        new HashSet<PdfRectangle>(current.Obstacles.Where(o => OverlapsHard(rLeft, o))),
-                        whitespaceFuzziness));
+                    var rLeft = new double[] { b[0], b[1], pivot[0], b[3] };
+                    queueEntries.Enqueue(new QueueEntry(rLeft, current.Obstacles.Where(o => OverlapsHard(rLeft, o)), whitespaceFuzziness));
                 }
 
-                var rAbove = new PdfRectangle(b.Left, b.Bottom, b.Right, pivot.Bottom);
-                if (b.Bottom < pivot.Bottom && rAbove.Height > minHeight && rAbove.Width > minWidth)
+                if (b[1] < pivot[1] && (pivot[1] - b[1]) > minHeight && (b[2] - b[0]) > minWidth)
                 {
-                    queueEntries.Enqueue(new QueueEntry(rAbove,
-                        new HashSet<PdfRectangle>(current.Obstacles.Where(o => OverlapsHard(rAbove, o))),
-                        whitespaceFuzziness));
+                    var rAbove = new double[] { b[0], b[1], b[2], pivot[1] };
+                    queueEntries.Enqueue(new QueueEntry(rAbove, current.Obstacles.Where(o => OverlapsHard(rAbove, o)), whitespaceFuzziness));
                 }
 
-                var rBelow = new PdfRectangle(b.Left, pivot.Top, b.Right, b.Top);
-                if (b.Top > pivot.Top && rBelow.Height > minHeight && rBelow.Width > minWidth)
+                if (b[3] > pivot[3] && (b[3] - pivot[3]) > minHeight && (b[2] - b[0]) > minWidth)
                 {
-                    queueEntries.Enqueue(new QueueEntry(rBelow,
-                        new HashSet<PdfRectangle>(current.Obstacles.Where(o => OverlapsHard(rBelow, o))),
-                        whitespaceFuzziness));
+                    double[] rBelow = new double[] { b[0], pivot[3], b[2], b[3] };
+                    queueEntries.Enqueue(new QueueEntry(rBelow, current.Obstacles.Where(o => OverlapsHard(rBelow, o)), whitespaceFuzziness));
                 }
             }
 
-            return selected.ToList();
+            return selected.Select(x => new PdfRectangle(x[0], x[1], x[2], x[3])).ToList();
+        }
+        private static bool OverlapsHard(double[] rectangle1, double[] rectangle2)
+        {
+            return rectangle1[0] < rectangle2[2] &&
+                   rectangle2[0] < rectangle1[2] &&
+                   rectangle1[3] > rectangle2[1] &&
+                   rectangle2[3] > rectangle1[1];
         }
 
-        private static bool IsAdjacentTo(PdfRectangle rectangle1, PdfRectangle rectangle2)
+        private static bool IsAdjacentTo(double[] rectangle1, double[] rectangle2)
         {
-            if (rectangle1.Left > rectangle2.Right ||
-                rectangle2.Left > rectangle1.Right ||
-                rectangle1.Top < rectangle2.Bottom ||
-                rectangle2.Top < rectangle1.Bottom)
+            if (rectangle1[0] > rectangle2[2] ||
+                rectangle2[0] > rectangle1[2] ||
+                rectangle1[3] < rectangle2[1] ||
+                rectangle2[3] < rectangle1[1])
             {
                 return false;
             }
 
-            return rectangle1.Left == rectangle2.Right ||
-                   rectangle1.Right == rectangle2.Left ||
-                   rectangle1.Bottom == rectangle2.Top ||
-                   rectangle1.Top == rectangle2.Bottom;
+            return rectangle1[0] == rectangle2[2] ||
+                   rectangle1[2] == rectangle2[0] ||
+                   rectangle1[1] == rectangle2[3] ||
+                   rectangle1[3] == rectangle2[1];
         }
 
-        private static bool IsAdjacentToPageBounds(PdfRectangle pageBound, PdfRectangle rectangle)
+        private static bool IsAdjacentToPageBounds(double[] pageBound, double[] rectangle)
         {
-            return rectangle.Bottom == pageBound.Bottom ||
-                   rectangle.Top == pageBound.Top ||
-                   rectangle.Left == pageBound.Left ||
-                   rectangle.Right == pageBound.Right;
+            return rectangle[1] == pageBound[1] ||
+                   rectangle[3] == pageBound[3] ||
+                   rectangle[0] == pageBound[0] ||
+                   rectangle[2] == pageBound[2];
         }
 
-        private static bool OverlapsHard(PdfRectangle rectangle1, PdfRectangle rectangle2)
+        private static bool Inside(double[] rectangle1, double[] rectangle2)
         {
-            return rectangle1.Left < rectangle2.Right &&
-                   rectangle2.Left < rectangle1.Right &&
-                   rectangle1.Top > rectangle2.Bottom &&
-                   rectangle2.Top > rectangle1.Bottom;
+            return rectangle2[2] <= rectangle1[2] && rectangle2[0] >= rectangle1[0] &&
+                   rectangle2[3] <= rectangle1[3] && rectangle2[1] >= rectangle1[1];
         }
 
-        private static bool Inside(PdfRectangle rectangle1, PdfRectangle rectangle2)
+        private static double[] GetBound(IEnumerable<PdfRectangle> obstacles)
         {
-            return rectangle2.Right <= rectangle1.Right && rectangle2.Left >= rectangle1.Left &&
-                   rectangle2.Top <= rectangle1.Top && rectangle2.Bottom >= rectangle1.Bottom;
-        }
-
-        private static PdfRectangle GetBound(IEnumerable<PdfRectangle> obstacles)
-        {
-            return new PdfRectangle(
+            return new double[]
+            {
                 obstacles.Min(b => b.Left),
                 obstacles.Min(b => b.Bottom),
                 obstacles.Max(b => b.Right),
-                obstacles.Max(b => b.Top));
+                obstacles.Max(b => b.Top)
+            };
         }
 
         #region Sorted Queue
@@ -251,6 +264,7 @@
 
             public void Enqueue(QueueEntry queueEntry)
             {
+                if (this.Contains(queueEntry)) return;
                 if (bound > 0 && Count > bound)
                 {
                     Remove(Min);
@@ -264,25 +278,44 @@
             private readonly double quality;
             private readonly double whitespaceFuzziness;
 
-            public PdfRectangle Bound { get; }
+            public double[] Bound { get; }
 
-            public HashSet<PdfRectangle> Obstacles { get; }
+            public List<double[]> Obstacles { get; }
 
-            public QueueEntry(PdfRectangle bound, HashSet<PdfRectangle> obstacles, double whitespaceFuzziness)
+            public QueueEntry(double[] bound, IEnumerable<double[]> obstacles, double whitespaceFuzziness)
             {
                 Bound = bound;
                 quality = ScoringFunction(Bound);
-                Obstacles = obstacles;
+                Obstacles = obstacles.ToList();
                 this.whitespaceFuzziness = whitespaceFuzziness;
             }
 
-            public PdfRectangle GetPivot()
+            private double[] Centroid(double[] bound)
             {
-                int indexMiddle = Distances.FindIndexNearest(Bound.Centroid,
-                                    Obstacles.Select(o => o.Centroid).ToList(),
-                                    p => p, p => p, Distances.Euclidean, out double d);
+                return new double[] { (bound[0] + bound[2]) / 2.0, (bound[1] + bound[3]) / 2.0 };
+            }
 
-                return indexMiddle == -1 ? Obstacles.First() : Obstacles.ElementAt(indexMiddle);
+            public double[] GetPivot()
+            {
+                // find closest rectangle to centroid
+                var bCentr = Centroid(Bound);
+                double distance = double.MaxValue;
+                double[] closest = Obstacles[0];
+                foreach (var o in Obstacles)
+                {
+                    var oCentr = Centroid(o);
+                    double dx = bCentr[0] - oCentr[0];
+                    double dy = bCentr[1] - oCentr[1];
+                    double currentDistance = dx * dx + dy * dy; // squred dist
+
+                    if (currentDistance < distance)
+                    {
+                        distance = currentDistance;
+                        closest = o;
+                    }
+                }
+
+                return closest;
             }
 
             public bool IsEmptyEnough()
@@ -290,25 +323,60 @@
                 return Obstacles.Count == 0;
             }
 
-            public bool IsEmptyEnough(IEnumerable<PdfRectangle> pageObstacles)
+            public bool IsEmptyEnough(QuadTree<double[]> pageObstacles)
             {
-                if (IsEmptyEnough()) return true;
+                if (IsEmptyEnough())
+                {
+                    return true;
+                }
 
                 double sum = 0;
-                foreach (var obstacle in pageObstacles)
+                foreach (var obstacle in pageObstacles.GetObjectsIntersects(Bound[0], Bound[1], Bound[2], Bound[3], false))
                 {
-                    var intersect = Bound.Intersect(obstacle);
-                    if (!intersect.HasValue) return false;
+                    var intersect = Intersect(Bound, obstacle);
+                    if (intersect == null) continue; //continue; // return false;
 
                     double minimumArea = MinimumOverlappingArea(obstacle, Bound, whitespaceFuzziness);
-
-                    if (intersect.Value.Area > minimumArea)
+                    double intersectArea = (intersect[2] - intersect[0]) * (intersect[3] - intersect[1]);
+                    if (intersectArea > minimumArea)
                     {
                         return false;
                     }
-                    sum += intersect.Value.Area;
+                    sum += intersectArea;
                 }
-                return sum < Bound.Area * whitespaceFuzziness;
+                return sum < (Bound[2] - Bound[0]) * (Bound[3] - Bound[1]) * whitespaceFuzziness;
+            }
+
+            private bool IntersectsWith(double[] rectangle, double[] other)
+            {
+                if (rectangle[0] > other[2] || other[0] > rectangle[2])
+                {
+                    return false;
+                }
+
+                if (rectangle[3] < other[1] || other[3] < rectangle[1])
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+
+            /// <summary>
+            /// Gets the <see cref="PdfRectangle"/> that is the intersection of two rectangles.
+            /// <para>Only works for axis-aligned rectangles.</para>
+            /// </summary>
+            private double[] Intersect(double[] rectangle, double[] other)
+            {
+                if (!IntersectsWith(rectangle, other)) return null;
+                return new double[]
+                {
+                    Math.Max(rectangle[0], other[0]),
+                    Math.Max(rectangle[1], other[1]),
+                    Math.Min(rectangle[2], other[2]),
+                    Math.Min(rectangle[3], other[3])
+                };
             }
 
             public override string ToString()
@@ -316,8 +384,9 @@
                 return "Q=" + quality.ToString("#0.0") + ", O=" + Obstacles.Count + ", " + Bound.ToString();
             }
 
-            public void AddWhitespace(PdfRectangle rectangle)
+            public void AddWhitespace(double[] rectangle)
             {
+                if (Obstacles.Contains(rectangle)) return;
                 Obstacles.Add(rectangle);
             }
 
@@ -330,10 +399,10 @@
             {
                 if (obj is QueueEntry entry)
                 {
-                    return Bound.Left == entry.Bound.Left &&
-                           Bound.Right == entry.Bound.Right &&
-                           Bound.Top == entry.Bound.Top &&
-                           Bound.Bottom == entry.Bound.Bottom &&
+                    return Bound[0] == entry.Bound[0] &&
+                           Bound[1] == entry.Bound[1] &&
+                           Bound[2] == entry.Bound[2] &&
+                           Bound[3] == entry.Bound[3] &&
                            Obstacles == entry.Obstacles;
                 }
                 return false;
@@ -341,27 +410,33 @@
 
             public override int GetHashCode()
             {
-                return (Bound.Left, Bound.Right,
-                        Bound.Top, Bound.Bottom,
+                return (Bound[0], Bound[1],
+                        Bound[2], Bound[3],
                         Obstacles).GetHashCode();
             }
 
-            private static double MinimumOverlappingArea(PdfRectangle r1, PdfRectangle r2, double whitespaceFuzziness)
+            private static double MinimumOverlappingArea(double[] r1, double[] r2, double whitespaceFuzziness)
             {
-                return Math.Min(r1.Area, r2.Area) * whitespaceFuzziness;
+                double area1 = (r1[2] - r1[0]) * (r1[3] - r1[1]);
+                double area2 = (r2[2] - r2[0]) * (r2[3] - r2[1]);
+                return Math.Min(area1, area2) * whitespaceFuzziness;
             }
 
             /// <summary>
             /// The scoring function Q(r) which is subsequently used to sort a priority queue.
             /// </summary>
             /// <param name="rectangle"></param>
-            private static double ScoringFunction(PdfRectangle rectangle)
+            private static double ScoringFunction(double[] rectangle)
             {
                 // As can be seen, tall rectangles are preferred. The trick while choosing this Q(r) was
                 // to keep that preference while still allowing wide rectangles to be chosen. After having
                 // experimented with quite a few variations, this simple function was considered a good
                 // solution.
-                return rectangle.Area * (rectangle.Height / 4.0);
+
+                double height = rectangle[3] - rectangle[1];
+                double area = height * (rectangle[2] - rectangle[0]);
+
+                return area * (height / 4.0);
             }
         }
         #endregion

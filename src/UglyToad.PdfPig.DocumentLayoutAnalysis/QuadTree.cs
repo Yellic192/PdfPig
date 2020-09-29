@@ -3,6 +3,7 @@
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Linq;
     using UglyToad.PdfPig.Core;
     using UglyToad.PdfPig.Geometry;
 
@@ -73,6 +74,22 @@
             RootQuad = new QuadTreeNode<T>(normalised.Left, normalised.Bottom, normalised.Right, normalised.Top);
             this.transf = elementsRectangleFunc;
         }
+
+        /// <summary>
+        /// Creates a QuadTree for the specified area.
+        /// </summary>
+        /// <param name="rect">The area this QuadTree object will encompass.</param>
+        /// <param name="items">The elements to be contained in the tree.</param>
+        /// <param name="elementsRectangleFunc">The function that converts an element into a PdfRectangle.
+        /// After this first transformation, the resulting rectangle will be normalised to be axis-aligned.</param>
+        public QuadTree(PdfRectangle rect, IEnumerable<T> items, Func<T, PdfRectangle> elementsRectangleFunc)
+            : this(rect, elementsRectangleFunc)
+        {
+            foreach (var item in items)
+            {
+                Add(item);
+            }
+        }
         #endregion
 
         #region Public Methods
@@ -100,20 +117,36 @@
         /// <summary>
         /// Get the objects in this tree that intersect with the specified rectangle.
         /// </summary>
-        /// <param name="rect">The rectangle to find objects in.</param>
-        public List<T> GetObjectsIntersects(PdfRectangle rect)
+        /// <param name="rect">The rectangle to find objects in.</param>#
+        /// <param name="includeborder"></param>
+        public List<T> GetObjectsIntersects(PdfRectangle rect, bool includeborder)
         {
-            var normalised = rect.Normalise();
-            return GetObjectsIntersects(new QTRectangle(normalised.Left, normalised.Bottom, normalised.Right, normalised.Top));
+            return GetObjectsIntersects(new QTRectangle(rect.Left, rect.Bottom, rect.Right, rect.Top), includeborder);
         }
 
         /// <summary>
         /// Get the objects in this tree that intersect with the specified rectangle.
         /// </summary>
-        /// <param name="rect">The rectangle to find objects in.</param>
-        private List<T> GetObjectsIntersects(QTRectangle rect)
+        /// <param name="left"></param>
+        /// <param name="bottom"></param>
+        /// <param name="right"></param>
+        /// <param name="top"></param>
+        /// <param name="includeborder"></param>
+
+        public List<T> GetObjectsIntersects(double left, double bottom, double right, double top, bool includeborder)
         {
-            return RootQuad.GetObjectsIntersects(rect);
+            return GetObjectsIntersects(new QTRectangle(left, bottom, right, top), includeborder);
+        }
+
+
+        /// <summary>
+        /// Get the objects in this tree that intersect with the specified rectangle.
+        /// </summary>
+        /// <param name="rect">The rectangle to find objects in.</param>
+        /// <param name="includeborder"></param>
+        private List<T> GetObjectsIntersects(QTRectangle rect, bool includeborder)
+        {
+            return RootQuad.GetObjectsIntersects(rect, includeborder);
         }
 
         /// <summary>
@@ -123,8 +156,7 @@
         /// <param name="includeborder"></param>
         public List<T> GetObjectsContains(PdfRectangle rect, bool includeborder)
         {
-            var normalised = rect.Normalise();
-            return GetObjectsContains(new QTRectangle(normalised.Left, normalised.Bottom, normalised.Right, normalised.Top), includeborder);
+            return GetObjectsContains(new QTRectangle(rect.Left, rect.Bottom, rect.Right, rect.Top), includeborder);
         }
 
         /// <summary>
@@ -143,6 +175,17 @@
         public List<T> GetAllObjects()
         {
             return new List<T>(wrappedDictionary.Keys);
+        }
+
+        /// <summary>
+        /// all empty leafs rect.
+        /// </summary>
+        /// <returns></returns>
+        public List<PdfRectangle> GetAllEmptyLeafs()
+        {
+            List<QTRectangle> rect = new List<QTRectangle>();
+            RootQuad.GetAllEmptyLeafs(ref rect);
+            return rect.Select(x => new PdfRectangle(x.X0, x.Y0, x.X1, x.Y1)).ToList();
         }
 
         /// <summary>
@@ -172,6 +215,7 @@
         ///<exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1" /> is read-only.</exception>
         public void Add(T item)
         {
+            if (Contains(item)) return;
             QuadTreeObject<T> wrappedObject = new QuadTreeObject<T>(item, transf);
             wrappedDictionary.Add(item, wrappedObject);
             RootQuad.Insert(wrappedObject);
@@ -349,7 +393,7 @@
         /// <summary>
         /// How many objects can exist in a QuadTree before it sub divides itself
         /// </summary>
-        private const int MaxObjectsPerNode = 2;
+        private const int MaxObjectsPerNode = 1;
         #endregion
 
         #region Private Members
@@ -753,17 +797,6 @@
             }
         }
 
-        /// <summary>
-        /// Get the objects in this tree that intersect with the specified rectangle.
-        /// </summary>
-        /// <param name="searchRect">The rectangle to find objects in.</param>
-        internal List<T> GetObjectsIntersects(QTRectangle searchRect)
-        {
-            List<T> results = new List<T>();
-            GetObjectsIntersects(searchRect, ref results);
-            return results;
-        }
-
         internal void FindNearestNeighbour(PdfPoint point, ref T element, ref double distance)
         {
             if (point.X < QuadRect.X0 - distance ||
@@ -838,8 +871,22 @@
         /// Get the objects in this tree that intersect with the specified rectangle.
         /// </summary>
         /// <param name="searchRect">The rectangle to find objects in.</param>
+        /// <param name="includeborder"></param>
+        internal List<T> GetObjectsIntersects(QTRectangle searchRect, bool includeborder)
+        {
+            List<T> results = new List<T>();
+            GetObjectsIntersects(searchRect, includeborder, ref results);
+            return results;
+        }
+
+
+        /// <summary>
+        /// Get the objects in this tree that intersect with the specified rectangle.
+        /// </summary>
+        /// <param name="searchRect">The rectangle to find objects in.</param>
+        /// <param name="includeBorder"></param>
         /// <param name="results">A reference to a list that will be populated with the results.</param>
-        internal void GetObjectsIntersects(QTRectangle searchRect, ref List<T> results)
+        internal void GetObjectsIntersects(QTRectangle searchRect, bool includeBorder, ref List<T> results)
         {
             // We can't do anything if the results list doesn't exist
             if (results != null)
@@ -849,14 +896,14 @@
                     // If the search area completely contains this quad, just get every object this quad and all it's children have
                     GetAllObjects(ref results);
                 }
-                else if (searchRect.Intersects(this.rect))
+                else if (searchRect.Intersects(this.rect, true))
                 {
                     // Otherwise, if the quad isn't fully contained, only add objects that intersect with the search rectangle
                     if (objects != null)
                     {
                         for (int i = 0; i < objects.Count; i++)
                         {
-                            if (searchRect.Intersects(objects[i].Rect))
+                            if (searchRect.Intersects(objects[i].Rect, includeBorder))
                             {
                                 results.Add(objects[i].Data);
                             }
@@ -866,10 +913,10 @@
                     // Get the objects for the search rectangle from the children
                     if (childTL != null)
                     {
-                        childTL.GetObjectsIntersects(searchRect, ref results);
-                        childTR.GetObjectsIntersects(searchRect, ref results);
-                        childBL.GetObjectsIntersects(searchRect, ref results);
-                        childBR.GetObjectsIntersects(searchRect, ref results);
+                        childTL.GetObjectsIntersects(searchRect, includeBorder, ref results);
+                        childTR.GetObjectsIntersects(searchRect, includeBorder, ref results);
+                        childBL.GetObjectsIntersects(searchRect, includeBorder, ref results);
+                        childBR.GetObjectsIntersects(searchRect, includeBorder, ref results);
                     }
                 }
             }
@@ -898,12 +945,12 @@
             // We can't do anything if the results list doesn't exist
             if (results != null)
             {
-                if (searchRect.Contains(this.rect, includeBorder))
+                if (searchRect.Contains(this.rect, true)) // true?
                 {
                     // If the search area completely contains this quad, just get every object this quad and all it's children have
                     GetAllObjects(ref results);
                 }
-                else if (searchRect.Intersects(this.rect))
+                else if (searchRect.Intersects(this.rect, true)) // true
                 {
                     // Otherwise, if the quad isn't fully contained, only add objects that are inside the search rectangle
                     if (objects != null)
@@ -953,6 +1000,27 @@
                 childBR.GetAllObjects(ref results);
             }
         }
+
+        /// <summary>
+        /// Get all objects in this Quad, and it's children.
+        /// </summary>
+        /// <param name="results">A reference to a list in which to store the objects.</param>
+        internal void GetAllEmptyLeafs(ref List<QTRectangle> results)
+        {
+            // If we have children, get their objects too
+            if (childTL != null)
+            {
+                childTL.GetAllEmptyLeafs(ref results);
+                childTR.GetAllEmptyLeafs(ref results);
+                childBL.GetAllEmptyLeafs(ref results);
+                childBR.GetAllEmptyLeafs(ref results);
+            }
+            else if (IsEmptyLeaf)
+            {
+                results.Add(QuadRect);
+            }
+        }
+
 
         /// <summary>
         /// Moves the QuadTree object in the tree
@@ -1044,7 +1112,7 @@
             }
         }
 
-        public bool Intersects(QTRectangle other)
+        public bool Intersects(QTRectangle other, bool includeborder)
         {
             if (Left > other.Right || other.Left > Right)
             {
@@ -1054,6 +1122,14 @@
             if (Top < other.Bottom || other.Top < Bottom)
             {
                 return false;
+            }
+
+            if (!includeborder)
+            {
+                return !(Left == other.Right ||
+                         Right == other.Left ||
+                         Bottom == other.Top ||
+                         Top == other.Bottom);
             }
 
             return true;
