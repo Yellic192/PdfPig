@@ -16,6 +16,7 @@
         private readonly ICidFontProgram fontProgram;
         private readonly VerticalWritingMetrics verticalWritingMetrics;
         private readonly double? defaultWidth;
+        private readonly double defaultHeight;
 
         public NameToken Type { get; }
 
@@ -38,8 +39,8 @@
 
         public Type0CidFont(ICidFontProgram fontProgram, NameToken type, NameToken subType, NameToken baseFont,
             CharacterIdentifierSystemInfo systemInfo,
-            FontDescriptor descriptor, 
-            VerticalWritingMetrics verticalWritingMetrics, 
+            FontDescriptor descriptor,
+            VerticalWritingMetrics verticalWritingMetrics,
             IReadOnlyDictionary<int, double> widths,
             double? defaultWidth)
         {
@@ -51,6 +52,7 @@
             BaseFont = baseFont;
             SystemInfo = systemInfo;
             var scale = 1 / (double)(fontProgram?.GetFontMatrixMultiplier() ?? 1000);
+            defaultHeight = 1 / scale;
             FontMatrix = TransformationMatrix.FromValues(scale, 0, 0, scale, 0, 0);
             Descriptor = descriptor;
             Widths = widths;
@@ -96,7 +98,7 @@
 
             if (fontProgram == null)
             {
-                return Descriptor?.BoundingBox ?? new PdfRectangle(0, 0, 1000, 0);
+                return Descriptor?.BoundingBox ?? new PdfRectangle(0, 0, 1000, defaultHeight);
             }
             
             if (fontProgram.TryGetBoundingBox(characterIdentifier, out var boundingBox))
@@ -106,15 +108,15 @@
 
             if (Widths.TryGetValue(characterIdentifier, out var width))
             {
-                return new PdfRectangle(0, 0, width, 0);
+                return new PdfRectangle(0, 0, width, defaultHeight);
             }
 
             if (defaultWidth.HasValue)
             {
-                return new PdfRectangle(0, 0, defaultWidth.Value, 0);
+                return new PdfRectangle(0, 0, defaultWidth.Value, defaultHeight);
             }
 
-            return new PdfRectangle(0, 0, 1000, 0);
+            return new PdfRectangle(0, 0, 1000, defaultHeight);
         }
 
         public PdfVector GetPositionVector(int characterIdentifier)

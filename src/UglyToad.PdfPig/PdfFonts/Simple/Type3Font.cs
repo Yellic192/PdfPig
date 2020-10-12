@@ -16,6 +16,7 @@
         private readonly int lastChar;
         private readonly double[] widths;
         private readonly ToUnicodeCMap toUnicodeCMap;
+        private readonly double defaultHeight;
 
         /// <summary>
         /// Type 3 fonts are usually unnamed.
@@ -32,6 +33,19 @@
         {
             Name = name;
 
+            // not correct
+            defaultHeight = 100;
+            /*
+            defaultHeight = System.Math.Abs(fontMatrix.Transform(new PdfRectangle(0, 0, 1, 1)).Height);
+            if (defaultHeight != 0)
+            {
+                defaultHeight = 1.0 / defaultHeight;
+            }
+            else
+            {
+                defaultHeight = 100;
+            }
+            */
             this.boundingBox = boundingBox;
             this.fontMatrix = fontMatrix;
             this.encoding = encoding;
@@ -82,7 +96,7 @@
                 throw new InvalidFontFormatException($"The character code was not contained in the widths array: {characterCode}.");
             }
 
-            return new PdfRectangle(0, 0, widths[characterCode - firstChar], 0);
+            return new PdfRectangle(0, 0, widths[characterCode - firstChar], defaultHeight);
         }
 
         public TransformationMatrix GetFontMatrix()

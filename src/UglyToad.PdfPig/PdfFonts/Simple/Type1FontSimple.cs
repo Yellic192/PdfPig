@@ -37,6 +37,8 @@
 
         private readonly TransformationMatrix fontMatrix;
 
+        private readonly double defaultHeight;
+
         public NameToken Name { get; }
 
         public bool IsVertical { get; } = false;
@@ -54,6 +56,7 @@
             this.encoding = encoding;
             this.fontProgram = fontProgram;
             this.toUnicodeCMap = new ToUnicodeCMap(toUnicodeCMap);
+            this.defaultHeight = 1000;
 
             var matrix = DefaultTransformationMatrix;
 
@@ -72,7 +75,7 @@
             fontMatrix = matrix;
 
             Name = name;
-            Details = fontDescriptor?.ToDetails(name?.Data) 
+            Details = fontDescriptor?.ToDetails(name?.Data)
                       ?? FontDetails.GetDefault(name?.Data);
         }
 
@@ -144,7 +147,7 @@
 
             var width = GetWidth(characterCode, boundingBox);
 
-            var result = new CharacterBoundingBox(boundingBox, width/1000.0);
+            var result = new CharacterBoundingBox(boundingBox, width / 1000.0);
 
             cachedBoundingBoxes[characterCode] = result;
 
@@ -172,12 +175,12 @@
         {
             if (characterCode < firstChar || characterCode > lastChar)
             {
-                return new PdfRectangle(0, 0, 250, 0);
+                return new PdfRectangle(0, 0, 250, defaultHeight);
             }
 
             if (fontProgram == null)
             {
-                return new PdfRectangle(0, 0, widths[characterCode - firstChar], 0);
+                return new PdfRectangle(0, 0, widths[characterCode - firstChar], defaultHeight);
             }
 
             PdfRectangle? rect = null;
@@ -205,7 +208,7 @@
 
             if (!rect.HasValue)
             {
-                return new PdfRectangle(0, 0, widths[characterCode - firstChar], 0);
+                return new PdfRectangle(0, 0, widths[characterCode - firstChar], defaultHeight);
             }
 
             // ReSharper disable once PossibleInvalidOperationException
