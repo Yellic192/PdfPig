@@ -226,6 +226,13 @@
                             return UnsupportedColorSpaceDetails.Instance;
                         }
 
+                        // TODO - Some are encoded stream - What is it?
+                        IReadOnlyList<byte> rawProfile = null;
+                        if (streamToken.StreamDictionary.ContainsKey(NameToken.Filter))
+                        {
+                            var decoded = streamToken.Decode(filterProvider, scanner);
+                        }
+
                         // Alternate is optional
                         ColorSpaceDetails alternateColorSpaceDetails = null;
                         if (streamToken.StreamDictionary.TryGet(NameToken.Alternate, out NameToken alternateColorSpaceNameToken) &&
@@ -249,7 +256,7 @@
                             metadata = new XmpMetadata(metadataStream, filterProvider, scanner);
                         }
 
-                        return new ICCBasedColorSpaceDetails(numeric.Int, alternateColorSpaceDetails, range, metadata);
+                        return new ICCBasedColorSpaceDetails(numeric.Int, alternateColorSpaceDetails, range, metadata, rawProfile);
                     }
                 case ColorSpace.Indexed:
                     {
@@ -415,6 +422,21 @@
                         }
                         else if (DirectObjectFinder.TryGet(func, scanner, out StreamToken functionStream))
                         {
+                            if (functionStream.StreamDictionary.ContainsKey(NameToken.Filter))
+                            {
+                                // TODO - something better
+                                var decoded = functionStream.Decode(filterProvider, scanner);
+
+                                var strDic = functionStream.StreamDictionary.Data.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+                                if (strDic.ContainsKey(NameToken.Filter.Data))
+                                {
+                                    strDic.Remove(NameToken.Filter.Data);
+                                    strDic.Remove(NameToken.Length.Data);
+                                }
+
+                                functionStream = new StreamToken(new DictionaryToken(strDic), decoded);
+                            }
+
                             functionTokensUnion = Union<DictionaryToken, StreamToken>.Two(functionStream);
                         }
                         else

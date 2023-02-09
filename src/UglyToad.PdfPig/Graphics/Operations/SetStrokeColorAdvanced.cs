@@ -56,26 +56,20 @@
         /// <inheritdoc />
         public void Run(IOperationContext operationContext)
         {
-            if (operationContext.ColorSpaceContext.CurrentStrokingColorSpace.GetFamily() != ColorSpaceFamily.Device
-                || operationContext.ColorSpaceContext.AdvancedStrokingColorSpace != null)
+            // TODO - check if needed
+            if (operationContext.GetCurrentState().ColorSpaceContext.CurrentStrokingColorSpaceDetails is SeparationColorSpaceDetails separation)
+            {
+                if (separation.AlternateColorSpaceDetails.BaseType.GetFamily() != ColorSpaceFamily.Device)
+                {
+                    return;
+                }
+            }
+            else if (operationContext.GetCurrentState().ColorSpaceContext.CurrentStrokingColorSpaceDetails.BaseType.GetFamily() != ColorSpaceFamily.Device)
             {
                 return;
             }
 
-            switch (Operands.Count)
-            {
-                case 1:
-                    operationContext.ColorSpaceContext.SetStrokingColorGray(Operands[0]);
-                    break;
-                case 3:
-                    operationContext.ColorSpaceContext.SetStrokingColorRgb(Operands[0], Operands[1], Operands[2]);
-                    break;
-                case 4:
-                    operationContext.ColorSpaceContext.SetStrokingColorCmyk(Operands[0], Operands[1], Operands[2], Operands[3]);
-                    break;
-                default:
-                    return;
-            }
+            operationContext.GetCurrentState().ColorSpaceContext.SetStrokingColor(Operands);
         }
 
         /// <inheritdoc />

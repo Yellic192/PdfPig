@@ -1,10 +1,12 @@
 ﻿namespace UglyToad.PdfPig.SkiaSharp
 {
     using global::SkiaSharp;
+    using System;
     using System.Collections.Generic;
     using UglyToad.PdfPig.Core;
     using UglyToad.PdfPig.Graphics;
     using UglyToad.PdfPig.Graphics.Colors;
+    using UglyToad.PdfPig.Graphics.Core;
     using static UglyToad.PdfPig.Core.PdfSubpath;
 
     internal static class SkiaSharpExtensions
@@ -52,12 +54,93 @@
             return new SKPoint((float)(pdfPoint.X * scale), (float)(height - pdfPoint.Y * scale));
         }
 
+        public static SKStrokeJoin ToSKStrokeJoin(this LineJoinStyle lineJoinStyle)
+        {
+            switch (lineJoinStyle)
+            {
+                case LineJoinStyle.Bevel:
+                    return SKStrokeJoin.Bevel;
+
+                case LineJoinStyle.Miter:
+                    return SKStrokeJoin.Miter;
+
+                case LineJoinStyle.Round:
+                    return SKStrokeJoin.Round;
+
+                default:
+                    throw new NotImplementedException($"Unknown LineJoinStyle '{lineJoinStyle}'.");
+            }
+        }
+
+        public static SKStrokeCap ToSKStrokeCap(this LineCapStyle lineCapStyle)
+        {
+            switch (lineCapStyle) // to put in helper
+            {
+                case LineCapStyle.Butt:
+                    return SKStrokeCap.Butt;
+
+                case LineCapStyle.ProjectingSquare:
+                    return SKStrokeCap.Square;
+
+                case LineCapStyle.Round:
+                    return SKStrokeCap.Round;
+
+                default:
+                    throw new NotImplementedException($"Unknown LineCapStyle '{lineCapStyle}'.");
+            }
+        }
+
+        public static SKPathEffect ToSKPathEffect(this LineDashPattern lineDashPattern, double mult)
+        {
+            if (lineDashPattern.Phase != 0 || lineDashPattern.Array?.Count > 0) // to put in helper
+            {
+                //* https://docs.microsoft.com/en-us/dotnet/api/system.drawing.pen.dashpattern?view=dotnet-plat-ext-3.1
+                //* The elements in the dashArray array set the length of each dash and space in the dash pattern. 
+                //* The first element sets the length of a dash, the second element sets the length of a space, the
+                //* third element sets the length of a dash, and so on. Consequently, each element should be a 
+                //* non-zero positive number.
+
+                if (lineDashPattern.Array.Count == 1)
+                {
+                    List<float> pattern = new List<float>();
+                    var v = lineDashPattern.Array[0];
+                    pattern.Add((float)((double)v / mult));
+                    pattern.Add((float)((double)v / mult));
+                    return SKPathEffect.CreateDash(pattern.ToArray(), (float)v); // TODO
+                }
+                else if (lineDashPattern.Array.Count > 0)
+                {
+                    List<float> pattern = new List<float>();
+                    for (int i = 0; i < lineDashPattern.Array.Count; i++)
+                    {
+                        var v = lineDashPattern.Array[i];
+                        if (v == 0)
+                        {
+                            pattern.Add((float)(1.0 / 72.0 * mult));
+                        }
+                        else
+                        {
+                            pattern.Add((float)((double)v / mult));
+                        }
+                    }
+                    //pen.DashPattern = pattern.ToArray(); // TODO
+                    return SKPathEffect.CreateDash(pattern.ToArray(), pattern[0]); // TODO
+                }
+                //pen.DashOffset = path.LineDashPattern.Value.Phase; // mult?? //  // TODO
+            }
+            return null;
+        }
+
+        public static SKPathFillType ToSKPathFillType(this FillingRule fillingRule)
+        {
+            return fillingRule == FillingRule.NonZeroWinding ? SKPathFillType.Winding : SKPathFillType.EvenOdd;
+        }
+
         /// <summary>
         /// Default to Black.
         /// </summary>
         /// <param name="pdfColor"></param>
-        /// <returns></returns>
-        public static SKColor ToSystemColor(this IColor pdfColor)
+        public static SKColor ToSKColor(this IColor pdfColor)
         {
             if (pdfColor != null)
             {

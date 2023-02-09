@@ -7,7 +7,6 @@
     using UglyToad.PdfPig.Content;
     using UglyToad.PdfPig.Core;
     using UglyToad.PdfPig.Filters;
-    using UglyToad.PdfPig.Fonts.Standard14Fonts;
     using UglyToad.PdfPig.Geometry;
     using UglyToad.PdfPig.Graphics;
     using UglyToad.PdfPig.Graphics.Colors;
@@ -67,9 +66,9 @@
         /// </summary>
         /// <param name="annotation"></param>
         /// <returns></returns>
-        protected static DictionaryToken GetAppearance(Annotation annotation)
+        protected DictionaryToken GetAppearance(Annotation annotation)
         {
-            if (annotation.AnnotationDictionary.TryGet<DictionaryToken>(NameToken.Ap, out var appearance))
+            if (annotation.AnnotationDictionary.TryGet<DictionaryToken>(NameToken.Ap, pdfScanner, out var appearance))
             {
                 return appearance;
             }
@@ -77,44 +76,15 @@
         }
 
         /// <summary>
-        /// todo (cannot be loaded by SkiaSharp)
-        /// </summary>
-        /// <param name="afmName"></param>
-        /// <returns></returns>
-        /// <exception cref="InvalidOperationException"></exception>
-        [Obsolete("SkiaSharp can't load AFM files")]
-        protected byte[] GetAfmStream(string afmName)
-        {
-            // UglyToad.PdfPig.Fonts.Standard14Fonts .Standard14
-            var assembly = typeof(Standard14).Assembly;
-
-            var name = $"UglyToad.PdfPig.Fonts.Resources.AdobeFontMetrics.{afmName}.afm";
-
-            //IInputBytes bytes;
-            var memory = new MemoryStream();
-            using (var resource = assembly.GetManifestResourceStream(name))
-            {
-                if (resource == null)
-                {
-                    throw new InvalidOperationException($"Could not find AFM resource with name: {name}.");
-                }
-
-                resource.CopyTo(memory);
-                return memory.ToArray();
-                //bytes = new ByteArrayInputBytes(memory.ToArray());
-            }
-        }
-
-        /// <summary>
         /// todo
         /// </summary>
         /// <param name="annotation"></param>
-        /// <returns></returns>
         protected StreamToken GetNormalAppearanceAsStream(Annotation annotation)
         {
-            // https://github.com/apache/pdfbox/blob/trunk/pdfbox/src/main/java/org/apache/pdfbox/pdmodel/interactive/annotation/handlers/PDUnderlineAppearanceHandler.java
-            // https://github.com/apache/pdfbox/blob/trunk/pdfbox/src/main/java/org/apache/pdfbox/pdmodel/interactive/annotation/handlers/PDHighlightAppearanceHandler.java
             var dict = GetAppearance(annotation);
+
+            // https://github.com/apache/pdfbox/blob/trunk/pdfbox/src/main/java/org/apache/pdfbox/pdmodel/interactive/form/AppearanceGeneratorHelper.java
+            // for highlight default colors from Adobe
 
             if (dict == null)
             {
@@ -136,37 +106,64 @@
                 }
             }
 
+            StreamToken normalAppearance = null;
+
             if (data is StreamToken streamToken)
             {
-                return streamToken;
+                normalAppearance = streamToken;
             }
             else if (data is DictionaryToken dictionaryToken)
             {
-                if (annotation.AnnotationDictionary.TryGet(NameToken.As, out var appearanceState))
+                if (annotation.AnnotationDictionary.TryGet<NameToken>(NameToken.As, pdfScanner, out var appearanceState))
                 {
-                    return dictionaryToken.Get<StreamToken>(appearanceState as NameToken, pdfScanner);
+                    if (!dictionaryToken.TryGet<StreamToken>(appearanceState, pdfScanner, out normalAppearance))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"GetNormalAppearanceAsStream: Error could not find token '{appearanceState.Data}' in annotation dictionary or in D dictionary.");
+                    }
                 }
-
-                return null;
             }
             else if (data is ObjectToken objectToken)
             {
                 if (objectToken.Data is StreamToken streamToken2)
                 {
-                    return streamToken2;
+                    normalAppearance = streamToken2;
                 }
                 else if (objectToken.Data is DictionaryToken dictionaryToken2)
                 {
-                    // getAppearanceState
-                    if (annotation.AnnotationDictionary.TryGet(NameToken.As, out var appearanceState))
+                    if (annotation.AnnotationDictionary.TryGet<NameToken>(NameToken.As, pdfScanner, out var appearanceState))
                     {
-                        return dictionaryToken2.Get<StreamToken>(appearanceState as NameToken, pdfScanner);
+                        if (!dictionaryToken2.TryGet<StreamToken>(appearanceState, pdfScanner, out normalAppearance))
+                        {
+                            System.Diagnostics.Debug.WriteLine($"GetNormalAppearanceAsStream: Error could not find token '{appearanceState.Data}' in annotation dictionary or in D dictionary.");
+                        }
                     }
-                    return null;
                 }
             }
+            else
+            {
+                throw new ArgumentException();
+            }
 
-            throw new ArgumentException();
+            if (annotation.Type == AnnotationType.Widget)
+            {
+                /*
+                var contentStream = normalAppearance.Decode(filterProvider, pdfScanner);
+                var operations = pageContentParser.Parse(pageNumber, new ByteArrayInputBytes(contentStream), parsingOptions.Logger).ToList();
+
+                // DO STUFF
+
+                using (MemoryStream newMs = new MemoryStream())
+                {
+                    foreach (var operation in operations)
+                    {
+                        operation.Write(newMs);
+                    }
+
+                    normalAppearance = new StreamToken(normalAppearance.StreamDictionary, newMs.ToArray());
+                }
+                */
+            }
+            return normalAppearance;
         }
 
         private StreamToken GenerateNormalAppearanceAsStream(Annotation annotation)
@@ -186,9 +183,140 @@
 
                 case AnnotationType.Link:
                     return GenerateLinkNormalAppearanceAsStream(annotation);
+
+                case AnnotationType.Widget:
+                    return GenerateWidgetNormalAppearanceAsStream(annotation);
             }
 
             return null;
+        }
+
+        private StreamToken GenerateWidgetNormalAppearanceAsStream(Annotation annotation)
+        {
+            // This will create an appearance with the default background color from Acrobat reader
+            PdfRectangle rect = annotation.Rectangle;
+            var ab = annotation.Border;
+
+            using (var ms = new MemoryStream())
+            {
+                decimal lineWidth = ab.BorderWidth;
+
+                var (r, g, b) = DefaultFieldsHighlightColor.ToRGBValues();
+                // GetAnnotationNonStrokeColorOperation(new decimal[] { r, g, b })?.Write(ms); // let's not fill anything for now
+
+                float[] pathsArray = null;
+                if (annotation.AnnotationDictionary.TryGet<ArrayToken>(NameToken.Quadpoints, pdfScanner, out var quadpoints))
+                {
+                    pathsArray = quadpoints.Data?.OfType<NumericToken>().Select(x => (float)x.Double)?.ToArray();
+                }
+
+                if (pathsArray != null)
+                {
+                    // QuadPoints shall be ignored if any coordinate in the array lies outside
+                    // the region specified by Rect.
+                    for (int i = 0; i < pathsArray.Length / 2; ++i)
+                    {
+                        if (!rect.Contains(new PdfPoint(pathsArray[i * 2], pathsArray[i * 2 + 1])))
+                        {
+                            //LOG.warn("At least one /QuadPoints entry (" +
+                            //        pathsArray[i * 2] + ";" + pathsArray[i * 2 + 1] +
+                            //        ") is outside of rectangle, " + rect +
+                            //        ", /QuadPoints are ignored and /Rect is used instead");
+                            pathsArray = null;
+                            break;
+                        }
+                    }
+                }
+
+                if (pathsArray == null)
+                {
+                    // Convert rectangle coordinates as if it was a /QuadPoints entry
+                    pathsArray = new float[8];
+                    pathsArray[0] = (float)rect.BottomLeft.X;
+                    pathsArray[1] = (float)rect.BottomLeft.Y;
+                    pathsArray[2] = (float)rect.TopRight.X;
+                    pathsArray[3] = (float)rect.BottomLeft.Y;
+                    pathsArray[4] = (float)rect.TopRight.X;
+                    pathsArray[5] = (float)rect.TopRight.Y;
+                    pathsArray[6] = (float)rect.BottomLeft.X;
+                    pathsArray[7] = (float)rect.TopRight.Y;
+                }
+
+                int of = 0;
+                while (of + 7 < pathsArray.Length)
+                {
+                    new BeginNewSubpath((decimal)pathsArray[of], (decimal)pathsArray[of + 1]).Write(ms);
+                    new AppendStraightLineSegment((decimal)pathsArray[of + 2], (decimal)pathsArray[of + 3]).Write(ms);
+
+                    new AppendStraightLineSegment((decimal)pathsArray[of + 4], (decimal)pathsArray[of + 5]).Write(ms);
+                    new AppendStraightLineSegment((decimal)pathsArray[of + 6], (decimal)pathsArray[of + 7]).Write(ms);
+                    UglyToad.PdfPig.Graphics.Operations.PathConstruction.CloseSubpath.Value.Write(ms);
+                    of += 8;
+                }
+
+                //PdfPig.Graphics.Operations.PathPainting.FillPathEvenOddRule.Value.Write(ms); // let's not fill anything for now
+
+                var dict = dictionary.Data.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+                if (annotation.AnnotationDictionary.TryGet(NameToken.Rect, out var rectToken))
+                {
+                    dict.Add(NameToken.Bbox.Data, rectToken); // should use new rect
+                }
+
+                return new StreamToken(new DictionaryToken(dict), ms.ToArray());
+            }
+        }
+
+        private IGraphicsStateOperation GetAnnotationNonStrokeColorOperation(decimal[] color)
+        {
+            // An array of numbers in the range 0.0 to 1.0, representing a colour used for the following purposes:
+            // The background of the annotation’s icon when closed
+            // The title bar of the annotation’s pop - up window
+            // The border of a link annotation
+            // The number of array elements determines the colour space in which the colour shall be defined:
+            // 0    No colour; transparent
+            // 1    DeviceGray
+            // 3    DeviceRGB
+            // 4    DeviceCMYK
+            switch (color.Length)
+            {
+                case 0:
+                    return null;
+                case 1:
+                    return new SetNonStrokeColorDeviceGray(color[0]);
+                case 3:
+                    return new SetNonStrokeColorDeviceRgb(color[0], color[1], color[2]);
+                case 4:
+                    return new SetNonStrokeColorDeviceCmyk(color[0], color[1], color[2], color[3]);
+                default:
+                    throw new ArgumentException("TODO", nameof(color));
+            }
+        }
+
+        private IGraphicsStateOperation GetAnnotationStrokeColorOperation(decimal[] color)
+        {
+            // An array of numbers in the range 0.0 to 1.0, representing a colour used for the following purposes:
+            // The background of the annotation’s icon when closed
+            // The title bar of the annotation’s pop - up window
+            // The border of a link annotation
+            // The number of array elements determines the colour space in which the colour shall be defined:
+            // 0    No colour; transparent
+            // 1    DeviceGray
+            // 3    DeviceRGB
+            // 4    DeviceCMYK
+            switch (color.Length)
+            {
+                case 0:
+                    return null;
+                case 1:
+                    return new SetStrokeColorDeviceGray(color[0]);
+                case 3:
+                    return new SetStrokeColorDeviceRgb(color[0], color[1], color[2]);
+                case 4:
+                    return new SetStrokeColorDeviceCmyk(color[0], color[1], color[2], color[3]);
+                default:
+                    throw new ArgumentException("TODO", nameof(color));
+            }
         }
 
         private StreamToken GenerateHighlightNormalAppearanceAsStream(Annotation annotation)
@@ -197,7 +325,7 @@
             // https://github.com/apache/pdfbox/blob/trunk/pdfbox/src/main/java/org/apache/pdfbox/pdmodel/interactive/annotation/handlers/PDHighlightAppearanceHandler.java
             PdfRectangle rect = annotation.Rectangle;
 
-            if (!annotation.AnnotationDictionary.TryGet<ArrayToken>(NameToken.Quadpoints, out var quadpoints))
+            if (!annotation.AnnotationDictionary.TryGet<ArrayToken>(NameToken.Quadpoints, pdfScanner, out var quadpoints))
             {
                 return null;
             }
@@ -206,7 +334,7 @@
 
             var ab = annotation.Border;
 
-            if (!annotation.AnnotationDictionary.TryGet<ArrayToken>(NameToken.C, out var colorToken) || colorToken.Data.Count == 0)
+            if (!annotation.AnnotationDictionary.TryGet<ArrayToken>(NameToken.C, pdfScanner, out var colorToken) || colorToken.Data.Count == 0)
             {
                 return null;
             }
@@ -244,11 +372,11 @@
                 maxDelta = Math.Max(delta, maxDelta);
             }
 
-            var setLowerLeftX = Math.Min(minX - (float)width / 2.0, rect.BottomLeft.X); //.getLowerLeftX()));
-            var setLowerLeftY = Math.Min(minY - (float)width / 2.0, rect.BottomLeft.Y); // .getLowerLeftY()));
-            var setUpperRightX = Math.Max(maxX + (float)width / 2.0, rect.TopRight.X); //.getUpperRightX()));
-            var setUpperRightY = Math.Max(maxY + (float)width / 2.0, rect.TopRight.Y); //rect.getUpperRightY()));
-            PdfRectangle pdfRectangle = new PdfRectangle(setLowerLeftX, setLowerLeftY, setUpperRightX, setUpperRightY); //annotation.setRectangle(rect);
+            var setLowerLeftX = Math.Min(minX - (float)width / 2.0, rect.BottomLeft.X);
+            var setLowerLeftY = Math.Min(minY - (float)width / 2.0, rect.BottomLeft.Y);
+            var setUpperRightX = Math.Max(maxX + (float)width / 2.0, rect.TopRight.X);
+            var setUpperRightY = Math.Max(maxY + (float)width / 2.0, rect.TopRight.Y);
+            PdfRectangle pdfRectangle = new PdfRectangle(setLowerLeftX, setLowerLeftY, setUpperRightX, setUpperRightY);
 
             try
             {
@@ -280,7 +408,7 @@
                     frm2.setBBox(annotation.getRectangle());
                     */
 
-                    new SetNonStrokeColor(color).Write(ms);
+                    GetAnnotationNonStrokeColorOperation(color)?.Write(ms);
 
                     int of = 0;
                     while (of + 7 < pathsArray.Length)
@@ -414,13 +542,19 @@
             {
                 using (var ms = new MemoryStream())
                 {
-                    if (!annotation.AnnotationDictionary.TryGet<ArrayToken>(NameToken.C, out var colorToken) || colorToken.Data.Count == 0)
+                    decimal[] color = null;
+                    if (annotation.AnnotationDictionary.TryGet<ArrayToken>(NameToken.C, pdfScanner, out var colorToken) && colorToken.Data.Count > 0)
                     {
-                        return null;
+                        color = colorToken.Data.OfType<NumericToken>().Select(x => (decimal)x.Double).ToArray();
                     }
-                    var color = colorToken.Data.OfType<NumericToken>().Select(x => (decimal)x.Double).ToArray();
+                    else
+                    {
+                        // spec is unclear, but black is what Adobe does
+                        //color = new decimal[] { 0 }; // DeviceGray black (from Pdfbox)
+                        color = new decimal[] { }; // Empty array, transparant
+                    }
 
-                    new SetStrokeColor(color).Write(ms);
+                    GetAnnotationStrokeColorOperation(color)?.Write(ms);
 
                     decimal lineWidth = ab.BorderWidth;
 
@@ -431,7 +565,7 @@
                     PdfRectangle borderEdge = getPaddedRectangle(rect, (float)(lineWidth / 2.0m));
 
                     float[] pathsArray = null;
-                    if (annotation.AnnotationDictionary.TryGet<ArrayToken>(NameToken.Quadpoints, out var quadpoints))
+                    if (annotation.AnnotationDictionary.TryGet<ArrayToken>(NameToken.Quadpoints, pdfScanner, out var quadpoints))
                     {
                         pathsArray = quadpoints.Data?.OfType<NumericToken>().Select(x => (float)x.Double)?.ToArray();
                     }
@@ -458,23 +592,23 @@
                     {
                         // Convert rectangle coordinates as if it was a /QuadPoints entry
                         pathsArray = new float[8];
-                        pathsArray[0] = (float)borderEdge.BottomLeft.X; //.getLowerLeftX();
-                        pathsArray[1] = (float)borderEdge.BottomLeft.Y; //.getLowerLeftY();
-                        pathsArray[2] = (float)borderEdge.TopRight.X; //.getUpperRightX();
-                        pathsArray[3] = (float)borderEdge.BottomLeft.Y; //.getLowerLeftY();
-                        pathsArray[4] = (float)borderEdge.TopRight.X; //.getUpperRightX();
-                        pathsArray[5] = (float)borderEdge.TopRight.Y; //.getUpperRightY();
-                        pathsArray[6] = (float)borderEdge.BottomLeft.X; //.getLowerLeftX();
-                        pathsArray[7] = (float)borderEdge.TopRight.Y; //.getUpperRightY();
+                        pathsArray[0] = (float)borderEdge.BottomLeft.X;
+                        pathsArray[1] = (float)borderEdge.BottomLeft.Y;
+                        pathsArray[2] = (float)borderEdge.TopRight.X;
+                        pathsArray[3] = (float)borderEdge.BottomLeft.Y;
+                        pathsArray[4] = (float)borderEdge.TopRight.X;
+                        pathsArray[5] = (float)borderEdge.TopRight.Y;
+                        pathsArray[6] = (float)borderEdge.BottomLeft.X;
+                        pathsArray[7] = (float)borderEdge.TopRight.Y;
                     }
 
                     bool underlined = false;
                     if (pathsArray.Length >= 8)
                     {
                         // Get border style
-                        if (annotation.AnnotationDictionary.TryGet<DictionaryToken>(NameToken.Bs, out var borderStyleToken))
+                        if (annotation.AnnotationDictionary.TryGet<DictionaryToken>(NameToken.Bs, pdfScanner, out var borderStyleToken))
                         {
-                            if (borderStyleToken.TryGet<NameToken>(NameToken.S, out var styleToken))
+                            if (borderStyleToken.TryGet<NameToken>(NameToken.S, pdfScanner, out var styleToken))
                             {
                                 underlined = styleToken.Data.Equals("U");
                                 // Optional) The border style:
@@ -502,8 +636,10 @@
                         of += 8;
                     }
 
-                    // TO CHECK
-                    PdfPig.Graphics.Operations.PathPainting.StrokePath.Value.Write(ms);
+                    if (lineWidth > 0 && color.Length > 0) // TO CHECK
+                    {
+                        PdfPig.Graphics.Operations.PathPainting.StrokePath.Value.Write(ms);
+                    }
                     //contentStream.drawShape(lineWidth, hasStroke, false);
 
                     // https://github.com/apache/pdfbox/blob/c4b212ecf42a1c0a55529873b132ea338a8ba901/pdfbox/src/main/java/org/apache/pdfbox/pdmodel/interactive/annotation/handlers/PDAbstractAppearanceHandler.java#L511
@@ -542,7 +678,7 @@
 
             PdfRectangle rect = annotation.Rectangle;
 
-            if (!annotation.AnnotationDictionary.TryGet<ArrayToken>(NameToken.Quadpoints, out var quadpoints))
+            if (!annotation.AnnotationDictionary.TryGet<ArrayToken>(NameToken.Quadpoints, pdfScanner, out var quadpoints))
             {
                 return null;
             }
@@ -551,7 +687,7 @@
 
             var ab = annotation.Border;
 
-            if (!annotation.AnnotationDictionary.TryGet<ArrayToken>(NameToken.C, out var colorToken) || colorToken.Data.Count == 0)
+            if (!annotation.AnnotationDictionary.TryGet<ArrayToken>(NameToken.C, pdfScanner, out var colorToken) || colorToken.Data.Count == 0)
             {
                 return null;
             }
@@ -591,7 +727,7 @@
                 {
                     //setOpacity(cs, annotation.getConstantOpacity()); // TODO
 
-                    new SetStrokeColor(color).Write(ms);
+                    GetAnnotationStrokeColorOperation(color)?.Write(ms);
 
                     //if (ab.dashArray != null)
                     //{
@@ -670,7 +806,7 @@
 
             PdfRectangle rect = annotation.Rectangle;
 
-            if (!annotation.AnnotationDictionary.TryGet<ArrayToken>(NameToken.Quadpoints, out var quadpoints))
+            if (!annotation.AnnotationDictionary.TryGet<ArrayToken>(NameToken.Quadpoints, pdfScanner, out var quadpoints))
             {
                 return null;
             }
@@ -679,7 +815,7 @@
 
             var ab = annotation.Border;
 
-            if (!annotation.AnnotationDictionary.TryGet<ArrayToken>(NameToken.C, out var colorToken) || colorToken.Data.Count == 0)
+            if (!annotation.AnnotationDictionary.TryGet<ArrayToken>(NameToken.C, pdfScanner, out var colorToken) || colorToken.Data.Count == 0)
             {
                 return null;
             }
@@ -721,7 +857,7 @@
                 {
                     //setOpacity(cs, annotation.getConstantOpacity()); // TODO
 
-                    new SetStrokeColor(color).Write(ms);
+                    GetAnnotationStrokeColorOperation(color)?.Write(ms);
 
                     //if (ab.dashArray != null)
                     //{
@@ -899,5 +1035,29 @@
 
             return (topLeftX, topLeftY);
         }
+
+        /// <inheritdoc/>
+        public override void BeginMarkedContent(NameToken name, NameToken propertyDictionaryName, DictionaryToken properties)
+        {
+            // Do nothing
+        }
+
+        /// <inheritdoc/>
+        public override void EndMarkedContent()
+        {
+            // Do nothing
+        }
+
+        /// <inheritdoc/>
+        public override void ApplyShading(NameToken shading)
+        {
+            RenderShading(resourceStore.GetShadingDictionary(shading));
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="shading"></param>
+        protected abstract void RenderShading(DictionaryToken shading);
     }
 }

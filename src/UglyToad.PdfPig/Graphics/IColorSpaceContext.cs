@@ -1,6 +1,7 @@
 ﻿namespace UglyToad.PdfPig.Graphics
 {
     using Colors;
+    using System.Collections.Generic;
     using Tokens;
 
     /// <summary>
@@ -8,6 +9,23 @@
     /// </summary>
     public interface IColorSpaceContext
     {
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <returns></returns>
+        IColorSpaceContext DeepClone();
+
+        /// <summary>
+        /// The <see cref="ColorSpaceDetails"/> used for stroking operations.
+        /// </summary>
+        ColorSpaceDetails CurrentStrokingColorSpaceDetails { get; }
+
+        /// <summary>
+        /// The <see cref="ColorSpaceDetails"/> used for non-stroking operations.
+        /// </summary>
+        ColorSpaceDetails CurrentNonStrokingColorSpaceDetails { get; }
+
+        /*
         /// <summary>
         /// The <see cref="ColorSpace"/> used for stroking operations.
         /// </summary>
@@ -17,6 +35,7 @@
         /// The <see cref="ColorSpace"/> used for non-stroking operations.
         /// </summary>
         ColorSpace CurrentNonStrokingColorSpace { get; }
+        */
 
         /// <summary>
         /// The name of the advanced ColorSpace active for stroking operations, if any.
@@ -37,6 +56,12 @@
         ///  Set the current color space to use for nonstroking operations.
         /// </summary>
         void SetNonStrokingColorspace(NameToken colorspace);
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="operands"></param>
+        void SetStrokingColor(IReadOnlyList<decimal> operands);
 
         /// <summary>
         /// Set the stroking color space to DeviceGray and set the gray level to use for stroking operations.
@@ -60,6 +85,12 @@
         /// <param name="y">Yellow - A number between 0 (minimum concentration) and 1 (maximum concentration).</param>
         /// <param name="k">Black - A number between 0 (minimum concentration) and 1 (maximum concentration).</param>
         void SetStrokingColorCmyk(decimal c, decimal m, decimal y, decimal k);
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="operands"></param>
+        void SetNonStrokingColor(IReadOnlyList<decimal> operands);
 
         /// <summary>
         /// Set the nonstroking color space to DeviceGray and set the gray level to use for nonstroking operations.

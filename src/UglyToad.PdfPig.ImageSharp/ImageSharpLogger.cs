@@ -1,9 +1,9 @@
-﻿namespace UglyToad.PdfPig.SystemDrawing
+﻿namespace UglyToad.PdfPig.ImageSharp
 {
     using System;
     using UglyToad.PdfPig.Logging;
 
-    public class SystemDrawingLogger : ILog
+    public class ImageSharpLogger : ILog
     {
         public void Debug(string message)
         {

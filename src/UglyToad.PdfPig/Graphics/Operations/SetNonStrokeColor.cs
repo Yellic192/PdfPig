@@ -35,6 +35,8 @@
         /// <inheritdoc />
         public void Run(IOperationContext operationContext)
         {
+            operationContext.GetCurrentState().ColorSpaceContext.SetNonStrokingColor(Operands);
+            /*
             switch (Operands.Count)
             {
                 case 1:
@@ -49,6 +51,7 @@
                 default:
                     return;
             }
+            */
         }
 
         /// <inheritdoc />

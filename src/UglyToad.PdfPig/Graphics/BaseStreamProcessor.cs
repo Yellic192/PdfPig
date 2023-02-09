@@ -57,11 +57,6 @@
         /// <summary>
         /// TODO
         /// </summary>
-        public IColorSpaceContext ColorSpaceContext { get; protected set; }
-
-        /// <summary>
-        /// TODO
-        /// </summary>
         public PdfPoint CurrentPosition { get; set; }
 
         /// <summary>
@@ -116,7 +111,7 @@
                 CurrentClippingPath = clippingPath
             });
 
-            ColorSpaceContext = new ColorSpaceContext(GetCurrentState, resourceStore);
+            GetCurrentState().ColorSpaceContext = new ColorSpaceContext(GetCurrentState, resourceStore);
         }
 
         /// <summary>
@@ -310,7 +305,7 @@
                     ? currentState.CurrentNonStrokingColor
                     : currentState.CurrentStrokingColor;
 
-                ShowGlyph(font, color, fontSize, pointSize, code, unicode, bytes.CurrentOffset, renderingMatrix, textMatrix, transformationMatrix, boundingBox);
+                RenderGlyph(font, color, fontSize, pointSize, code, unicode, bytes.CurrentOffset, renderingMatrix, textMatrix, transformationMatrix, boundingBox);
 
                 double tx, ty;
                 if (font.IsVertical)
@@ -333,7 +328,7 @@
         /// <summary>
         /// TODO
         /// </summary>
-        public abstract void ShowGlyph(IFont font, IColor color, double fontSize, double pointSize, int code, string unicode, long currentOffset,
+        public abstract void RenderGlyph(IFont font, IColor color, double fontSize, double pointSize, int code, string unicode, long currentOffset,
             TransformationMatrix renderingMatrix, TransformationMatrix textMatrix, TransformationMatrix transformationMatrix, CharacterBoundingBox characterBoundingBox);
 
         /// <inheritdoc/>
@@ -411,9 +406,9 @@
             else if (subType.Equals(NameToken.Image))
             {
                 var contentRecord = new XObjectContentRecord(XObjectType.Image, xObjectStream, matrix, state.RenderingIntent,
-                    state.CurrentStrokingColor?.ColorSpace ?? ColorSpace.DeviceRGB);
+                    state.ColorSpaceContext?.CurrentStrokingColorSpaceDetails?.Type ?? ColorSpace.DeviceRGB);
 
-                ShowXObjectImage(contentRecord);
+                RenderXObjectImage(contentRecord);
             }
             else if (subType.Equals(NameToken.Form))
             {
@@ -429,7 +424,7 @@
         /// TODO
         /// </summary>
         /// <param name="xObjectContentRecord"></param>
-        public abstract void ShowXObjectImage(XObjectContentRecord xObjectContentRecord);
+        public abstract void RenderXObjectImage(XObjectContentRecord xObjectContentRecord);
 
         /// <summary>
         /// TODO
@@ -766,7 +761,7 @@
 
             var image = inlineImageBuilder.CreateInlineImage(CurrentTransformationMatrix, filterProvider, pdfScanner, GetCurrentState().RenderingIntent, resourceStore);
 
-            ShowInlineImage(image);
+            RenderInlineImage(image);
 
             inlineImageBuilder = null;
         }
@@ -775,13 +770,16 @@
         /// TODO
         /// </summary>
         /// <param name="inlineImage"></param>
-        public abstract void ShowInlineImage(InlineImage inlineImage);
+        public abstract void RenderInlineImage(InlineImage inlineImage);
 
         /// <inheritdoc/>
         public abstract void BeginMarkedContent(NameToken name, NameToken propertyDictionaryName, DictionaryToken properties);
 
         /// <inheritdoc/>
         public abstract void EndMarkedContent();
+
+        /// <inheritdoc/>
+        public abstract void ApplyShading(NameToken shading);
 
         /// <summary>
         /// TODO

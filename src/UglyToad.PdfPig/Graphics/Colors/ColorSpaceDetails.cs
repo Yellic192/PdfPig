@@ -6,6 +6,8 @@
     using System.Linq;
     using Tokens;
     using UglyToad.PdfPig.Content;
+    using UglyToad.PdfPig.Functions;
+    using UglyToad.PdfPig.Images;
     using UglyToad.PdfPig.Util;
     using UglyToad.PdfPig.Util.JetBrains.Annotations;
 
@@ -33,6 +35,13 @@
             Type = type;
             BaseType = type;
         }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        public abstract IColor GetColor(IReadOnlyList<decimal> values);
     }
 
     /// <summary>
@@ -48,6 +57,30 @@
 
         private DeviceGrayColorSpaceDetails() : base(ColorSpace.DeviceGray)
         {
+        }
+
+        /// <inheritdoc/>
+        public override IColor GetColor(IReadOnlyList<decimal> values)
+        {
+            if (values == null || values.Count != 1)
+            {
+                //return new RGBColor(255m / 255m, 20m / 255m, 147m / 255m);
+                throw new ArgumentException(nameof(values));
+            }
+
+            decimal gray = values[0];
+            if (gray == 0)
+            {
+                return GrayColor.Black;
+            }
+            else if (gray == 1)
+            {
+                return GrayColor.White;
+            }
+            else
+            {
+                return new GrayColor(gray);
+            }
         }
     }
 
@@ -65,10 +98,36 @@
         private DeviceRgbColorSpaceDetails() : base(ColorSpace.DeviceRGB)
         {
         }
+
+        /// <inheritdoc/>
+        public override IColor GetColor(IReadOnlyList<decimal> values)
+        {
+            if (values == null || values.Count != 3)
+            {
+                //return new RGBColor(255m / 255m, 20m / 255m, 147m / 255m);
+                throw new ArgumentException(nameof(values));
+            }
+
+            decimal r = values[0];
+            decimal g = values[1];
+            decimal b = values[2];
+            if (r == 0 && g == 0 && b == 0)
+            {
+                return RGBColor.Black;
+            }
+            else if (r == 1 && g == 1 && b == 1)
+            {
+                return RGBColor.White;
+            }
+            else
+            {
+                return new RGBColor(r, g, b);
+            }
+        }
     }
 
     /// <summary>
-    /// Color values are defined by four components cyan, magenta, yellow and black 
+    /// Color values are defined by four components cyan, magenta, yellow and black
     /// </summary>
     public sealed class DeviceCmykColorSpaceDetails : ColorSpaceDetails
     {
@@ -79,6 +138,21 @@
 
         private DeviceCmykColorSpaceDetails() : base(ColorSpace.DeviceCMYK)
         {
+        }
+
+        /// <inheritdoc/>
+        public override IColor GetColor(IReadOnlyList<decimal> values)
+        {
+            if (values == null || values.Count != 4)
+            {
+                throw new ArgumentException(nameof(values));
+            }
+
+            decimal c = values[0];
+            decimal m = values[1];
+            decimal y = values[2];
+            decimal k = values[3];
+            return new CMYKColor(c, m, y, k);
         }
     }
 
@@ -128,6 +202,21 @@
             ColorTable = colorTable;
             BaseType = baseColorSpaceDetails.BaseType;
         }
+
+        /// <inheritdoc/>
+        public override IColor GetColor(IReadOnlyList<decimal> values)
+        {
+            if (values.Count > 1)
+            {
+                // TODO - not the correct way
+                //var csBytes2 = ColorSpaceDetailsByteConverter.UnwrapIndexedColorSpaceBytes(this, values.Select(d => (byte)d).ToArray());
+                //var test = BaseColorSpaceDetails.GetColor(csBytes.Select(b => b / 255m).ToArray());
+                return BaseColorSpaceDetails.GetColor(values);
+            }
+
+            var csBytes = ColorSpaceDetailsByteConverter.UnwrapIndexedColorSpaceBytes(this, values.Select(d => (byte)d).ToArray());
+            return BaseColorSpaceDetails.GetColor(csBytes.Select(b => b / 255m).ToArray());
+        }
     }
 
     /// <summary>
@@ -153,6 +242,8 @@
         /// </remarks>
         public NameToken Name { get; }
 
+        private readonly IColor namedColor;
+
         /// <summary>
         /// If the colorant name associated with a Separation color space does not correspond to a colorant available on the device,
         /// the application arranges for subsequent painting operations to be performed in an alternate color space.
@@ -169,6 +260,28 @@
         /// </summary>
         public Union<DictionaryToken, StreamToken> TintFunction { get; }
 
+        private readonly PdfFunction func;
+
+        private readonly Dictionary<string, IColor> lookupTable = new Dictionary<string, IColor>()
+        {
+            // TODO - not always RGBColor type
+            { "Red",    new RGBColor(1, 0, 0) },
+            { "Green",  new RGBColor(0, 1, 0) },
+            { "Blue",   new RGBColor(0, 0, 1) },
+            { "Black",  RGBColor.Black },
+            { "White",  RGBColor.White },
+
+            // Special names
+            // The special colorant name All shall refer collectively to all colorants available on an output device,
+            // including those for the standard process colorants. When a Separation space with this colorant name is
+            // the current colour space, painting operators shall apply tint values to all available colorants at once.
+            { "All", null }, // TODO
+
+            // The special colorant name None shall not produce any visible output. Painting operations in a
+            // Separationspace with this colorant name shall have no effect on the current page.
+            { "None", new AlphaColor(0, GrayColor.Black) }
+        };
+
         /// <summary>
         /// Create a new <see cref="SeparationColorSpaceDetails"/>.
         /// </summary>
@@ -180,6 +293,38 @@
             Name = name;
             AlternateColorSpaceDetails = alternateColorSpaceDetails;
             TintFunction = tintFunction;
+
+            if (lookupTable.TryGetValue(name, out var lookup))
+            {
+                namedColor = lookup;
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"Unknown color name '{Name.Data}'");
+            }
+
+            if (TintFunction.TryGetFirst(out var dic))
+            {
+                func = PdfFunction.Create(dic);
+            }
+            else if (TintFunction.TryGetSecond(out var str))
+            {
+                func = PdfFunction.Create(str);
+            }
+        }
+
+        /// <inheritdoc/>
+        public override IColor GetColor(IReadOnlyList<decimal> values)
+        {
+            if (namedColor != null)
+            {
+                return namedColor;
+            }
+
+            // TODO - check if correct way to do
+            // TODO - caching
+            var evaled = func.eval(values.Select(v => (float)v).ToArray()).Select(k => (decimal)k).ToArray();
+            return AlternateColorSpaceDetails.GetColor(evaled);
         }
     }
 
@@ -246,14 +391,20 @@
         }
 
         /// <summary>
-        /// Transforms the supplied A color to grayscale RGB (sRGB) using the propties of this
+        /// Transforms the supplied A color to grayscale RGB (sRGB) using the properties of this
         /// <see cref="CalGrayColorSpaceDetails"/> in the transformation process.
-        /// A represents the gray component of a calibrated gray space. The component must be in the range 0.0 to 1.0. 
+        /// A represents the gray component of a calibrated gray space. The component must be in the range 0.0 to 1.0.
         /// </summary>
         internal RGBColor TransformToRGB(decimal colorA)
         {
             var colorRgb = colorSpaceTransformer.TransformToRGB(((double)colorA, (double)colorA, (double)colorA));
             return new RGBColor((decimal)colorRgb.R, (decimal)colorRgb.G, (decimal)colorRgb.B);
+        }
+
+        /// <inheritdoc/>
+        public override IColor GetColor(IReadOnlyList<decimal> values)
+        {
+            return TransformToRGB(values[0]); // TODO
         }
     }
 
@@ -321,7 +472,7 @@
             {
                 throw new ArgumentOutOfRangeException(nameof(matrix), matrix, $"Must consist of exactly nine numbers, but was passed {matrix.Count}.");
             }
-           
+
             colorSpaceTransformer =
                 new CIEBasedColorSpaceTransformer(((double)WhitePoint[0], (double)WhitePoint[1], (double)WhitePoint[2]), RGBWorkingSpace.sRGB)
                 {
@@ -338,14 +489,20 @@
         }
 
         /// <summary>
-        /// Transforms the supplied ABC color to RGB (sRGB) using the propties of this <see cref="CalRGBColorSpaceDetails"/>
+        /// Transforms the supplied ABC color to RGB (sRGB) using the properties of this <see cref="CalRGBColorSpaceDetails"/>
         /// in the transformation process.
         /// A, B and C represent red, green and blue calibrated color values in the range 0.0 to 1.0. 
         /// </summary>
         internal RGBColor TransformToRGB((decimal A, decimal B, decimal C) colorAbc)
         {
             var colorRgb = colorSpaceTransformer.TransformToRGB(((double)colorAbc.A, (double)colorAbc.B, (double)colorAbc.C));
-            return new RGBColor((decimal)colorRgb.R, (decimal) colorRgb.G, (decimal) colorRgb.B);
+            return new RGBColor((decimal)colorRgb.R, (decimal)colorRgb.G, (decimal)colorRgb.B);
+        }
+
+        /// <inheritdoc/>
+        public override IColor GetColor(IReadOnlyList<decimal> values)
+        {
+            return TransformToRGB((values[0], values[1], values[2]));
         }
     }
 
@@ -397,10 +554,16 @@
         public XmpMetadata Metadata { get; }
 
         /// <summary>
+        /// Raw profile data.
+        /// </summary>
+        [CanBeNull]
+        public IReadOnlyList<byte> RawProfile { get; }
+
+        /// <summary>
         /// Create a new <see cref="ICCBasedColorSpaceDetails"/>.
         /// </summary>
         internal ICCBasedColorSpaceDetails(int numberOfColorComponents, [CanBeNull] ColorSpaceDetails alternateColorSpaceDetails,
-            [CanBeNull] IReadOnlyList<decimal> range, [CanBeNull] XmpMetadata metadata)
+            [CanBeNull] IReadOnlyList<decimal> range, [CanBeNull] XmpMetadata metadata, [CanBeNull] IReadOnlyList<byte> rawProfile)
             : base(ColorSpace.ICCBased)
         {
             if (numberOfColorComponents != 1 && numberOfColorComponents != 3 && numberOfColorComponents != 4)
@@ -410,8 +573,8 @@
 
             NumberOfColorComponents = numberOfColorComponents;
             AlternateColorSpaceDetails = alternateColorSpaceDetails ??
-                (NumberOfColorComponents == 1 ? (ColorSpaceDetails) DeviceGrayColorSpaceDetails.Instance :
-                NumberOfColorComponents == 3 ? (ColorSpaceDetails) DeviceRgbColorSpaceDetails.Instance : (ColorSpaceDetails) DeviceCmykColorSpaceDetails.Instance);
+                (NumberOfColorComponents == 1 ? (ColorSpaceDetails)DeviceGrayColorSpaceDetails.Instance :
+                NumberOfColorComponents == 3 ? (ColorSpaceDetails)DeviceRgbColorSpaceDetails.Instance : (ColorSpaceDetails)DeviceCmykColorSpaceDetails.Instance);
 
             BaseType = AlternateColorSpaceDetails.BaseType;
             Range = range ??
@@ -419,9 +582,31 @@
             if (Range.Count != 2 * numberOfColorComponents)
             {
                 throw new ArgumentOutOfRangeException(nameof(range), range,
-                    $"Must consist of exactly {2 * numberOfColorComponents } (2 x NumberOfColorComponents), but was passed {range.Count }");
+                    $"Must consist of exactly {2 * numberOfColorComponents} (2 x NumberOfColorComponents), but was passed {range.Count}");
             }
             Metadata = metadata;
+            RawProfile = rawProfile;
+        }
+
+        /// <inheritdoc/>
+        public override IColor GetColor(IReadOnlyList<decimal> values)
+        {
+            // TODO - not the correct way
+
+            if (values.Count != NumberOfColorComponents)
+            {
+                switch (values.Count)
+                {
+                    case 1:
+                        return DeviceGrayColorSpaceDetails.Instance.GetColor(values);
+                    case 3:
+                        return DeviceRgbColorSpaceDetails.Instance.GetColor(values);
+                    case 4:
+                        return DeviceCmykColorSpaceDetails.Instance.GetColor(values);
+                }
+            }
+
+            return AlternateColorSpaceDetails.GetColor(values);
         }
     }
 
@@ -437,6 +622,14 @@
 
         private UnsupportedColorSpaceDetails() : base(ColorSpace.DeviceGray)
         {
+        }
+
+        /// <inheritdoc/>
+        public override IColor GetColor(IReadOnlyList<decimal> values)
+        {
+            // TODO - error
+            return new RGBColor(255m / 255m, 20m / 255m, 147m / 255m);
+            //throw new NotImplementedException();
         }
     }
 }

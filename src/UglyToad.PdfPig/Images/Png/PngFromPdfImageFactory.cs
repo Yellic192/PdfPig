@@ -16,7 +16,7 @@
 
             var isColorSpaceSupported =
                 actualColorSpace == ColorSpace.DeviceGray || actualColorSpace == ColorSpace.DeviceRGB
-                || actualColorSpace == ColorSpace.DeviceCMYK || actualColorSpace == ColorSpace.CalGray 
+                || actualColorSpace == ColorSpace.DeviceCMYK || actualColorSpace == ColorSpace.CalGray
                 || actualColorSpace == ColorSpace.CalRGB;
 
             if (!isColorSpaceSupported || !image.TryGetBytes(out var bytesPure))

@@ -107,7 +107,7 @@
             }
 
             var streamToken = new StreamToken(dictionary, xObject.Stream.Data);
-            
+
             var decodedBytes = supportsFilters ? new Lazy<IReadOnlyList<byte>>(() => streamToken.Decode(filterProvider, pdfScanner))
                 : null;
 
@@ -122,10 +122,34 @@
 
             var colorSpace = default(ColorSpace?);
 
+            ColorSpaceDetails details = null;
+
             if (!isImageMask)
             {
+                if (dictionary.TryGet(NameToken.ColorSpace, pdfScanner, out NameToken colorSpaceCheckNameToken))
+                {
+                    details = resourceStore.GetColorSpaceDetails(colorSpaceCheckNameToken, dictionary);
+                    colorSpace = details.Type;
+                }
+                else if (dictionary.TryGet(NameToken.ColorSpace, pdfScanner, out ArrayToken colorSpaceArrayToken)
+                      && colorSpaceArrayToken.Length > 0)
+                {
+                    var first = colorSpaceArrayToken.Data[0];
+                    if (first is NameToken firstColorSpaceName)
+                    {
+                        details = resourceStore.GetColorSpaceDetails(firstColorSpaceName, dictionary);
+                        colorSpace = details.Type;
+                    }
+                }
+                else if (!isJpxDecode)
+                {
+                    colorSpace = xObject.DefaultColorSpace;
+                    details = ColorSpaceDetailsParser.GetColorSpaceDetails(colorSpace, dictionary, pdfScanner, resourceStore, filterProvider);
+                }
+
+                /*
                 if (dictionary.TryGet(NameToken.ColorSpace, pdfScanner, out NameToken colorSpaceNameToken)
-                    && TryMapColorSpace(colorSpaceNameToken, resourceStore, out var colorSpaceResult))
+                      && TryMapColorSpace(colorSpaceNameToken, resourceStore, out var colorSpaceResult))
                 {
                     colorSpace = colorSpaceResult;
                 }
@@ -143,9 +167,20 @@
                 {
                     colorSpace = xObject.DefaultColorSpace;
                 }
+                */
             }
-
+            else
+            {
+                details = ColorSpaceDetailsParser.GetColorSpaceDetails(colorSpace, dictionary, pdfScanner, resourceStore, filterProvider);
+            }
+            /*
             var details = ColorSpaceDetailsParser.GetColorSpaceDetails(colorSpace, dictionary, pdfScanner, resourceStore, filterProvider);
+
+            if (csCheck.Type != details.Type || csCheck.BaseType != details.BaseType)
+            {
+
+            }
+            */
 
             return new XObjectImage(
                 bounds,

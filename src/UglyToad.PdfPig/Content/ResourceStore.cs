@@ -2,16 +2,20 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Runtime.Versioning;
     using Core;
     using Graphics.Colors;
     using Parser.Parts;
     using PdfFonts;
     using Tokenization.Scanner;
     using Tokens;
+    using UglyToad.PdfPig.Filters;
     using Util;
 
     internal class ResourceStore : IResourceStore
     {
+        private readonly FilterProviderWithLookup filterProvider = new FilterProviderWithLookup(DefaultFilterProvider.Instance);
+
         private readonly IPdfTokenScanner scanner;
         private readonly IFontFactory fontFactory;
 
@@ -19,11 +23,15 @@
         private readonly Dictionary<NameToken, IFont> loadedDirectFonts = new Dictionary<NameToken, IFont>();
         private readonly StackDictionary<NameToken, IndirectReference> currentResourceState = new StackDictionary<NameToken, IndirectReference>();
 
+        private readonly Dictionary<NameToken, ColorSpaceDetails> loadedNamedColorSpaceDetails = new Dictionary<NameToken, ColorSpaceDetails>();
+
         private readonly Dictionary<NameToken, DictionaryToken> extendedGraphicsStates = new Dictionary<NameToken, DictionaryToken>();
 
         private readonly Dictionary<NameToken, ResourceColorSpace> namedColorSpaces = new Dictionary<NameToken, ResourceColorSpace>();
 
         private readonly Dictionary<NameToken, DictionaryToken> markedContentProperties = new Dictionary<NameToken, DictionaryToken>();
+
+        private readonly Dictionary<NameToken, DictionaryToken> shadingsProperties = new Dictionary<NameToken, DictionaryToken>();
 
         private (NameToken name, IFont font) lastLoadedFont;
 
@@ -31,6 +39,51 @@
         {
             this.scanner = scanner;
             this.fontFactory = fontFactory;
+        }
+
+        public ColorSpaceDetails GetColorSpaceDetails(NameToken name, DictionaryToken dictionary)
+        {
+            if (name.TryMapToColorSpace(out var colorspaceActual))
+            {
+                if (dictionary == null)
+                {
+                    dictionary = new DictionaryToken(new Dictionary<NameToken, IToken>());
+                }
+
+                return ColorSpaceDetailsParser.GetColorSpaceDetails(colorspaceActual, dictionary, scanner, this, filterProvider);
+            }
+            else if (loadedNamedColorSpaceDetails.TryGetValue(name, out ColorSpaceDetails csdLoaded))
+            {
+                return csdLoaded;
+            }
+            else if (TryGetNamedColorSpace(name, out var namedColorSpace))
+            {
+                if (dictionary != null)
+                {
+
+                }
+
+                if (namedColorSpace.Name.TryMapToColorSpace(out var mapped))
+                {
+                    if (namedColorSpace.Data is ArrayToken separationArray)
+                    {
+                        var pseudoDictionary = new DictionaryToken(
+                            new Dictionary<NameToken, IToken>
+                            {
+                            { NameToken.ColorSpace, separationArray }
+                            });
+                        var csd = ColorSpaceDetailsParser.GetColorSpaceDetails(mapped, pseudoDictionary, scanner, this, filterProvider, false);
+
+                        loadedNamedColorSpaceDetails.Add(name, csd);
+                        return csd;
+                    }
+                    else if (namedColorSpace.Data is NameToken namedCs)
+                    {
+
+                    }
+                }
+            }
+            throw new InvalidOperationException("GetColorSpaceDetails");
         }
 
         public void LoadResourceDictionary(DictionaryToken resourceDictionary, InternalParsingOptions parsingOptions)
@@ -124,6 +177,23 @@
                     markedContentProperties[key] = namedProperties;
                 }
             }
+
+            if (resourceDictionary.TryGet(NameToken.Shading, scanner, out DictionaryToken shadingList))
+            {
+                foreach (var pair in shadingList.Data)
+                {
+                    var key = NameToken.Create(pair.Key);
+
+                    if (DirectObjectFinder.TryGet(pair.Value, scanner, out DictionaryToken namedPropertiesDictionary))
+                    {
+                        shadingsProperties[key] = namedPropertiesDictionary;
+                    }
+                    else if (DirectObjectFinder.TryGet(pair.Value, scanner, out StreamToken namedPropertiesStream))
+                    {
+                        shadingsProperties[key] = namedPropertiesStream.StreamDictionary; // TODO - Check if correct
+                    }
+                }
+            }
         }
 
         public void UnloadResourceDictionary()
@@ -168,7 +238,6 @@
                             throw;
                         }
                     }
-                    
                 }
                 else if (pair.Value is DictionaryToken fd)
                 {
@@ -253,6 +322,16 @@
         public DictionaryToken GetMarkedContentPropertiesDictionary(NameToken name)
         {
             return markedContentProperties.TryGetValue(name, out var result) ? result : null;
+        }
+
+        public IToken GetByIndirectRefference(IndirectReferenceToken indirectReferenceToken)
+        {
+            return scanner.Get(indirectReferenceToken.Data)?.Data;
+        }
+
+        public DictionaryToken GetShadingDictionary(NameToken name)
+        {
+            return shadingsProperties[name];
         }
     }
 }

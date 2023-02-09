@@ -24,6 +24,12 @@
 
         bool TryGetNamedColorSpace(NameToken name, out ResourceColorSpace namedColorSpace);
 
+        ColorSpaceDetails GetColorSpaceDetails(NameToken name, DictionaryToken dictionary);
+
         DictionaryToken GetMarkedContentPropertiesDictionary(NameToken name);
+
+        IToken GetByIndirectRefference(IndirectReferenceToken indirectReferenceToken);
+
+        public DictionaryToken GetShadingDictionary(NameToken name);
     }
 }

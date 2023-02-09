@@ -66,7 +66,7 @@
                 pdfScanner, pageContentParser, filterProvider, resourceStore, userSpaceUnit, parsingOptions);
         }
 
-        public override void ShowGlyph(IFont font, IColor color, double fontSize, double pointSize, int code, string unicode, long currentOffset,
+        public override void RenderGlyph(IFont font, IColor color, double fontSize, double pointSize, int code, string unicode, long currentOffset,
             TransformationMatrix renderingMatrix, TransformationMatrix textMatrix, TransformationMatrix transformationMatrix, CharacterBoundingBox characterBoundingBox)
         {
             var transformedGlyphBounds = PerformantRectangleTransformer
@@ -403,16 +403,21 @@
             }
         }
 
-        public override void ShowInlineImage(InlineImage inlineImage)
+        public override void RenderInlineImage(InlineImage inlineImage)
         {
             images.Add(Union<XObjectContentRecord, InlineImage>.Two(inlineImage));
             markedContentStack.AddImage(inlineImage);
         }
 
-        public override void ShowXObjectImage(XObjectContentRecord xObjectContentRecord)
+        public override void RenderXObjectImage(XObjectContentRecord xObjectContentRecord)
         {
             images.Add(Union<XObjectContentRecord, InlineImage>.One(xObjectContentRecord));
             markedContentStack.AddXObject(xObjectContentRecord, pdfScanner, filterProvider, resourceStore);
+        }
+
+        public override void ApplyShading(NameToken shading)
+        {
+            // TODO
         }
     }
 }

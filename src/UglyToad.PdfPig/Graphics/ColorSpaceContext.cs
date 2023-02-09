@@ -1,18 +1,38 @@
 ﻿namespace UglyToad.PdfPig.Graphics
 {
     using System;
+    using System.Collections.Generic;
     using Colors;
     using Content;
     using Tokens;
 
     internal class ColorSpaceContext : IColorSpaceContext
     {
+        public IColorSpaceContext DeepClone()
+        {
+            return new ColorSpaceContext(currentStateFunc, resourceStore)
+            {
+                CurrentStrokingColorSpaceDetails = CurrentStrokingColorSpaceDetails,
+                CurrentNonStrokingColorSpaceDetails = CurrentNonStrokingColorSpaceDetails
+            };
+        }
+
         private readonly Func<CurrentGraphicsState> currentStateFunc;
         private readonly IResourceStore resourceStore;
 
-        public ColorSpace CurrentStrokingColorSpace { get; private set; } = ColorSpace.DeviceGray;
+        /// <summary>
+        /// The <see cref="ColorSpaceDetails"/> used for stroking operations.
+        /// </summary>
+        public ColorSpaceDetails CurrentStrokingColorSpaceDetails { get; private set; } = DeviceGrayColorSpaceDetails.Instance;
 
-        public ColorSpace CurrentNonStrokingColorSpace { get; private set; } = ColorSpace.DeviceGray;
+        /// <summary>
+        /// The <see cref="ColorSpaceDetails"/> used for non-stroking operations.
+        /// </summary>
+        public ColorSpaceDetails CurrentNonStrokingColorSpaceDetails { get; private set; } = DeviceGrayColorSpaceDetails.Instance;
+
+        //public ColorSpace CurrentStrokingColorSpace { get; private set; } = ColorSpace.DeviceGray;
+
+        //public ColorSpace CurrentNonStrokingColorSpace { get; private set; } = ColorSpace.DeviceGray;
 
         public NameToken AdvancedStrokingColorSpace { get; private set; }
 
@@ -48,37 +68,50 @@
                 }
                 else
                 {
-                    CurrentStrokingColorSpace = ColorSpace.DeviceGray;
+                    CurrentNonStrokingColorSpaceDetails = DeviceGrayColorSpaceDetails.Instance;
+                    //CurrentStrokingColorSpace = ColorSpace.DeviceGray;
                     currentStateFunc().CurrentStrokingColor = GrayColor.Black;
                 }
             }
 
             AdvancedStrokingColorSpace = null;
+            CurrentStrokingColorSpaceDetails = resourceStore.GetColorSpaceDetails(colorspace, null);
 
+            /*
             if (colorspace.TryMapToColorSpace(out var colorspaceActual))
             {
-                CurrentStrokingColorSpace = colorspaceActual;
+                CurrentStrokingColorSpaceDetails = resourceStore.GetColorSpaceDetails(colorspaceActual,
+                    new DictionaryToken(new Dictionary<NameToken, IToken>()));
+                //CurrentStrokingColorSpace = colorspaceActual;
+                return;
             }
             else if (resourceStore.TryGetNamedColorSpace(colorspace, out var namedColorSpace))
             {
-                if (namedColorSpace.Name == NameToken.Separation && namedColorSpace.Data is ArrayToken separationArray
-                                                                 && separationArray.Length == 4
-                                                                 && separationArray[2] is NameToken alternativeColorSpaceName
-                                                                 && alternativeColorSpaceName.TryMapToColorSpace(out colorspaceActual))
+                if (namedColorSpace.Name.TryMapToColorSpace(out var mapped))
                 {
-                    AdvancedStrokingColorSpace = namedColorSpace.Name;
-                    CurrentStrokingColorSpace = colorspaceActual;
-                    DefaultColorSpace(colorspaceActual);
-                }
-                else
-                {
-                    DefaultColorSpace();
+                    if (namedColorSpace.Data is ArrayToken separationArray)
+                    {
+                        var pseudoDictionary = new DictionaryToken(
+                            new Dictionary<NameToken, IToken>
+                            {
+                                { NameToken.ColorSpace, separationArray }
+                            });
+                        CurrentStrokingColorSpaceDetails = resourceStore.GetColorSpaceDetails(mapped, pseudoDictionary);
+                        DefaultColorSpace(CurrentStrokingColorSpaceDetails.BaseType); // TODO - is it needed??
+
+                        // TODO - to remove
+                        //AdvancedStrokingColorSpace = namedColorSpace.Name;
+                        //CurrentStrokingColorSpace = CurrentStrokingColorSpaceDetails.BaseType;
+                        //DefaultColorSpace(CurrentStrokingColorSpace);
+                        // End TODO
+
+                        return;
+                    }
                 }
             }
-            else
-            {
-                DefaultColorSpace();
-            }
+            */
+
+            DefaultColorSpace(CurrentNonStrokingColorSpaceDetails.BaseType);
         }
 
         public void SetNonStrokingColorspace(NameToken colorspace)
@@ -105,42 +138,59 @@
                 }
                 else
                 {
-                    CurrentNonStrokingColorSpace = ColorSpace.DeviceGray;
+                    CurrentNonStrokingColorSpaceDetails = DeviceGrayColorSpaceDetails.Instance;
+                    //CurrentNonStrokingColorSpace = ColorSpace.DeviceGray;
                     currentStateFunc().CurrentNonStrokingColor = GrayColor.Black;
                 }
             }
 
             AdvancedNonStrokingColorSpace = null;
+            CurrentNonStrokingColorSpaceDetails = resourceStore.GetColorSpaceDetails(colorspace, null);
 
+            /*
             if (colorspace.TryMapToColorSpace(out var colorspaceActual))
             {
-                CurrentNonStrokingColorSpace = colorspaceActual;
+                CurrentNonStrokingColorSpaceDetails = resourceStore.GetColorSpaceDetails(colorspaceActual,
+                    new DictionaryToken(new Dictionary<NameToken, IToken>()));
+                //CurrentNonStrokingColorSpace = colorspaceActual;
+                return;
             }
             else if (resourceStore.TryGetNamedColorSpace(colorspace, out var namedColorSpace))
             {
-                if (namedColorSpace.Name == NameToken.Separation && namedColorSpace.Data is ArrayToken separationArray
-                                                                 && separationArray.Length == 4
-                                                                 && separationArray[2] is NameToken alternativeColorSpaceName
-                                                                 && alternativeColorSpaceName.TryMapToColorSpace(out colorspaceActual))
+                if (namedColorSpace.Name.TryMapToColorSpace(out var mapped))
                 {
-                    AdvancedNonStrokingColorSpace = namedColorSpace.Name;
-                    CurrentNonStrokingColorSpace = colorspaceActual;
-                    DefaultColorSpace(colorspaceActual);
-                }
-                else
-                {
-                    DefaultColorSpace();
+                    if (namedColorSpace.Data is ArrayToken separationArray)
+                    {
+                        var pseudoDictionary = new DictionaryToken(
+                          new Dictionary<NameToken, IToken>
+                          {
+                          { NameToken.ColorSpace, separationArray }
+                          });
+                        CurrentNonStrokingColorSpaceDetails = resourceStore.GetColorSpaceDetails(mapped, pseudoDictionary);
+
+                        // TODO - to remove
+                        //AdvancedNonStrokingColorSpace = namedColorSpace.Name;
+                        //CurrentNonStrokingColorSpace = CurrentNonStrokingColorSpaceDetails.BaseType;
+                        DefaultColorSpace(CurrentNonStrokingColorSpaceDetails.BaseType);
+                        // End TODO
+
+                        return;
+                    }
                 }
             }
-            else
-            {
-                DefaultColorSpace();
-            }
+            */
+            DefaultColorSpace(CurrentNonStrokingColorSpaceDetails.BaseType);
+        }
+
+        public void SetStrokingColor(IReadOnlyList<decimal> operands)
+        {
+            currentStateFunc().CurrentStrokingColor = CurrentStrokingColorSpaceDetails.GetColor(operands);
         }
 
         public void SetStrokingColorGray(decimal gray)
         {
-            CurrentStrokingColorSpace = ColorSpace.DeviceGray;
+            //CurrentStrokingColorSpace = ColorSpace.DeviceGray;
+            CurrentStrokingColorSpaceDetails = DeviceGrayColorSpaceDetails.Instance;
 
             if (gray == 0)
             {
@@ -158,7 +208,8 @@
 
         public void SetStrokingColorRgb(decimal r, decimal g, decimal b)
         {
-            CurrentStrokingColorSpace = ColorSpace.DeviceRGB;
+            //CurrentStrokingColorSpace = ColorSpace.DeviceRGB;
+            CurrentStrokingColorSpaceDetails = DeviceRgbColorSpaceDetails.Instance;
 
             if (r == 0 && g == 0 && b == 0)
             {
@@ -176,13 +227,21 @@
 
         public void SetStrokingColorCmyk(decimal c, decimal m, decimal y, decimal k)
         {
-            CurrentStrokingColorSpace = ColorSpace.DeviceCMYK;
+            //CurrentStrokingColorSpace = ColorSpace.DeviceCMYK;
+            CurrentStrokingColorSpaceDetails = DeviceCmykColorSpaceDetails.Instance;
+
             currentStateFunc().CurrentStrokingColor = new CMYKColor(c, m, y, k);
+        }
+
+        public void SetNonStrokingColor(IReadOnlyList<decimal> operands)
+        {
+            currentStateFunc().CurrentNonStrokingColor = CurrentNonStrokingColorSpaceDetails.GetColor(operands);
         }
 
         public void SetNonStrokingColorGray(decimal gray)
         {
-            CurrentNonStrokingColorSpace = ColorSpace.DeviceGray;
+            //CurrentNonStrokingColorSpace = ColorSpace.DeviceGray;
+            CurrentNonStrokingColorSpaceDetails = DeviceGrayColorSpaceDetails.Instance;
 
             if (gray == 0)
             {
@@ -200,7 +259,8 @@
 
         public void SetNonStrokingColorRgb(decimal r, decimal g, decimal b)
         {
-            CurrentNonStrokingColorSpace = ColorSpace.DeviceRGB;
+            //CurrentNonStrokingColorSpace = ColorSpace.DeviceRGB;
+            CurrentNonStrokingColorSpaceDetails = DeviceRgbColorSpaceDetails.Instance;
 
             if (r == 0 && g == 0 && b == 0)
             {
@@ -218,7 +278,9 @@
 
         public void SetNonStrokingColorCmyk(decimal c, decimal m, decimal y, decimal k)
         {
-            CurrentNonStrokingColorSpace = ColorSpace.DeviceCMYK;
+            //CurrentNonStrokingColorSpace = ColorSpace.DeviceCMYK;
+            CurrentNonStrokingColorSpaceDetails = DeviceCmykColorSpaceDetails.Instance;
+
             currentStateFunc().CurrentNonStrokingColor = new CMYKColor(c, m, y, k);
         }
     }

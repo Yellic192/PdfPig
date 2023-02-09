@@ -1,8 +1,11 @@
-namespace UglyToad.PdfPig.SkiaSharp.Tests
+namespace UglyToad.PdfPig.ImageSharp.Tests
 {
-    using global::SkiaSharp;
+    using System.Xml.Linq;
+    using SixLabors.ImageSharp.PixelFormats;
+    using SixLabors.ImageSharp;
+    using SixLabors.ImageSharp.Processing;
 
-    public class ExportToImage
+    public class ExportToImage2
     {
         private const int mult = 5;
 
@@ -40,6 +43,13 @@ namespace UglyToad.PdfPig.SkiaSharp.Tests
 
         private const string complex_rotated = "complex rotated.pdf";
 
+        private const string cat_genetics_bobld = "cat-genetics_bobld.pdf";
+
+        private const string url_link = "url_link.pdf";
+
+        private const string complex_rotated_highlight = "complex rotated_highlight.pdf";
+        private const string issue_484 = "issue_484.pdf";
+
         private static string GetFilename(string name)
         {
             var documentFolder = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "Documents"));
@@ -50,6 +60,24 @@ namespace UglyToad.PdfPig.SkiaSharp.Tests
             }
 
             return Path.Combine(documentFolder, name);
+        }
+
+        [Fact]
+        public void issue_484Test()
+        {
+            Run(issue_484, 1);
+        }
+
+        [Fact]
+        public void url_linkTest()
+        {
+            Run(url_link, 1);
+        }
+
+        [Fact]
+        public void complex_rotated_highlightTest()
+        {
+            Run(complex_rotated_highlight, 1);
         }
 
         [Fact]
@@ -210,6 +238,13 @@ namespace UglyToad.PdfPig.SkiaSharp.Tests
         }
 
         [Fact]
+        public void cat_geneticsTest_bobld()
+        {
+            Run(cat_genetics_bobld, 1);
+        }
+
+
+        [Fact]
         public void cat_geneticsTest()
         {
             Run(cat_genetics, 1);
@@ -247,25 +282,26 @@ namespace UglyToad.PdfPig.SkiaSharp.Tests
 
         public static void Run(string file, int pageNo)
         {
-            if (!Directory.Exists("Images"))
+            const string directory = "Images2";
+            if (!Directory.Exists(directory))
             {
-                Directory.CreateDirectory("Images");
+                Directory.CreateDirectory(directory);
             }
 
-            var imageName = $"{file}_{pageNo}_system-drawing.jpg";
-            var savePath = Path.Combine("Images", imageName);
+            var imageName = $"{file}_{pageNo}_image-sharp.png";
+            var savePath = Path.Combine(directory, imageName);
 
             var pdfFileName = GetFilename(file);
             using (var doc = PdfDocument.Open(pdfFileName))
             {
                 var page = doc.GetPage(pageNo);
-                using (var ms = page.ToImage(mult, new SkiaSharpProcessor()))
+
+                ImageSharpProcessor skiaSharpProcessor2 = new ImageSharpProcessor(page);
+                using (var ms = skiaSharpProcessor2.GetImage(mult))
                 using (Stream s = new FileStream(savePath, FileMode.Create))
                 {
-                    var bitmap = SKBitmap.Decode(ms);
-                    SKData d = SKImage.FromBitmap(bitmap).Encode(SKEncodedImageFormat.Png, 100);
-
-                    d.SaveTo(s);
+                    var bitmap = Image.Load(ms);
+                    bitmap.SaveAsPng(s);
                 }
             }
         }

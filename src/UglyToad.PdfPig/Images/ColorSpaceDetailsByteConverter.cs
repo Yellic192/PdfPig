@@ -152,7 +152,7 @@
             return transformed;
         }
 
-        private static byte[] UnwrapIndexedColorSpaceBytes(IndexedColorSpaceDetails indexed, IReadOnlyList<byte> input)
+        internal static byte[] UnwrapIndexedColorSpaceBytes(IndexedColorSpaceDetails indexed, IReadOnlyList<byte> input)
         {
             var multiplier = 1;
             Func<byte, IEnumerable<byte>> transformer = null;

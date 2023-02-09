@@ -11,9 +11,10 @@
     public interface IOperationContext
     {
         /// <summary>
-        /// The active colorspaces for this content stream.
+        /// TODO
         /// </summary>
-        IColorSpaceContext ColorSpaceContext { get; }
+        /// <returns></returns>
+        CurrentGraphicsState GetCurrentState();
 
         /// <summary>
         /// The current position.
@@ -249,5 +250,10 @@
         /// Initial value: 0.
         /// </summary>
         void SetCharacterSpacing(double spacing);
+
+        /// <summary>
+        /// PaintShading
+        /// </summary>
+        void ApplyShading(NameToken shading);
     }
 }
