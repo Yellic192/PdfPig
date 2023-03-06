@@ -12,7 +12,6 @@
     internal static class PdfFunctionParser
     {
         public static PdfFunction Create(IToken function, IPdfTokenScanner scanner,
-            //IResourceStore resourceStore,
             ILookupFilterProvider filterProvider)
         {
             if (function is NameToken identity && identity == NameToken.Identity)

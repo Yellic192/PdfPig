@@ -762,10 +762,17 @@
             float t0 = domain[0];
             float t1 = domain[1];
 
-            const int steps = 100; // TODO
-            for (int t = 0; t <= steps; t++)
+            float maxX = _canvas.DeviceClipBounds.Right;
+            float maxY = _canvas.DeviceClipBounds.Top;
+            float minX = _canvas.DeviceClipBounds.Left;
+            float minY = _canvas.DeviceClipBounds.Bottom;
+
+            // worst case for the number of steps is opposite diagonal corners, so use that
+            double dist = Math.Sqrt(Math.Pow(maxX - minX, 2) + Math.Pow(maxY - minY, 2));
+            int factor = (int)Math.Ceiling(dist); // too much?
+            for (int t = 0; t <= factor; t++)
             {
-                double tx = t0 + (t / (double)steps) * t1;
+                double tx = t0 + (t / (double)factor) * t1;
                 double[] v = shading.Function.Eval(new double[] { tx });
                 IColor c = shading.ColorSpace.GetColor(v.Select(k => (decimal)k).ToArray());
                 colors.Add(c.ToSKColor());
@@ -858,10 +865,18 @@
 
             }
 
-            const int steps = 10; // TODO
-            for (int t = 0; t <= steps; t++)
+            float maxX = _canvas.DeviceClipBounds.Right;
+            float maxY = _canvas.DeviceClipBounds.Top;
+            float minX = _canvas.DeviceClipBounds.Left;
+            float minY = _canvas.DeviceClipBounds.Bottom;
+
+            // worst case for the number of steps is opposite diagonal corners, so use that
+            double dist = Math.Sqrt(Math.Pow(maxX - minX, 2) + Math.Pow(maxY - minY, 2));
+            int factor = (int)Math.Ceiling(dist); // too much?
+
+            for (int t = 0; t <= factor; t++)
             {
-                double tx = t0 + (t / (double)steps) * t1;
+                double tx = t0 + (t / (double)factor) * t1;
                 double[] v = shading.Function.Eval(new double[] { tx });
                 IColor c = shading.ColorSpace.GetColor(v.Select(k => (decimal)k).ToArray());
                 colors.Add(c.ToSKColor());

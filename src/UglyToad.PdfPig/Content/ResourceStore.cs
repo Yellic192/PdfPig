@@ -288,12 +288,14 @@
 
                     if (!shadingDictionary.TryGet<ArrayToken>(NameToken.Domain, scanner, out var domainToken))
                     {
-
+                        // set default values
+                        domainToken = new ArrayToken(new IToken[] { new NumericToken(0), new NumericToken(1) });
                     }
 
                     if (!shadingDictionary.TryGet<ArrayToken>(NameToken.Extend, scanner, out var extendToken))
                     {
-
+                        // set default values
+                        extendToken = new ArrayToken(new IToken[] { BooleanToken.False, BooleanToken.False });
                     }
 
                     Shading shading = new Shading(shadingTypeToken.Int, antiAliasToken.Data,
