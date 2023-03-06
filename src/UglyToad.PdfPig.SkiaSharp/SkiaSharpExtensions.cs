@@ -161,8 +161,6 @@
                     return new SKColor((byte)(r * 255), (byte)(g * 255), (byte)(b * 255), (byte)(alphaColor.A * 255));
                 }
                 return new SKColor((byte)(r * 255), (byte)(g * 255), (byte)(b * 255));
-
-                
             }
             return SKColors.Black;
         }
