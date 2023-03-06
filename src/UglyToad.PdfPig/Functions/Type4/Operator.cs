@@ -1,21 +1,14 @@
 ﻿namespace UglyToad.PdfPig.Functions.Type4
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
-
-    /**
-    * Interface for PostScript operators.
-    *
-    */
+    /// <summary>
+    /// Interface for PostScript operators.e
+    /// </summary>
     internal interface Operator
     {
-
-        /**
-         * Executes the operator. The method can inspect and manipulate the stack.
-         * @param context the execution context
-         */
-        void execute(ExecutionContext context);
-
+        /// <summary>
+        /// Executes the operator. The method can inspect and manipulate the stack.
+        /// </summary>
+        /// <param name="context">the execution context</param>
+        void Execute(ExecutionContext context);
     }
 }

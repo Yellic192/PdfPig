@@ -62,6 +62,8 @@
         private const string TIKA_1857_0 = "TIKA-1857-0.pdf";
         private const string TIKA_2121_0 = "TIKA-2121-0.pdf";
 
+        private const string output_w3c_csswg_drafts_issues2023 = "output_w3c_csswg_drafts_issues2023.pdf";
+
         private static string GetFilename(string name)
         {
             var documentFolder = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "Documents"));
@@ -72,6 +74,12 @@
             }
 
             return Path.Combine(documentFolder, name);
+        }
+
+        [Fact]
+        public void output_w3c_csswg_drafts_issues2023Test()
+        {
+            Run(output_w3c_csswg_drafts_issues2023, 1);
         }
 
         [Fact]
@@ -218,7 +226,7 @@
             Run(d_68_1990_01_A, 7);
         }
 
-        [Fact(Skip = "Not all")]
+        [Fact] //(Skip = "Not all")]
         public void d_68_1990_01_ATestAll()
         {
             RunAllPages(d_68_1990_01_A);
@@ -302,7 +310,7 @@
             Run(PigProduction, 15);
         }
 
-        [Fact(Skip = "Not all")]
+        [Fact] //(Skip = "Not all")]
         public void PigProductionTestAll()
         {
             RunAllPages(PigProduction);

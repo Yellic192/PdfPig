@@ -273,19 +273,23 @@
                     }
                 }
 
-                SKPaint fillBrush = new SKPaint()
+                using (SKPaint fillBrush = new SKPaint()
                 {
                     Style = SKPaintStyle.Fill,
                     Color = SKColors.Black
-                };
-
-                if (color != null)
+                })
                 {
-                    fillBrush.Color = color.ToSKColor();
-                }
+                    if (color != null)
+                    {
+                        if (GetCurrentState().AlphaConstantNonStroking != 1)
+                        {
+                            color = new AlphaColor(GetCurrentState().AlphaConstantNonStroking, color);
+                        }
 
-                _canvas.DrawPath(gp, fillBrush);
-                fillBrush.Dispose();
+                        fillBrush.Color = color.ToSKColor();
+                    }
+                    _canvas.DrawPath(gp, fillBrush);
+                }
             }
         }
 
@@ -372,6 +376,11 @@
                     // Wingdings 
                     //drawFont = SKTypeface.FromFamilyName("Wingdings", style);
                 }
+            }
+
+            if (GetCurrentState().AlphaConstantNonStroking != 1)
+            {
+                color = new AlphaColor(GetCurrentState().AlphaConstantNonStroking, color);
             }
 
             var fontPaint = new SKPaint(drawFont.ToFont((float)(pointSize * _mult)))
@@ -510,7 +519,7 @@
             {
                 float lineWidth = Math.Max((float)0.5, GetScaledLineWidth()) * (float)_mult; // A guess
 
-                paint.Color = currentGraphicsState.CurrentStrokingColor.ToSKColor();
+                paint.Color = currentGraphicsState.GetCurrentStrokingColorSKColor(); //.CurrentStrokingColor.ToSKColor();
                 paint.Style = SKPaintStyle.Stroke;
                 paint.StrokeWidth = lineWidth;
                 paint.StrokeJoin = currentGraphicsState.JoinStyle.ToSKStrokeJoin();
@@ -547,7 +556,7 @@
 
             using (SKPaint paint = new SKPaint())
             {
-                paint.Color = currentGraphicsState.CurrentNonStrokingColor.ToSKColor();
+                paint.Color = currentGraphicsState.GetCurrentNonStrokingColorSKColor(); //.CurrentNonStrokingColor.ToSKColor();
                 paint.Style = SKPaintStyle.Fill;
                 _canvas.DrawPath(CurrentPath, paint);
             }
@@ -673,13 +682,202 @@
             }
         }
 
-        protected override void RenderShading(DictionaryToken shading)
+        protected override void RenderShading(Shading shading)
         {
-            using (SKPaint paint = new SKPaint())
+            switch (shading.ShadingType)
             {
-                paint.Color = SKColors.Violet;
-                paint.Style = SKPaintStyle.Fill;
-                _canvas.DrawPath(GetCurrentState().CurrentClippingPath.PdfSubpathsToGraphicsPath(_height, _mult), paint); // Not correct
+                case 2: // 2 Axial shading
+                    RenderAxialShading(shading);
+                    break;
+
+                case 3: // 3 Radial shading
+                    RenderRadialShading(shading);
+                    break;
+
+                case 1: // 1 Function-based shading
+                case 4: // 4 Free-form Gouraud-shaded triangle mesh
+                case 5: // 5 Lattice-form Gouraud-shaded triangle mesh
+                case 6: // 6 Coons patch mesh
+                case 7: // 7 Tensor-product patch mesh
+                default:
+                    RenderUnsupportedShading(shading);
+                    break;
+            }
+        }
+
+        private void RenderUnsupportedShading(Shading shading)
+        {
+            var (x0, y0) = CurrentTransformationMatrix.Transform(0, 0);
+            var (x1, y1) = CurrentTransformationMatrix.Transform(0, 1);
+
+            float xs0 = (float)(x0 * _mult);
+            float ys0 = (float)(_height - (y0 * _mult));
+            float xs1 = (float)(x1 * _mult);
+            float ys1 = (float)(_height - (y1 * _mult));
+            using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias })
+            {
+                paint.Shader = SKShader.CreateLinearGradient(
+                    new SKPoint(xs0, ys0),
+                    new SKPoint(xs1, ys1),
+                    new[]
+                    {
+                        SKColors.Red,
+                        SKColors.Green
+                    },
+                    SKShaderTileMode.Clamp);
+
+                // check if bbox not null
+
+                _canvas.DrawPaint(paint);
+            }
+        }
+
+        private void RenderRadialShading(Shading shading)
+        {
+            // Not correct
+            var coords = shading.Coords.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
+            var domain = shading.Domain.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
+
+            float r0 = coords[2];
+            float r1 = coords[5];
+
+            // If one radius is 0, the corresponding circle shall be treated as a point;
+            // if both are 0, nothing shall be painted.
+            if (r0 == 0 && r1 == 0)
+            {
+                return;
+            }
+
+            var (x0, y0) = CurrentTransformationMatrix.Transform(coords[0], coords[1]);
+            var (x1, y1) = CurrentTransformationMatrix.Transform(coords[3], coords[4]);
+
+            float xs0 = (float)(x0 * _mult);
+            float ys0 = (float)(_height - y0 * _mult);
+            float xs1 = (float)(x1 * _mult);
+            float ys1 = (float)(_height - y1 * _mult);
+            float r0s = (float)(r0 * _mult);
+            float r1s = (float)(r1 * _mult);
+
+            var colors = new List<SKColor>();
+            float t0 = domain[0];
+            float t1 = domain[1];
+
+            const int steps = 100; // TODO
+            for (int t = 0; t <= steps; t++)
+            {
+                double tx = t0 + (t / (double)steps) * t1;
+                double[] v = shading.Function.Eval(new double[] { tx });
+                IColor c = shading.ColorSpace.GetColor(v.Select(k => (decimal)k).ToArray());
+                colors.Add(c.ToSKColor());
+            }
+
+            if (shading.BBox.HasValue)
+            {
+
+            }
+
+            if (shading.Background != null)
+            {
+
+            }
+
+            if (r0s == 0)
+            {
+                using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias })
+                {
+
+                    paint.Shader = SKShader.CreateRadialGradient(
+                        new SKPoint((float)xs1, (float)ys1),
+                        r1s,
+                        colors.ToArray(),
+                        SKShaderTileMode.Clamp);
+
+                    // check if bbox not null
+
+                    _canvas.DrawPaint(paint);
+                }
+            }
+            else if (r1s == 0)
+            {
+                using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias })
+                {
+                    paint.Shader = SKShader.CreateRadialGradient(
+                        new SKPoint((float)xs0, (float)ys0),
+                        r0s,
+                        colors.ToArray(),
+                        SKShaderTileMode.Clamp);
+
+                    // check if bbox not null
+
+                    _canvas.DrawPaint(paint);
+                }
+            }
+            else
+            {
+                using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias })
+                {
+                    paint.Shader = SKShader.CreateTwoPointConicalGradient(
+                        new SKPoint((float)xs0, (float)ys0),
+                        r0s,
+                        new SKPoint((float)xs1, (float)ys1),
+                        r1s,
+                        colors.ToArray(),
+                        SKShaderTileMode.Clamp);
+
+                    // check if bbox not null
+
+                    _canvas.DrawPaint(paint);
+                }
+            }
+        }
+
+        private void RenderAxialShading(Shading shading)
+        {
+            var coords = shading.Coords.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
+            var domain = shading.Domain.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
+
+            var (x0, y0) = CurrentTransformationMatrix.Transform(coords[0], coords[1]);
+            var (x1, y1) = CurrentTransformationMatrix.Transform(coords[2], coords[3]);
+
+            float xs0 = (float)(x0 * _mult);
+            float ys0 = (float)(_height - (y0 * _mult));
+            float xs1 = (float)(x1 * _mult);
+            float ys1 = (float)(_height - (y1 * _mult));
+
+            var colors = new List<SKColor>();
+            float t0 = domain[0];
+            float t1 = domain[1];
+
+            if (shading.BBox.HasValue)
+            {
+
+            }
+
+            if (shading.Background != null)
+            {
+
+            }
+
+            const int steps = 10; // TODO
+            for (int t = 0; t <= steps; t++)
+            {
+                double tx = t0 + (t / (double)steps) * t1;
+                double[] v = shading.Function.Eval(new double[] { tx });
+                IColor c = shading.ColorSpace.GetColor(v.Select(k => (decimal)k).ToArray());
+                colors.Add(c.ToSKColor());
+            }
+
+            using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias })
+            {
+                paint.Shader = SKShader.CreateLinearGradient(
+                    new SKPoint(xs0, ys0),
+                    new SKPoint(xs1, ys1),
+                    colors.ToArray(),
+                    SKShaderTileMode.Clamp);
+
+                // check if bbox not null
+
+                _canvas.DrawPaint(paint);
             }
         }
     }

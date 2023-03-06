@@ -9,6 +9,7 @@
     using Parser.Parts;
     using Tokenization.Scanner;
     using Tokens;
+    using UglyToad.PdfPig.Functions;
 
     internal static class ColorSpaceMapper
     {
@@ -64,7 +65,6 @@
 
             return false;
         }
-
     }
 
     internal static class ColorSpaceDetailsParser
@@ -85,7 +85,7 @@
                 }
 
                 var colorSpaceDetails = GetColorSpaceDetails(colorSpace, imageDictionary.Without(NameToken.Filter).Without(NameToken.F), scanner, resourceStore, filterProvider, true);
-                
+
                 var decodeRaw = imageDictionary.GetObjectOrDefault(NameToken.Decode, NameToken.D) as ArrayToken
                     ?? new ArrayToken(EmptyArray<IToken>.Instance);
                 var decode = decodeRaw.Data.OfType<NumericToken>().Select(x => x.Data).ToArray();
@@ -414,11 +414,12 @@
                         }
 
                         Union<DictionaryToken, StreamToken> functionTokensUnion;
+                        PdfFunction tintFunc;
                         var func = colorSpaceArray[3];
-
                         if (DirectObjectFinder.TryGet(func, scanner, out DictionaryToken functionDictionary))
                         {
                             functionTokensUnion = Union<DictionaryToken, StreamToken>.One(functionDictionary);
+                            tintFunc = PdfFunctionParser.Create(functionDictionary, scanner, filterProvider);
                         }
                         else if (DirectObjectFinder.TryGet(func, scanner, out StreamToken functionStream))
                         {
@@ -438,13 +439,15 @@
                             }
 
                             functionTokensUnion = Union<DictionaryToken, StreamToken>.Two(functionStream);
+                            tintFunc = PdfFunctionParser.Create(functionStream, scanner, filterProvider);
                         }
                         else
                         {
                             return UnsupportedColorSpaceDetails.Instance;
                         }
 
-                        return new SeparationColorSpaceDetails(separationNameToken, alternateColorSpaceDetails, functionTokensUnion);
+                        return new SeparationColorSpaceDetails(separationNameToken, alternateColorSpaceDetails,
+                            functionTokensUnion, tintFunc);
                     }
                 case ColorSpace.DeviceN:
                     return UnsupportedColorSpaceDetails.Instance;

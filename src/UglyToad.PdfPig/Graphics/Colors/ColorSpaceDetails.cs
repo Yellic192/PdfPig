@@ -119,10 +119,8 @@
             {
                 return RGBColor.White;
             }
-            else
-            {
-                return new RGBColor(r, g, b);
-            }
+
+            return new RGBColor(r, g, b);
         }
     }
 
@@ -152,6 +150,15 @@
             decimal m = values[1];
             decimal y = values[2];
             decimal k = values[3];
+            if (c == 0 && m == 0 && y == 0 && k == 1)
+            {
+                return CMYKColor.Black;
+            }
+            else if (c == 0 && m == 0 && y == 0 && k == 0)
+            {
+                return CMYKColor.White;
+            }
+
             return new CMYKColor(c, m, y, k);
         }
     }
@@ -258,7 +265,7 @@
         /// The function is called with the tint value and must return the corresponding color component values.
         /// That is, the number of components and the interpretation of their values depend on the <see cref="AlternateColorSpaceDetails"/>.
         /// </summary>
-        public Union<DictionaryToken, StreamToken> TintFunction { get; }
+        public Union<DictionaryToken, StreamToken> TintFunctionData { get; }
 
         private readonly PdfFunction func;
 
@@ -287,12 +294,13 @@
         /// </summary>
         public SeparationColorSpaceDetails(NameToken name,
             ColorSpaceDetails alternateColorSpaceDetails,
-            Union<DictionaryToken, StreamToken> tintFunction)
+            Union<DictionaryToken, StreamToken> tintFunctionData,
+            PdfFunction tintFunction)
             : base(ColorSpace.Separation)
         {
             Name = name;
             AlternateColorSpaceDetails = alternateColorSpaceDetails;
-            TintFunction = tintFunction;
+            TintFunctionData = tintFunctionData;
 
             if (lookupTable.TryGetValue(name, out var lookup))
             {
@@ -302,15 +310,7 @@
             {
                 System.Diagnostics.Debug.WriteLine($"Unknown color name '{Name.Data}'");
             }
-
-            if (TintFunction.TryGetFirst(out var dic))
-            {
-                func = PdfFunction.Create(dic);
-            }
-            else if (TintFunction.TryGetSecond(out var str))
-            {
-                func = PdfFunction.Create(str);
-            }
+            func = tintFunction;
         }
 
         /// <inheritdoc/>
@@ -323,7 +323,7 @@
 
             // TODO - check if correct way to do
             // TODO - caching
-            var evaled = func.eval(values.Select(v => (float)v).ToArray()).Select(k => (decimal)k).ToArray();
+            var evaled = func.Eval(values.Select(v => (double)v).ToArray()).Select(k => (decimal)k).ToArray();
             return AlternateColorSpaceDetails.GetColor(evaled);
         }
     }

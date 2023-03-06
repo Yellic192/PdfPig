@@ -3,50 +3,62 @@
     using System;
     using System.IO;
     using System.Linq;
+    using UglyToad.PdfPig.Core;
     using UglyToad.PdfPig.Tokens;
 
-    internal abstract class PdfFunction
+    /// <summary>
+    /// This class represents a function in a PDF document.
+    /// </summary>
+    public abstract class PdfFunction
     {
+        /// <summary>
+        /// The function dictionary.
+        /// </summary>
         public DictionaryToken FunctionDictionary { get; }
 
+        /// <summary>
+        /// The function stream.
+        /// </summary>
         public StreamToken FunctionStream { get; }
 
-        private ArrayToken domain = null;
-        private ArrayToken range = null;
+        private ArrayToken domain;
+        private ArrayToken range;
         private int numberOfInputValues = -1;
         private int numberOfOutputValues = -1;
 
+        /// <summary>
+        /// This class represents a function in a PDF document.
+        /// </summary>
         public PdfFunction(DictionaryToken function)
         {
             FunctionDictionary = function;
         }
 
+        /// <summary>
+        /// This class represents a function in a PDF document.
+        /// </summary>
         public PdfFunction(StreamToken function)
         {
-            // functionStream = new PDStream( (COSStream)function );
-            // functionStream.getCOSObject().setItem(COSName.TYPE, COSName.FUNCTION);
             FunctionStream = function;
         }
 
-        /**
-         * Returns the function type.
-         * 
-         * Possible values are:
-         * 
-         * 0 - Sampled function
-         * 2 - Exponential interpolation function
-         * 3 - Stitching function
-         * 4 - PostScript calculator function
-         * 
-         * @return the function type.
-         */
-        public abstract int getFunctionType();
+        /// <summary>
+        /// Returns the function type. Possible values are:
+        /// <list type="bullet">
+        /// <item><term>0</term><description>Sampled function</description></item>
+        /// <item><term>2</term><description>Exponential interpolation function</description></item>
+        /// <item><term>3</term><description>Stitching function</description></item>
+        /// <item><term>4</term><description>PostScript calculator function</description></item>
+        /// </list>
+        /// </summary>
+        /// <returns>the function type.</returns>
+        public abstract int FunctionType { get; }
 
-        /**
-         * Returns the stream.
-         * @return The stream for this object.
-         */
-        public DictionaryToken getCOSObject()
+        /// <summary>
+        /// Returns the function's dictionary. If <see cref="FunctionDictionary"/> is defined, it will be returned.
+        /// If not, the <see cref="FunctionStream"/>'s StreamDictionary will be returned.
+        /// </summary>
+        public DictionaryToken GetDictionary()
         {
             if (FunctionStream != null)
             {
@@ -58,242 +70,142 @@
             }
         }
 
-        /**
-         * Returns the underlying PDStream.
-         * @return The stream.
-         */
-        protected StreamToken getPDStream()
+        /// <summary>
+        /// This will get the number of output parameters that
+        /// have a range specified. A range for output parameters
+        /// is optional so this may return zero for a function
+        /// that does have output parameters, this will simply return the
+        /// number that have the range specified.
+        /// </summary>
+        /// <returns>The number of output parameters that have a range specified.</returns>
+        public int NumberOfOutputParameters
         {
-            return FunctionStream;
-        }
-
-        public static PdfFunction Create(IToken function)
-        {
-            if (function is NameToken identity && identity == NameToken.Identity) //COSName.IDENTITY)
+            get
             {
-                return new PdfFunctionTypeIdentity(null);
-            }
-
-            IToken _baseDic = function;
-
-            if (_baseDic is StreamToken _baseStream)
-            {
-                _baseDic = _baseStream.StreamDictionary;
-            }
-
-            if (_baseDic is not DictionaryToken functionDictionary)
-            {
-                throw new IOException("Error: Function must be a Dictionary, but is " +
-                        (_baseDic == null ? "(null)" : _baseDic.GetType().Name)); //.getClass().getSimpleName())); ;
-            }
-
-            int functionType = (functionDictionary.Data[NameToken.FunctionType] as NumericToken).Int;
-            switch (functionType)
-            {
-                case 0:
-                    if (function is StreamToken function0Stream)
+                if (numberOfOutputValues == -1)
+                {
+                    if (RangeValues == null)
                     {
-                        return new PdfFunctionType0(function0Stream);
+                        numberOfOutputValues = 0;
                     }
                     else
                     {
-                        throw new NotImplementedException("PdfFunctionType0 not stream");
+                        numberOfOutputValues = RangeValues.Length / 2;
                     }
-                case 2:
-                    return new PdfFunctionType2(functionDictionary);
-                case 3:
-                    throw new NotImplementedException("PdfFunctionType3");
-                //return new PdfFunctionType3(functionDictionary);
-                case 4:
-                    if (function is StreamToken function4Stream)
-                    {
-                        return new PdfFunctionType4(function4Stream);
-                    }
-                    else
-                    {
-                        throw new NotImplementedException("PdfFunctionType4 not stream");
-                    }
-                default:
-                    throw new IOException("Error: Unknown function type " + functionType);
-            }
-        }
-
-        /**
- * This will get the number of output parameters that
- * have a range specified.  A range for output parameters
- * is optional so this may return zero for a function
- * that does have output parameters, this will simply return the
- * number that have the range specified.
- *
- * @return The number of output parameters that have a range
- * specified.
- */
-        public int getNumberOfOutputParameters()
-        {
-            if (numberOfOutputValues == -1)
-            {
-                ArrayToken rangeValues = getRangeValues();
-                if (rangeValues == null)
-                {
-                    numberOfOutputValues = 0;
                 }
-                else
+                return numberOfOutputValues;
+            }
+        }
+
+        /// <summary>
+        /// This will get the range for a certain output parameters. This is will never
+        /// return null.  If it is not present then the range 0 to 0 will
+        /// be returned.
+        /// </summary>
+        /// <param name="n">The output parameter number to get the range for.</param>
+        /// <returns>The range for this component.</returns>
+        public PdfRange GetRangeForOutput(int n)
+        {
+            return new PdfRange(RangeValues.Data.OfType<NumericToken>().Select(t => t.Double), n);
+        }
+
+        /// <summary>
+        /// This will get the number of input parameters that
+        /// have a domain specified.
+        /// </summary>
+        /// <returns>The number of input parameters that have a domain specified.</returns>
+        public int NumberOfInputParameters
+        {
+            get
+            {
+                if (numberOfInputValues == -1)
                 {
-                    numberOfOutputValues = rangeValues.Length / 2;
+                    ArrayToken array = GetDomainValues();
+                    numberOfInputValues = array.Length / 2;
                 }
+                return numberOfInputValues;
             }
-            return numberOfOutputValues;
         }
 
-        /**
-  * This will get the range for a certain output parameters.  This is will never
-  * return null.  If it is not present then the range 0 to 0 will
-  * be returned.
-  *
-  * @param n The output parameter number to get the range for.
-  *
-  * @return The range for this component.
-  */
-        public PDRange getRangeForOutput(int n)
+        /// <summary>
+        /// This will get the range for a certain input parameter.  This is will never
+        /// return null.  If it is not present then the range 0 to 0 will
+        /// be returned.
+        /// </summary>
+        /// <param name="n">The parameter number to get the domain for.</param>
+        /// <returns>The domain range for this component.</returns>
+        public PdfRange GetDomainForInput(int n)
         {
-            ArrayToken rangeValues = getRangeValues();
-            return new PDRange(rangeValues, n);
+            ArrayToken domainValues = GetDomainValues();
+            return new PdfRange(domainValues.Data.OfType<NumericToken>().Select(t => t.Double), n);
         }
 
-        /**
-  * This will set the range values.
-  *
-  * @param rangeValues The new range values.
-  */
-        public void setRangeValues(ArrayToken rangeValues)
-        {
-            range = rangeValues;
-            //getCOSObject().setItem(COSName.RANGE, rangeValues);
-            throw new NotImplementedException();
-        }
+        /// <summary>
+        /// Evaluates the function at the given input.
+        /// ReturnValue = f(input)
+        /// </summary>
+        /// <param name="input">The array of input values for the function.
+        /// In many cases will be an array of a single value, but not always.</param>
+        /// <returns>The of outputs the function returns based on those inputs.
+        /// In many cases will be an array of a single value, but not always.</returns>
+        public abstract double[] Eval(double[] input);
 
-        /**
-         * This will get the number of input parameters that
-         * have a domain specified.
-         *
-         * @return The number of input parameters that have a domain
-         * specified.
-         */
-        public int getNumberOfInputParameters()
+        /// <summary>
+        /// Returns all ranges for the output values as <see cref="ArrayToken"/>. Required for type 0 and type 4 functions.
+        /// </summary>
+        /// <returns>the ranges array.</returns>
+        protected virtual ArrayToken RangeValues
         {
-            if (numberOfInputValues == -1)
+            get
             {
-                ArrayToken array = getDomainValues();
-                numberOfInputValues = array.Length / 2;
-            }
-            return numberOfInputValues;
-        }
-
-        /**
-  * This will get the range for a certain input parameter.  This is will never
-  * return null.  If it is not present then the range 0 to 0 will
-  * be returned.
-  *
-  * @param n The parameter number to get the domain for.
-  *
-  * @return The domain range for this component.
-  */
-        public PDRange getDomainForInput(int n)
-        {
-            ArrayToken domainValues = getDomainValues();
-            return new PDRange(domainValues, n);
-        }
-
-        /**
-    * This will set the domain values.
-    *
-    * @param domainValues The new domain values.
-    */
-        public void setDomainValues(ArrayToken domainValues)
-        {
-            domain = domainValues;
-            throw new NotImplementedException();
-            //getCOSObject().setItem(COSName.DOMAIN, domainValues);
-        }
-
-
-        /**
-         * Evaluates the function at the given input.
-         * ReturnValue = f(input)
-         *
-         * @param input The array of input values for the function. 
-         * In many cases will be an array of a single value, but not always.
-         * 
-         * @return The of outputs the function returns based on those inputs. 
-         * In many cases will be an array of a single value, but not always.
-         * 
-         * @throws IOException if something went wrong processing the function.  
-         */
-        public abstract float[] eval(float[] input);
-
-        /**
-   * Returns all ranges for the output values as COSArray .
-   * Required for type 0 and type 4 functions
-   * @return the ranges array. 
-   */
-        protected virtual ArrayToken getRangeValues()
-        {
-            if (range == null)
-            {
-                if (getCOSObject().TryGet(NameToken.Range, out ArrayToken rangeToken))
+                if (range == null)
                 {
+                    if (!GetDictionary().TryGet(NameToken.Range, out ArrayToken rangeToken))
+                    {
+                        //throw new ArgumentException("Could not retrieve Range."); // TODO - check if we need to throw
+                    }
+
                     range = rangeToken;
                 }
-                else
-                {
-                    throw new NotImplementedException();
-                }
-                //range = getCOSObject().getCOSArray(NameToken.Range);//COSName.RANGE);
+                return range;
             }
-            return range;
         }
 
-        /**
-    * Returns all domains for the input values as COSArray.
-    * Required for all function types.
-    * @return the domains array. 
-    */
-        private ArrayToken getDomainValues()
+        /// <summary>
+        /// Returns all domains for the input values as <see cref="ArrayToken"/>. Required for all function types.
+        /// </summary>
+        /// <returns>the domains array.</returns>
+        private ArrayToken GetDomainValues()
         {
             if (domain == null)
             {
-                if (getCOSObject().TryGet(NameToken.Domain, out ArrayToken domainToken))
+                if (!GetDictionary().TryGet(NameToken.Domain, out ArrayToken domainToken))
                 {
-                    domain = domainToken;
+                    throw new ArgumentException("Could not retrieve Domain.");
                 }
-                else
-                {
-                    throw new NotImplementedException();
-                }
-                //domain = getCOSObject().getCOSArray(NameToken.Domain); //COSName.DOMAIN);
+                domain = domainToken;
             }
             return domain;
         }
 
-        /**
- * Clip the given input values to the ranges.
- * 
- * @param inputValues the input values
- * @return the clipped values
- */
-        protected float[] clipToRange(float[] inputValues)
+        /// <summary>
+        /// Clip the given input values to the ranges.
+        /// </summary>
+        /// <param name="inputValues">inputValues the input values</param>
+        /// <returns>the clipped values</returns>
+        protected double[] ClipToRange(double[] inputValues)
         {
-            ArrayToken rangesArray = getRangeValues();
-            float[] result;
+            ArrayToken rangesArray = RangeValues;
+            double[] result;
             if (rangesArray != null && rangesArray.Length > 0)
             {
-                float[] rangeValues = rangesArray.Data.OfType<NumericToken>().Select(t => (float)t.Double).ToArray(); //.toFloatArray();
+                double[] rangeValues = rangesArray.Data.OfType<NumericToken>().Select(t => t.Double).ToArray();
                 int numberOfRanges = rangeValues.Length / 2;
-                result = new float[numberOfRanges];
+                result = new double[numberOfRanges];
                 for (int i = 0; i < numberOfRanges; i++)
                 {
                     int index = i << 1;
-                    result[i] = clipToRange(inputValues[i], rangeValues[index], rangeValues[index + 1]);
+                    result[i] = ClipToRange(inputValues[i], rangeValues[index], rangeValues[index + 1]);
                 }
             }
             else
@@ -303,15 +215,14 @@
             return result;
         }
 
-        /**
- * Clip the given input value to the given range.
- * 
- * @param x the input value
- * @param rangeMin the min value of the range
- * @param rangeMax the max value of the range
- * @return the clipped value
- */
-        protected float clipToRange(float x, float rangeMin, float rangeMax)
+        /// <summary>
+        /// Clip the given input value to the given range.
+        /// </summary>
+        /// <param name="x">x the input value</param>
+        /// <param name="rangeMin">the min value of the range</param>
+        /// <param name="rangeMax">the max value of the range</param>
+        /// <returns>the clipped value</returns>
+        protected static double ClipToRange(double x, double rangeMin, double rangeMax)
         {
             if (x < rangeMin)
             {
@@ -324,19 +235,18 @@
             return x;
         }
 
-        /**
- * For a given value of x, interpolate calculates the y value 
- * on the line defined by the two points (xRangeMin , xRangeMax ) 
- * and (yRangeMin , yRangeMax ).
- * 
- * @param x the to be interpolated value.
- * @param xRangeMin the min value of the x range
- * @param xRangeMax the max value of the x range
- * @param yRangeMin the min value of the y range
- * @param yRangeMax the max value of the y range
- * @return the interpolated y value
- */
-        protected static float interpolate(float x, float xRangeMin, float xRangeMax, float yRangeMin, float yRangeMax)
+        /// <summary>
+        /// For a given value of x, interpolate calculates the y value
+        /// on the line defined by the two points (xRangeMin, xRangeMax)
+        /// and (yRangeMin, yRangeMax).
+        /// </summary>
+        /// <param name="x">the value to be interpolated value.</param>
+        /// <param name="xRangeMin">the min value of the x range</param>
+        /// <param name="xRangeMax">the max value of the x range</param>
+        /// <param name="yRangeMin">the min value of the y range</param>
+        /// <param name="yRangeMax">the max value of the y range</param>
+        /// <returns>the interpolated y value</returns>
+        protected static double Interpolate(double x, double xRangeMin, double xRangeMax, double yRangeMin, double yRangeMax)
         {
             return yRangeMin + ((x - xRangeMin) * (yRangeMax - yRangeMin) / (xRangeMax - xRangeMin));
         }

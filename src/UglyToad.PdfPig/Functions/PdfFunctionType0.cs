@@ -49,10 +49,12 @@
         {
         }
 
-        public override int getFunctionType()
+        public override int FunctionType
         {
-
-            return 0;
+            get
+            {
+                return 0;
+            }
         }
 
         /// <summary>
@@ -62,7 +64,7 @@
         {
             get
             {
-                if (size == null && !getCOSObject().TryGet(NameToken.Size, out size))
+                if (size == null && !GetDictionary().TryGet(NameToken.Size, out size))
                 {
                     throw new ArgumentNullException(NameToken.Size);
                 }
@@ -79,7 +81,7 @@
         {
             get
             {
-                if (!getCOSObject().TryGet<NumericToken>(NameToken.BitsPerSample, out var bps))
+                if (!GetDictionary().TryGet<NumericToken>(NameToken.BitsPerSample, out var bps))
                 {
                     throw new ArgumentNullException(NameToken.BitsPerSample);
                 }
@@ -97,7 +99,7 @@
         {
             get
             {
-                if (!getCOSObject().TryGet<NumericToken>(NameToken.Order, out var order))
+                if (!GetDictionary().TryGet<NumericToken>(NameToken.Order, out var order))
                 {
                     return 1;
                 }
@@ -115,7 +117,7 @@
             {
                 if (encode == null)
                 {
-                    getCOSObject().TryGet<ArrayToken>(NameToken.Encode, out encode);
+                    GetDictionary().TryGet<ArrayToken>(NameToken.Encode, out encode);
 
                     // the default value is [0 (size[0]-1) 0 (size[1]-1) ...]
                     if (encode == null)
@@ -145,12 +147,12 @@
             {
                 if (decode == null)
                 {
-                    getCOSObject().TryGet<ArrayToken>(NameToken.Decode, out decode);
+                    GetDictionary().TryGet<ArrayToken>(NameToken.Decode, out decode);
 
                     // if decode is null, the default values are the range values
                     if (decode == null)
                     {
-                        decode = getRangeValues();
+                        decode = RangeValues;
                     }
                 }
                 return decode;
@@ -162,12 +164,12 @@
         /// </summary>
         /// <param name="paramNum">The function parameter number.</param>
         /// <returns>The encode parameter range or null if none is set.</returns>
-        public PDRange GetEncodeForParameter(int paramNum)
+        public PdfRange? GetEncodeForParameter(int paramNum)
         {
             ArrayToken encodeValues = EncodeValues;
             if (encodeValues != null && encodeValues.Length >= paramNum * 2 + 1)
             {
-                return new PDRange(encodeValues, paramNum);
+                return new PdfRange(encodeValues.Data.OfType<NumericToken>().Select(t => t.Double), paramNum);
             }
             return null;
         }
@@ -177,12 +179,12 @@
         /// </summary>
         /// <param name="paramNum">The function parameter number.</param>
         /// <returns>The decode parameter range or null if none is set.</returns>
-        public PDRange GetDecodeForParameter(int paramNum)
+        public PdfRange? GetDecodeForParameter(int paramNum)
         {
             ArrayToken decodeValues = DecodeValues;
             if (decodeValues != null && decodeValues.Length >= paramNum * 2 + 1)
             {
-                return new PDRange(decodeValues, paramNum);
+                return new PdfRange(decodeValues.Data.OfType<NumericToken>().Select(t => t.Double), paramNum);
             }
             return null;
         }
@@ -198,7 +200,7 @@
         internal class RInterpol
         {
             // coordinate that is to be interpolated
-            private readonly float[] in_;
+            private readonly double[] in_;
             // coordinate of the "ceil" point
             private readonly int[] inPrev;
             // coordinate of the "floor" point
@@ -218,7 +220,7 @@
             /// <param name="numberOfOutputValues"></param>
             /// <param name="size"></param>
             /// <param name="samples"></param>
-            internal RInterpol(float[] input, int[] inputPrev, int[] inputNext, int numberOfOutputValues, ArrayToken size, int[][] samples)
+            internal RInterpol(double[] input, int[] inputPrev, int[] inputNext, int numberOfOutputValues, ArrayToken size, int[][] samples)
             {
                 in_ = input;
                 inPrev = inputPrev;
@@ -233,7 +235,7 @@
             /// Calculate the interpolation.
             /// </summary>
             /// <returns>interpolated result sample</returns>
-            internal float[] RInterpolate()
+            internal double[] RInterpolate()
             {
                 return InternalRInterpol(new int[numberOfInputValues], 0);
             }
@@ -247,9 +249,9 @@
             /// used to get the correct sample</param>
             /// <param name="step">between 0 (first call) and dimension - 1</param>
             /// <returns>interpolated result sample</returns>
-            private float[] InternalRInterpol(int[] coord, int step)
+            private double[] InternalRInterpol(int[] coord, int step)
             {
-                float[] resultSample = new float[numberOfOutputValues];
+                double[] resultSample = new double[numberOfOutputValues];
                 if (step == in_.Length - 1)
                 {
                     // leaf
@@ -269,7 +271,7 @@
                     int[] sample2 = samples[CalcSampleIndex(coord)];
                     for (int i = 0; i < numberOfOutputValues; ++i)
                     {
-                        resultSample[i] = interpolate(in_[step], inPrev[step], inNext[step], sample1[i], sample2[i]);
+                        resultSample[i] = Interpolate(in_[step], inPrev[step], inNext[step], sample1[i], sample2[i]);
                     }
                     return resultSample;
                 }
@@ -282,12 +284,12 @@
                         return InternalRInterpol(coord, step + 1);
                     }
                     coord[step] = inPrev[step];
-                    float[] sample1 = InternalRInterpol(coord, step + 1);
+                    double[] sample1 = InternalRInterpol(coord, step + 1);
                     coord[step] = inNext[step];
-                    float[] sample2 = InternalRInterpol(coord, step + 1);
+                    double[] sample2 = InternalRInterpol(coord, step + 1);
                     for (int i = 0; i < numberOfOutputValues; ++i)
                     {
-                        resultSample[i] = interpolate(in_[step], inPrev[step], inNext[step], sample1[i], sample2[i]);
+                        resultSample[i] = Interpolate(in_[step], inPrev[step], inNext[step], sample1[i], sample2[i]);
                     }
                     return resultSample;
                 }
@@ -331,8 +333,8 @@
             if (samples == null)
             {
                 int arraySize = 1;
-                int nIn = getNumberOfInputParameters();
-                int nOut = getNumberOfOutputParameters();
+                int nIn = NumberOfInputParameters;
+                int nOut = NumberOfOutputParameters;
                 ArrayToken sizes = Size;
                 for (int i = 0; i < nIn; i++)
                 {
@@ -369,16 +371,16 @@
             return samples;
         }
 
-        public override float[] eval(float[] input)
+        public override double[] Eval(double[] input)
         {
             //This involves linear interpolation based on a set of sample points.
             //Theoretically it's not that difficult ... see section 3.9.1 of the PDF Reference.
 
-            float[] sizeValues = Size.Data.OfType<NumericToken>().Select(t => (float)t.Double).ToArray();
+            double[] sizeValues = Size.Data.OfType<NumericToken>().Select(t => t.Double).ToArray();
             int bitsPerSample = BitsPerSample;
-            float maxSample = (float)Math.Pow(2, bitsPerSample) - 1.0f;
+            double maxSample = Math.Pow(2, bitsPerSample) - 1.0;
             int numberOfInputValues = input.Length;
-            int numberOfOutputValues = getNumberOfOutputParameters();
+            int numberOfOutputValues = NumberOfOutputParameters;
 
             int[] inputPrev = new int[numberOfInputValues];
             int[] inputNext = new int[numberOfInputValues];
@@ -386,28 +388,28 @@
 
             for (int i = 0; i < numberOfInputValues; i++)
             {
-                PDRange domain = getDomainForInput(i);
-                PDRange encodeValues = GetEncodeForParameter(i);
-                input[i] = clipToRange(input[i], domain.getMin(), domain.getMax());
-                input[i] = interpolate(input[i], domain.getMin(), domain.getMax(),
-                        encodeValues.getMin(), encodeValues.getMax());
-                input[i] = clipToRange(input[i], 0, sizeValues[i] - 1);
+                PdfRange domain = GetDomainForInput(i);
+                PdfRange? encodeValues = GetEncodeForParameter(i);
+                input[i] = ClipToRange(input[i], domain.Min, domain.Max);
+                input[i] = Interpolate(input[i], domain.Min, domain.Max,
+                        encodeValues.Value.Min, encodeValues.Value.Max);
+                input[i] = ClipToRange(input[i], 0, sizeValues[i] - 1);
                 inputPrev[i] = (int)Math.Floor(input[i]);
                 inputNext[i] = (int)Math.Ceiling(input[i]);
             }
 
-            float[] outputValues = new RInterpol(input, inputPrev, inputNext, numberOfOutputValues, Size, GetSamples()).RInterpolate();
+            double[] outputValues = new RInterpol(input, inputPrev, inputNext, numberOfOutputValues, Size, GetSamples()).RInterpolate();
 
             for (int i = 0; i < numberOfOutputValues; i++)
             {
-                PDRange range = getRangeForOutput(i);
-                PDRange decodeValues = GetDecodeForParameter(i);
-                if (decodeValues == null)
+                PdfRange range = GetRangeForOutput(i);
+                PdfRange? decodeValues = GetDecodeForParameter(i);
+                if (!decodeValues.HasValue)
                 {
                     throw new IOException("Range missing in function /Decode entry");
                 }
-                outputValues[i] = interpolate(outputValues[i], 0, maxSample, decodeValues.getMin(), decodeValues.getMax());
-                outputValues[i] = clipToRange(outputValues[i], range.getMin(), range.getMax());
+                outputValues[i] = Interpolate(outputValues[i], 0, maxSample, decodeValues.Value.Min, decodeValues.Value.Max);
+                outputValues[i] = ClipToRange(outputValues[i], range.Min, range.Max);
             }
 
             return outputValues;

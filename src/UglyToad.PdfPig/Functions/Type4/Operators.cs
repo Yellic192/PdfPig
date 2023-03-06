@@ -1,14 +1,12 @@
 ﻿namespace UglyToad.PdfPig.Functions.Type4
 {
-    using System;
     using System.Collections.Generic;
 
-    /**
-     * This class provides all the supported operators.
-     */
-    internal class Operators
+    /// <summary>
+    /// This class provides all the supported operators.
+    /// </summary>
+    internal sealed class Operators
     {
-
         //Arithmetic operators
         private static readonly Operator ABS = new ArithmeticOperators.Abs();
         private static readonly Operator ADD = new ArithmeticOperators.Add();
@@ -59,11 +57,11 @@
         private static readonly Operator POP = new StackOperators.Pop();
         private static readonly Operator ROLL = new StackOperators.Roll();
 
-        private readonly Dictionary<String, Operator> operators = new Dictionary<string, Operator>();
+        private readonly Dictionary<string, Operator> operators = new Dictionary<string, Operator>();
 
-        /**
-         * Creates a new Operators object with the default set of operators.
-         */
+        /// <summary>
+        /// Creates a new Operators object with the default set of operators.
+        /// </summary>
         public Operators()
         {
             operators.Add("add", ADD);
@@ -113,12 +111,12 @@
             operators.Add("roll", ROLL);
         }
 
-        /**
-         * Returns the operator for the given operator name.
-         * @param operatorName the operator name
-         * @return the operator (or null if there's no such operator
-         */
-        public Operator getOperator(String operatorName)
+        /// <summary>
+        /// Returns the operator for the given operator name.
+        /// </summary>
+        /// <param name="operatorName">the operator name</param>
+        /// <returns>the operator (or null if there's no such operator</returns>
+        public Operator GetOperator(string operatorName)
         {
             return this.operators[operatorName];
         }

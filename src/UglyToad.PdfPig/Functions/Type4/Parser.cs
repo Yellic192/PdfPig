@@ -1,20 +1,16 @@
 ﻿namespace UglyToad.PdfPig.Functions.Type4
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Runtime.InteropServices;
     using System.Text;
-    using static UglyToad.PdfPig.Functions.Type4.Parser;
-    using System.Xml.Linq;
 
-    /**
-    * Parser for PDF Type 4 functions. This implements a small subset of the PostScript
-    * language but is no full PostScript interpreter.
-    *
-    */
-    public class Parser
+    /// <summary>
+    /// Parser for PDF Type 4 functions. This implements a small subset of the PostScript
+    /// language but is no full PostScript interpreter.
+    /// </summary>
+    internal sealed class Parser
     {
-        /** Used to indicate the parsers current state. */
+        /// <summary>
+        /// Used to indicate the parsers current state.
+        /// </summary>
         internal enum State
         {
             NEWLINE, WHITESPACE, COMMENT, TOKEN
@@ -25,85 +21,78 @@
             //nop
         }
 
-        /**
-         * Parses a Type 4 function and sends the syntactic elements to the given
-         * syntax handler.
-         * @param input the text source
-         * @param handler the syntax handler
-         */
-        public static void parse(string input, SyntaxHandler handler)
+        /// <summary>
+        /// Parses a Type 4 function and sends the syntactic elements to the given syntax handler.
+        /// </summary>
+        /// <param name="input">the text source</param>
+        /// <param name="handler">the syntax handler</param>
+        public static void Parse(string input, SyntaxHandler handler)
         {
             Tokenizer tokenizer = new Tokenizer(input, handler);
-            tokenizer.tokenize();
+            tokenizer.Tokenize();
         }
 
-        /**
-         * This interface defines all possible syntactic elements of a Type 4 function.
-         * It is called by the parser as the function is interpreted.
-         */
+        /// <summary>
+        /// This interface defines all possible syntactic elements of a Type 4 function.
+        /// It is called by the parser as the function is interpreted.
+        /// </summary>
         public interface SyntaxHandler
         {
-            /**
-             * Indicates that a new line starts.
-             * @param text the new line character (CR, LF, CR/LF or FF)
-             */
-            void newLine(string text);
-
-            /**
-             * Called when whitespace characters are encountered.
-             * @param text the whitespace text
-             */
-            void whitespace(string text);
-
-            /**
-             * Called when a token is encountered. No distinction between operators and values
-             * is done here.
-             * @param text the token text
-             */
-            void token(string text);
-
-            /**
-             * Called for a comment.
-             * @param text the comment
-             */
-            void comment(string text);
-        }
-
-        /**
-         * Abstract base class for a {@link SyntaxHandler}.
-         */
-        public class AbstractSyntaxHandler : SyntaxHandler
-        {
-            /** {@inheritDoc} */
-            public void comment(string text)
-            {
-                //nop
-            }
-
-            /** {@inheritDoc} */
-            public void newLine(string text)
-            {
-                //nop
-            }
-
-            /** {@inheritDoc} */
-            public void whitespace(string text)
-            {
-                //nop
-            }
+            /// <summary>
+            /// Indicates that a new line starts.
+            /// </summary>
+            /// <param name="text">the new line character (CR, LF, CR/LF or FF)</param>
+            void NewLine(string text);
 
             /// <summary>
-            /// TODO
+            /// Called when whitespace characters are encountered.
             /// </summary>
-            public virtual void token(string text)
-            {
-                throw new NotImplementedException();
-            }
+            /// <param name="text">the whitespace text</param>
+            void Whitespace(string text);
+
+            /// <summary>
+            /// Called when a token is encountered. No distinction between operators and values is done here.
+            /// </summary>
+            /// <param name="text">the token text</param>
+            void Token(string text);
+
+            /// <summary>
+            /// Called for a comment.
+            /// </summary>
+            /// <param name="text">the comment</param>
+            void Comment(string text);
         }
 
-        /**
-         * Tokenizer for Type 4 functions.
-         */
+        /// <summary>
+        /// Abstract base class for a <see cref="SyntaxHandler"/>.
+        /// </summary>
+        public abstract class AbstractSyntaxHandler : SyntaxHandler
+        {
+            /// <inheritdoc/>
+            public void Comment(string text)
+            {
+                //nop
+            }
+
+            /// <inheritdoc/>
+            public void NewLine(string text)
+            {
+                //nop
+            }
+
+            /// <inheritdoc/>
+            public void Whitespace(string text)
+            {
+                //nop
+            }
+
+            /// <inheritdoc/>
+            public abstract void Token(string text);
+        }
+
+        /// <summary>
+        /// Tokenizer for Type 4 functions.
+        /// </summary>
         internal class Tokenizer
         {
             private const char NUL = '\u0000'; //NUL
@@ -126,30 +115,30 @@
                 this.handler = syntaxHandler;
             }
 
-            private bool hasMore()
+            private bool HasMore()
             {
                 return index < input.Length;
             }
 
-            private char currentChar()
+            private char CurrentChar()
             {
                 return input[index];
             }
 
-            private char nextChar()
+            private char NextChar()
             {
                 index++;
-                if (!hasMore())
+                if (!HasMore())
                 {
                     return EOT;
                 }
                 else
                 {
-                    return currentChar();
+                    return CurrentChar();
                 }
             }
 
-            private char peek()
+            private char Peek()
             {
                 if (index < input.Length - 1)
                 {
@@ -161,9 +150,9 @@
                 }
             }
 
-            private State nextState()
+            private State NextState()
             {
-                char ch = currentChar();
+                char ch = CurrentChar();
                 switch (ch)
                 {
                     case CR:
@@ -186,54 +175,53 @@
                 return state;
             }
 
-            internal void tokenize()
+            internal void Tokenize()
             {
-                while (hasMore())
+                while (HasMore())
                 {
-                    buffer.Length = 0; // buffer.setLength(0);
-                    nextState();
+                    buffer.Length = 0;
+                    NextState();
                     switch (state)
                     {
                         case State.NEWLINE:
-                            scanNewLine();
+                            ScanNewLine();
                             break;
                         case State.WHITESPACE:
-                            scanWhitespace();
+                            ScanWhitespace();
                             break;
                         case State.COMMENT:
-                            scanComment();
+                            ScanComment();
                             break;
                         default:
-                            scanToken();
+                            ScanToken();
                             break;
                     }
                 }
             }
 
-            private void scanNewLine()
+            private void ScanNewLine()
             {
                 System.Diagnostics.Debug.Assert(state == State.NEWLINE);
-                char ch = currentChar();
+                char ch = CurrentChar();
                 buffer.Append(ch);
-                if (ch == CR && peek() == LF)
+                if (ch == CR && Peek() == LF)
                 {
                     //CRLF is treated as one newline
-                    buffer.Append(nextChar());
+                    buffer.Append(NextChar());
                 }
-                handler.newLine(buffer.ToString());
-                nextChar();
+                handler.NewLine(buffer.ToString());
+                NextChar();
             }
 
-            private void scanWhitespace()
+            private void ScanWhitespace()
             {
                 System.Diagnostics.Debug.Assert(state == State.WHITESPACE);
-                buffer.Append(currentChar());
+                buffer.Append(CurrentChar());
 
-                //loop:
                 bool loop = true;
-                while (hasMore() && loop)
+                while (HasMore() && loop)
                 {
-                    char ch = nextChar();
+                    char ch = NextChar();
                     switch (ch)
                     {
                         case NUL:
@@ -243,60 +231,58 @@
                             break;
                         default:
                             loop = false;
-                            break; // loop;
+                            break;
                     }
                 }
-                handler.whitespace(buffer.ToString());
+                handler.Whitespace(buffer.ToString());
             }
 
-            private void scanComment()
+            private void ScanComment()
             {
                 System.Diagnostics.Debug.Assert(state == State.COMMENT);
-                buffer.Append(currentChar());
+                buffer.Append(CurrentChar());
 
-                //loop:
                 bool loop = true;
-                while (hasMore() && loop)
+                while (HasMore() && loop)
                 {
-                    char ch = nextChar();
+                    char ch = NextChar();
                     switch (ch)
                     {
                         case CR:
                         case LF:
                         case FF:
                             loop = false;
-                            break; // loop;
+                            break;
                         default:
                             buffer.Append(ch);
                             break;
                     }
                 }
                 //EOF reached
-                handler.comment(buffer.ToString());
+                handler.Comment(buffer.ToString());
             }
 
-            private void scanToken()
+            private void ScanToken()
             {
                 System.Diagnostics.Debug.Assert(state == State.TOKEN);
-                char ch = currentChar();
+                char ch = CurrentChar();
                 buffer.Append(ch);
                 switch (ch)
                 {
                     case '{':
                     case '}':
-                        handler.token(buffer.ToString());
-                        nextChar();
+                        handler.Token(buffer.ToString());
+                        NextChar();
                         return;
                     default:
                         //continue
                         break;
                 }
 
-                //loop:
                 bool loop = true;
-                while (hasMore() && loop)
+                while (HasMore() && loop)
                 {
-                    ch = nextChar();
+                    ch = NextChar();
                     switch (ch)
                     {
                         case NUL:
@@ -309,7 +295,7 @@
                         case '{':
                         case '}':
                             loop = false;
-                            break; // loop;
+                            break;
 
                         default:
                             buffer.Append(ch);
@@ -317,7 +303,7 @@
                     }
                 }
                 //EOF reached
-                handler.token(buffer.ToString());
+                handler.Token(buffer.ToString());
             }
         }
     }

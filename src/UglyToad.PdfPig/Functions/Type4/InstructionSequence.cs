@@ -4,72 +4,70 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    // https://github.com/apache/pdfbox/blob/trunk/pdfbox/src/main/java/org/apache/pdfbox/pdmodel/common/function/type4/InstructionSequence.java
-
-    internal class InstructionSequence
+    internal sealed class InstructionSequence
     {
-        private readonly List<Object> instructions = new List<object>();
+        private readonly List<object> instructions = new List<object>();
 
-        /**
- * Add a name (ex. an operator)
- * @param name the name
- */
-        public void addName(String name)
+        /// <summary>
+        /// Add a name (ex. an operator)
+        /// </summary>
+        /// <param name="name">the name</param>
+        public void AddName(string name)
         {
             this.instructions.Add(name);
         }
 
-        /**
-   * Adds an int value.
-   * @param value the value
-   */
-        public void addInteger(int value)
+        /// <summary>
+        /// Adds an int value.
+        /// </summary>
+        /// <param name="value">the value</param>
+        public void AddInteger(int value)
         {
             this.instructions.Add(value);
         }
 
-        /**
-         * Adds a real value.
-         * @param value the value
-         */
-        public void addReal(float value)
+        /// <summary>
+        /// Adds a real value.
+        /// </summary>
+        /// <param name="value">the value</param>
+        public void AddReal(double value)
         {
             this.instructions.Add(value);
         }
 
-        /**
-         * Adds a bool value.
-         * @param value the value
-         */
-        public void addBoolean(bool value)
+        /// <summary>
+        /// Adds a bool value.
+        /// </summary>
+        /// <param name="value">the value</param>
+        public void AddBoolean(bool value)
         {
             this.instructions.Add(value);
         }
 
-        /**
-         * Adds a proc (sub-sequence of instructions).
-         * @param child the child proc
-         */
-        public void addProc(InstructionSequence child)
+        /// <summary>
+        /// Adds a proc (sub-sequence of instructions).
+        /// </summary>
+        /// <param name="child">the child proc</param>
+        public void AddProc(InstructionSequence child)
         {
             this.instructions.Add(child);
         }
 
-        /**
-         * Executes the instruction sequence.
-         * @param context the execution context
-         */
-        public void execute(ExecutionContext context)
+        /// <summary>
+        /// Executes the instruction sequence.
+        /// </summary>
+        /// <param name="context">the execution context</param>
+        public void Execute(ExecutionContext context)
         {
-            Stack<Object> stack = context.getStack();
-            foreach (Object o in instructions)
+            Stack<object> stack = context.GetStack();
+            foreach (object o in instructions)
             {
-                if (o is String name)
+                if (o is string name)
                 {
-                    Operator cmd = context.getOperators().getOperator(name);
+                    Operator cmd = context.GetOperators().GetOperator(name);
                     if (cmd != null)
                     {
-                        cmd.execute(context);
+                        cmd.Execute(context);
                     }
                     else
                     {
@@ -83,10 +81,10 @@
             }
 
             //Handles top-level procs that simply need to be executed
-            while (stack.Any() && stack.Peek() is InstructionSequence) // !stack.isEmpty() ...
+            while (stack.Any() && stack.Peek() is InstructionSequence)
             {
                 InstructionSequence nested = (InstructionSequence)stack.Pop();
-                nested.execute(context);
+                nested.Execute(context);
             }
         }
     }

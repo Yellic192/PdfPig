@@ -2,56 +2,47 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Text;
     using UglyToad.PdfPig.Tokens;
 
-    internal class PdfFunctionType2 : PdfFunction
+    /// <summary>
+    /// Exponential interpolation function
+    /// </summary>
+    internal sealed class PdfFunctionType2 : PdfFunction
     {
-        /**
- * The C0 values of the exponential function.
- */
-        private readonly ArrayToken c0;
-        /**
-         * The C1 values of the exponential function.
-         */
-
-        private readonly ArrayToken c1;
-        /**
-         * The exponent value of the exponential function.
-         */
-        private readonly float exponent;
-
+        /// <summary>
+        /// Exponential interpolation function
+        /// </summary>
         public PdfFunctionType2(DictionaryToken function) : base(function)
         {
-            if (getCOSObject().TryGet(NameToken.C0, out ArrayToken cosArray0))
+            if (GetDictionary().TryGet(NameToken.C0, out ArrayToken array0))
             {
-                c0 = cosArray0;
+                C0 = array0;
             }
             else
             {
-                c0 = new ArrayToken(new List<IToken>());
+                C0 = new ArrayToken(new List<IToken>());
             }
-            if (c0.Length == 0)
+            if (C0.Length == 0)
             {
-                c0 = new ArrayToken(new List<NumericToken>() { new NumericToken(0) });
+                C0 = new ArrayToken(new List<NumericToken>() { new NumericToken(0) });
             }
 
-            if (getCOSObject().TryGet(NameToken.C1, out ArrayToken cosArray1))
+            if (GetDictionary().TryGet(NameToken.C1, out ArrayToken array1))
             {
-                c1 = cosArray1;
+                C1 = array1;
             }
             else
             {
-                c1 = new ArrayToken(new List<IToken>());
+                C1 = new ArrayToken(new List<IToken>());
             }
-            if (c0.Length == 0)
+            if (C0.Length == 0)
             {
-                c1 = new ArrayToken(new List<NumericToken>() { new NumericToken(1) });
+                C1 = new ArrayToken(new List<NumericToken>() { new NumericToken(1) });
             }
 
-            if (getCOSObject().TryGet(NameToken.N, out NumericToken exp))
+            if (GetDictionary().TryGet(NameToken.N, out NumericToken exp))
             {
-                exponent = (float)exp.Double;
+                N = exp.Double;
             }
             else
             {
@@ -61,35 +52,35 @@
 
         public PdfFunctionType2(StreamToken function) : base(function)
         {
-            if (getCOSObject().TryGet(NameToken.C0, out ArrayToken cosArray0))
+            if (GetDictionary().TryGet(NameToken.C0, out ArrayToken array0))
             {
-                c0 = cosArray0;
+                C0 = array0;
             }
             else
             {
-                c0 = new ArrayToken(new List<IToken>());
+                C0 = new ArrayToken(new List<IToken>());
             }
-            if (c0.Length == 0)
+            if (C0.Length == 0)
             {
-                c0 = new ArrayToken(new List<NumericToken>() { new NumericToken(0) });
+                C0 = new ArrayToken(new List<NumericToken>() { new NumericToken(0) });
             }
 
-            if (getCOSObject().TryGet(NameToken.C1, out ArrayToken cosArray1))
+            if (GetDictionary().TryGet(NameToken.C1, out ArrayToken array1))
             {
-                c1 = cosArray1;
+                C1 = array1;
             }
             else
             {
-                c1 = new ArrayToken(new List<IToken>());
+                C1 = new ArrayToken(new List<IToken>());
             }
-            if (c0.Length == 0)
+            if (C0.Length == 0)
             {
-                c1 = new ArrayToken(new List<NumericToken>() { new NumericToken(1) });
+                C1 = new ArrayToken(new List<NumericToken>() { new NumericToken(1) });
             }
 
-            if (getCOSObject().TryGet(NameToken.N, out NumericToken exp))
+            if (GetDictionary().TryGet(NameToken.N, out NumericToken exp))
             {
-                exponent = (float)exp.Double;
+                N = exp.Double;
             }
             else
             {
@@ -97,63 +88,51 @@
             }
         }
 
-        public override int getFunctionType()
+        public override int FunctionType
         {
-            return 2;
+            get
+            {
+                return 2;
+            }
         }
 
-        public override float[] eval(float[] input)
+        public override double[] Eval(double[] input)
         {
             // exponential interpolation
-            float xToN = (float)Math.Pow(input[0], exponent); // x^exponent
+            double xToN = Math.Pow(input[0], N); // x^exponent
 
-            float[] result = new float[Math.Min(c0.Length, c1.Length)];
+            double[] result = new double[Math.Min(C0.Length, C1.Length)];
             for (int j = 0; j < result.Length; j++)
             {
-                float c0j = (float)((NumericToken)c0[j]).Double;
-                float c1j = (float)((NumericToken)c1[j]).Double;
+                double c0j = ((NumericToken)C0[j]).Double;
+                double c1j = ((NumericToken)C1[j]).Double;
                 result[j] = c0j + xToN * (c1j - c0j);
             }
 
-            return clipToRange(result);
+            return ClipToRange(result);
         }
 
-        /**
-    * Returns the C0 values of the function, 0 if empty.
-    *
-    * @return a COSArray with the C0 values
-    */
-        public ArrayToken getC0()
-        {
-            return c0;
-        }
+        /// <summary>
+        /// The C0 values of the function, 0 if empty.
+        /// </summary>
+        public ArrayToken C0 { get; }
 
-        /**
-    * Returns the C1 values of the function, 1 if empty.
-    *
-    * @return a COSArray with the C1 values
-    */
-        public ArrayToken getC1()
-        {
-            return c1;
-        }
+        /// <summary>
+        /// The C1 values of the function, 1 if empty.
+        /// </summary>
+        public ArrayToken C1 { get; }
 
-        /**
- * Returns the exponent of the function.
- *
- * @return the float value of the exponent
- */
-        public float getN()
-        {
-            return exponent;
-        }
+        /// <summary>
+        /// The exponent of the function.
+        /// </summary>
+        public double N { get; }
 
         public override string ToString()
         {
             return "FunctionType2{"
-                + "C0: " + getC0() + " "
-                + "C1: " + getC1() + " "
-                + "N: " + getN() + "}";
+                + "C0: " + C0 + " "
+                + "C1: " + C1 + " "
+                + "N: " + N + "}";
         }
     }
 }

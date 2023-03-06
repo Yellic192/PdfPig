@@ -6,38 +6,49 @@
     using UglyToad.PdfPig.Functions.Type4;
     using UglyToad.PdfPig.Tokens;
 
-    internal class PdfFunctionType4 : PdfFunction
+    /// <summary>
+    /// PostScript calculator function
+    /// </summary>
+    internal sealed class PdfFunctionType4 : PdfFunction
     {
         private readonly Operators operators = new Operators();
-        private readonly InstructionSequence instructions; // TODO
+        private readonly InstructionSequence instructions;
 
+        /// <summary>
+        /// PostScript calculator function
+        /// </summary>
         public PdfFunctionType4(StreamToken function) : base(function)
         {
-            byte[] bytes = getPDStream().Data.ToArray(); //.toByteArray();
-            //String string = new String(bytes, StandardCharsets.ISO_8859_1);
-            //this.instructions = InstructionSequenceBuilder.parse(string);
-
+            byte[] bytes = FunctionStream.Data.ToArray();
             string str = OtherEncodings.Iso88591.GetString(bytes);
-            this.instructions = InstructionSequenceBuilder.parse(str); // TODO
+            this.instructions = InstructionSequenceBuilder.Parse(str);
         }
 
-        public override float[] eval(float[] input)
+        public override int FunctionType
+        {
+            get
+            {
+                return 4;
+            }
+        }
+
+        public override double[] Eval(double[] input)
         {
             //Setup the input values
             ExecutionContext context = new ExecutionContext(operators);
             for (int i = 0; i < input.Length; i++)
             {
-                PDRange domain = getDomainForInput(i);
-                float value = clipToRange(input[i], domain.getMin(), domain.getMax());
-                context.getStack().Push(value);
+                PdfRange domain = GetDomainForInput(i);
+                double value = ClipToRange(input[i], domain.Min, domain.Max);
+                context.GetStack().Push(value);
             }
 
             //Execute the type 4 function.
-            instructions.execute(context);
+            instructions.Execute(context);
 
             //Extract the output values
-            int numberOfOutputValues = getNumberOfOutputParameters();
-            int numberOfActualOutputValues = context.getStack().Count;
+            int numberOfOutputValues = NumberOfOutputParameters;
+            int numberOfActualOutputValues = context.GetStack().Count;
             if (numberOfActualOutputValues < numberOfOutputValues)
             {
                 throw new ArgumentOutOfRangeException("The type 4 function returned "
@@ -45,21 +56,16 @@
                         + " values but the Range entry indicates that "
                         + numberOfOutputValues + " values be returned.");
             }
-            float[] outputValues = new float[numberOfOutputValues];
+            double[] outputValues = new double[numberOfOutputValues];
             for (int i = numberOfOutputValues - 1; i >= 0; i--)
             {
-                PDRange range = getRangeForOutput(i);
-                outputValues[i] = context.popReal();
-                outputValues[i] = clipToRange(outputValues[i], range.getMin(), range.getMax());
+                PdfRange range = GetRangeForOutput(i);
+                outputValues[i] = context.PopReal();
+                outputValues[i] = ClipToRange(outputValues[i], range.Min, range.Max);
             }
 
             //Return the resulting array
             return outputValues;
-        }
-
-        public override int getFunctionType()
-        {
-            return 4;
         }
     }
 }

@@ -145,13 +145,44 @@
             if (pdfColor != null)
             {
                 var colorRgb = pdfColor.ToRGBValues();
+                decimal r = colorRgb.r;
+                decimal g = colorRgb.g;
+                decimal b = colorRgb.b;
+
+                if (pdfColor.ColorSpace == ColorSpace.DeviceCMYK)
+                {
+                    r *= 0.8m;
+                    g *= 0.8m;
+                    b *= 0.8m;
+                }
+
                 if (pdfColor is AlphaColor alphaColor)
                 {
-                    return new SKColor((byte)(colorRgb.r * 255), (byte)(colorRgb.g * 255), (byte)(colorRgb.b * 255), (byte)(alphaColor.A * 255));
+                    return new SKColor((byte)(r * 255), (byte)(g * 255), (byte)(b * 255), (byte)(alphaColor.A * 255));
                 }
-                return new SKColor((byte)(colorRgb.r * 255), (byte)(colorRgb.g * 255), (byte)(colorRgb.b * 255));
+                return new SKColor((byte)(r * 255), (byte)(g * 255), (byte)(b * 255));
+
+                
             }
             return SKColors.Black;
+        }
+
+        public static SKColor GetCurrentNonStrokingColorSKColor(this CurrentGraphicsState currentGraphicsState)
+        {
+            if (currentGraphicsState.AlphaConstantNonStroking != 1)
+            {
+                return new AlphaColor(currentGraphicsState.AlphaConstantNonStroking, currentGraphicsState.CurrentNonStrokingColor).ToSKColor();
+            }
+            return currentGraphicsState.CurrentNonStrokingColor.ToSKColor();
+        }
+
+        public static SKColor GetCurrentStrokingColorSKColor(this CurrentGraphicsState currentGraphicsState)
+        {
+            if (currentGraphicsState.AlphaConstantStroking != 1)
+            {
+                return new AlphaColor(currentGraphicsState.AlphaConstantStroking, currentGraphicsState.CurrentStrokingColor).ToSKColor();
+            }
+            return currentGraphicsState.CurrentStrokingColor.ToSKColor();
         }
     }
 }

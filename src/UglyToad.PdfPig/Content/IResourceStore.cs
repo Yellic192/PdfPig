@@ -30,6 +30,6 @@
 
         IToken GetByIndirectRefference(IndirectReferenceToken indirectReferenceToken);
 
-        public DictionaryToken GetShadingDictionary(NameToken name);
+        public Shading GetShadingDictionary(NameToken name);
     }
 }

@@ -1,47 +1,36 @@
-﻿using System;
-
-namespace UglyToad.PdfPig.Functions.Type4
+﻿namespace UglyToad.PdfPig.Functions.Type4
 {
     using System;
     using System.Collections.Generic;
-    using System.Text;
-    using static UglyToad.PdfPig.Functions.Type4.ArithmeticOperators;
 
-    /**
- * Provides the relational operators such as "eq" and "le".
- *
- */
-    class RelationalOperators
+    /// <summary>
+    /// Provides the relational operators such as "eq" and "le".
+    /// </summary>
+    internal sealed class RelationalOperators
     {
         private RelationalOperators()
         {
             // Private constructor.
         }
 
-        /** Implements the "eq" operator. */
+        /// <summary>
+        /// Implements the "eq" operator.
+        /// </summary>
         internal class Eq : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                Stack<Object> stack = context.getStack();
-                Object op2 = stack.Pop();
-                Object op1 = stack.Pop();
-                bool result = isEqual(op1, op2);
+                Stack<object> stack = context.GetStack();
+                object op2 = stack.Pop();
+                object op1 = stack.Pop();
+                bool result = IsEqual(op1, op2);
                 stack.Push(result);
             }
 
-            protected virtual bool isEqual(Object op1, Object op2)
+            protected virtual bool IsEqual(object op1, object op2)
             {
                 bool result;
-                /*
-                if (op1 is Number && op2 is Number)
-                {
-                    Number num1 = (Number)op1;
-                    Number num2 = (Number)op2;
-                    result = Float.compare(num1.floatValue(), num2.floatValue()) == 0;
-                }
-                */
-                if (op1 is float num1 && op2 is float num2)
+                if (op1 is double num1 && op2 is double num2)
                 {
                     result = num1.Equals(num2);
                 }
@@ -53,65 +42,77 @@ namespace UglyToad.PdfPig.Functions.Type4
             }
         }
 
-        /** Abstract base class for number comparison operators. */
+        /// <summary>
+        /// Abstract base class for number comparison operators.
+        /// </summary>
         internal abstract class AbstractNumberComparisonOperator : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                Stack<Object> stack = context.getStack();
-                Object op2 = stack.Pop();
-                Object op1 = stack.Pop();
-                var num1 = (float)op1; // Number
-                var num2 = (float)op2; // Number
-                bool result = compare(num1, num2);
+                Stack<object> stack = context.GetStack();
+                object op2 = stack.Pop();
+                object op1 = stack.Pop();
+                double num1 = Convert.ToDouble(op1);
+                double num2 = Convert.ToDouble(op2);
+                bool result = Compare(num1, num2);
                 stack.Push(result);
             }
 
-            protected abstract bool compare(float num1, float num2);
+            protected abstract bool Compare(double num1, double num2);
         }
 
-        /** Implements the "ge" operator. */
-        internal class Ge : AbstractNumberComparisonOperator
+        /// <summary>
+        /// Implements the "ge" operator.
+        /// </summary>
+        internal sealed class Ge : AbstractNumberComparisonOperator
         {
-            protected override bool compare(float num1, float num2)
+            protected override bool Compare(double num1, double num2)
             {
                 return num1 >= num2;
             }
         }
 
-        /** Implements the "gt" operator. */
-        internal class Gt : AbstractNumberComparisonOperator
+        /// <summary>
+        /// Implements the "gt" operator.
+        /// </summary>
+        internal sealed class Gt : AbstractNumberComparisonOperator
         {
-            protected override bool compare(float num1, float num2)
+            protected override bool Compare(double num1, double num2)
             {
                 return num1 > num2;
             }
         }
 
-        /** Implements the "le" operator. */
-        internal class Le : AbstractNumberComparisonOperator
+        /// <summary>
+        /// Implements the "le" operator.
+        /// </summary>
+        internal sealed class Le : AbstractNumberComparisonOperator
         {
-            protected override bool compare(float num1, float num2)
+            protected override bool Compare(double num1, double num2)
             {
                 return num1 <= num2;
             }
         }
 
-        /** Implements the "lt" operator. */
-        internal class Lt : AbstractNumberComparisonOperator
+        /// <summary>
+        /// Implements the "lt" operator.
+        /// </summary>
+        internal sealed class Lt : AbstractNumberComparisonOperator
         {
-            protected override bool compare(float num1, float num2)
+            protected override bool Compare(double num1, double num2)
             {
                 return num1 < num2;
             }
         }
 
-        /** Implements the "ne" operator. */
-        internal class Ne : Eq
+        /// <summary>
+        /// Implements the "ne" operator.
+        /// </summary>
+        internal sealed class Ne : Eq
         {
-            protected override bool isEqual(Object op1, Object op2)
+            protected override bool IsEqual(object op1, object op2)
             {
-                bool result = base.isEqual(op1, op2);
+                bool result = base.IsEqual(op1, op2);
                 return !result;
             }
         }

@@ -2,50 +2,52 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Text;
 
-    /**
-     * Provides the conditional operators such as "if" and "ifelse".
-     *
-     */
-    class ConditionalOperators
+    /// <summary>
+    /// Provides the conditional operators such as "if" and "ifelse".
+    /// </summary>
+    internal sealed class ConditionalOperators
     {
         private ConditionalOperators()
         {
             // Private constructor.
         }
 
-        /** Implements the "if" operator. */
-        internal class If : Operator
+        /// <summary>
+        /// Implements the "if" operator.
+        /// </summary>
+        internal sealed class If : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                Stack<Object> stack = context.getStack();
+                Stack<object> stack = context.GetStack();
                 InstructionSequence proc = (InstructionSequence)stack.Pop();
-                Boolean condition = (Boolean)stack.Pop();
+                bool condition = (bool)stack.Pop();
                 if (condition)
                 {
-                    proc.execute(context);
+                    proc.Execute(context);
                 }
             }
         }
 
-        /** Implements the "ifelse" operator. */
-        internal class IfElse : Operator
+        /// <summary>
+        /// Implements the "ifelse" operator.
+        /// </summary>
+        internal sealed class IfElse : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                Stack<Object> stack = context.getStack();
+                Stack<object> stack = context.GetStack();
                 InstructionSequence proc2 = (InstructionSequence)stack.Pop();
                 InstructionSequence proc1 = (InstructionSequence)stack.Pop();
-                Boolean condition = (Boolean)stack.Pop();
+                bool condition = Convert.ToBoolean(stack.Pop());
                 if (condition)
                 {
-                    proc1.execute(context);
+                    proc1.Execute(context);
                 }
                 else
                 {
-                    proc2.execute(context);
+                    proc2.Execute(context);
                 }
             }
         }

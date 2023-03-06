@@ -3,28 +3,34 @@
     using System;
     using UglyToad.PdfPig.Tokens;
 
-    internal class PdfFunctionTypeIdentity : PdfFunction
+    internal sealed class PdfFunctionTypeIdentity : PdfFunction
     {
         public PdfFunctionTypeIdentity(DictionaryToken function) : base((DictionaryToken)null)
         {
             //TODO passing null is not good because getCOSObject() can result in an NPE in the base class
         }
 
-        public override int getFunctionType()
+        public override int FunctionType
         {
-            // shouldn't be called
-            throw new NotSupportedException();
-            //TODO this is a violation of the interface segregation principle
+            get
+            {
+                // shouldn't be called
+                throw new NotSupportedException("PdfFunctionTypeIdentity");
+                //TODO this is a violation of the interface segregation principle
+            }
         }
 
-        public override float[] eval(float[] input)
+        public override double[] Eval(double[] input)
         {
             return input;
         }
 
-        protected override ArrayToken getRangeValues()
+        protected override ArrayToken RangeValues
         {
-            return null;
+            get
+            {
+                return null;
+            }
         }
     }
 }

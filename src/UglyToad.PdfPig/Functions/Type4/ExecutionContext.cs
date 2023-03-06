@@ -1,75 +1,82 @@
 ﻿namespace UglyToad.PdfPig.Functions.Type4
 {
     using System;
-    using System.Collections;
     using System.Collections.Generic;
-    using System.Text;
 
-    internal class ExecutionContext
+    internal sealed class ExecutionContext
     {
         private readonly Operators operators;
         private Stack<object> stack = new Stack<object>();
 
-        /**
-         * Creates a new execution context.
-         * @param operatorSet the operator set
-         */
+        /// <summary>
+        /// Creates a new execution context.
+        /// </summary>
+        /// <param name="operatorSet">the operator set</param>
         public ExecutionContext(Operators operatorSet)
         {
             this.operators = operatorSet;
         }
 
-        /**
-         * Returns the stack used by this execution context.
-         * @return the stack
-         */
-        public Stack<object> getStack()
+        /// <summary>
+        /// Returns the stack used by this execution context.
+        /// </summary>
+        /// <returns>the stack</returns>
+        public Stack<object> GetStack()
         {
             return this.stack;
         }
 
-        public void SetStack(Stack<object> stack)
+        internal Stack<object> SetStack(Stack<object> stack)
         {
             this.stack = stack;
+            return this.stack;
         }
 
-        /**
-         * Returns the operator set used by this execution context.
-         * @return the operator set
-         */
-        public Operators getOperators()
+        /// <summary>
+        /// Returns the operator set used by this execution context.
+        /// </summary>
+        /// <returns>the operator set</returns>
+        public Operators GetOperators()
         {
             return this.operators;
         }
 
-        /**
-         * Pops a number (int or real) from the stack. If it's neither data type, a
-         * ClassCastException is thrown.
-         * @return the number
-         */
-        public object popNumber()
+        /// <summary>
+        /// Pops a number (int or real) from the stack. If it's neither data type, a <see cref="InvalidCastException"/> is thrown.
+        /// </summary>
+        /// <returns>the number</returns>
+        public object PopNumber()
         {
-            return stack.Pop();
+            object popped = this.stack.Pop();
+            if (popped is int || popped is double || popped is float)
+            {
+                return popped;
+            }
+            throw new InvalidCastException("The object popped is neither an integer or a real.");
         }
 
-        /**
-         * Pops a value of type int from the stack. If the value is not of type int, a
-         * ClassCastException is thrown.
-         * @return the int value
-         */
-        public int popInt()
+        /// <summary>
+        /// Pops a value of type int from the stack. If the value is not of type int, a <see cref="InvalidCastException"/> is thrown.
+        /// </summary>
+        /// <returns>the int value</returns>
+        public int PopInt()
         {
-            return (int)stack.Pop();
+            object popped = stack.Pop();
+            if (popped is int poppedInt)
+            {
+                return poppedInt;
+            }
+            throw new InvalidCastException("PopInt cannot be done as the value is not integer");
         }
 
-        /**
-         * Pops a number from the stack and returns it as a real value. If the value is not of a
-         * numeric type, a ClassCastException is thrown.
-         * @return the real value
-         */
-        public float popReal()
+        /// <summary>
+        /// Pops a number from the stack and returns it as a real value. If the value is not of a numeric type,
+        /// a <see cref="InvalidCastException"/> is thrown.
+        /// </summary>
+        /// <returns>the real value</returns>
+        public double PopReal()
         {
-            return (float)stack.Pop();
+            return Convert.ToDouble(stack.Pop());
         }
     }
 }

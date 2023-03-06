@@ -1058,6 +1058,6 @@
         /// TODO
         /// </summary>
         /// <param name="shading"></param>
-        protected abstract void RenderShading(DictionaryToken shading);
+        protected abstract void RenderShading(Shading shading);
     }
 }

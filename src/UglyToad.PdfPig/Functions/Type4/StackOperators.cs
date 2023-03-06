@@ -4,17 +4,17 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    /**
-   * Provides the stack operators such as "Pop" and "dup".
-   *
-   */
-    class StackOperators
+    /// <summary>
+    /// Provides the stack operators such as "Pop" and "dup".
+    /// </summary>
+    internal sealed class StackOperators
     {
-        static Stack<T> AddAll<T>(Stack<T> stack, IEnumerable<T> values)
+        private static Stack<T> AddAll<T>(Stack<T> stack, IEnumerable<T> values)
         {
-            var all = stack.ToList();
-            all.AddRange(values);
-            return new Stack<T>(all);
+            var valuesList = values.ToList();
+            valuesList.AddRange(stack);
+            valuesList.Reverse();
+            return new Stack<T>(valuesList);
         }
 
         private StackOperators()
@@ -22,40 +22,45 @@
             // Private constructor.
         }
 
-        /** Implements the "copy" operator. */
-        internal class Copy : Operator
+        /// <summary>
+        /// Implements the "copy" operator.
+        /// </summary>
+        internal sealed class Copy : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.getStack();
+                Stack<object> stack = context.GetStack();
                 int n = ((int)stack.Pop());
                 if (n > 0)
                 {
                     int size = stack.Count;
                     //Need to copy to a new list to avoid ConcurrentModificationException
-                    //List<Object> copy = new java.util.ArrayList<>(stack.subList(size - n, size));
-                    List<object> copy = stack.ToList().GetRange(size - n, size);
-                    context.SetStack(AddAll(stack, copy)); //stack.addAll(copy); // TODO - check
+                    List<object> copy = stack.ToList().GetRange(size - n - 1, n);
+                    stack = context.SetStack(AddAll(stack, copy));
                 }
             }
         }
 
-        /** Implements the "dup" operator. */
-        internal class Dup : Operator
+        /// <summary>
+        /// Implements the "dup" operator.
+        /// </summary>
+        internal sealed class Dup : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.getStack();
+                Stack<object> stack = context.GetStack();
                 stack.Push(stack.Peek());
             }
         }
 
-        /** Implements the "exch" operator. */
-        internal class Exch : Operator
+        /// <summary>
+        /// Implements the "exch" operator.
+        /// </summary>
+        internal sealed class Exch : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.getStack();
+                Stack<object> stack = context.GetStack();
                 object any2 = stack.Pop();
                 object any1 = stack.Pop();
                 stack.Push(any2);
@@ -63,38 +68,44 @@
             }
         }
 
-        /** Implements the "index" operator. */
-        internal class Index : Operator
+        /// <summary>
+        /// Implements the "index" operator.
+        /// </summary>
+        internal sealed class Index : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.getStack();
-                int n = ((int)stack.Pop());
+                Stack<object> stack = context.GetStack();
+                int n = Convert.ToInt32(stack.Pop());
                 if (n < 0)
                 {
                     throw new ArgumentException("rangecheck: " + n);
                 }
                 int size = stack.Count;
-                stack.Push(stack.ElementAt(size - n - 1));
+                stack.Push(stack.ElementAt(n));
             }
         }
 
-        /** Implements the "Pop" operator. */
-        internal class Pop : Operator
+        /// <summary>
+        /// Implements the "Pop" operator.
+        /// </summary>
+        internal sealed class Pop : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.getStack();
+                Stack<object> stack = context.GetStack();
                 stack.Pop();
             }
         }
 
-        /** Implements the "roll" operator. */
-        internal class Roll : Operator
+        /// <summary>
+        /// Implements the "roll" operator.
+        /// </summary>
+        internal sealed class Roll : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.getStack();
+                Stack<object> stack = context.GetStack();
                 int j = ((int)stack.Pop());
                 int n = ((int)stack.Pop());
                 if (j == 0)
@@ -106,22 +117,23 @@
                     throw new ArgumentException("rangecheck: " + n);
                 }
 
-                LinkedList<object> rolled = new LinkedList<object>();
-                LinkedList<object> moved = new LinkedList<object>();
+                var rolled = new List<object>();
+                var moved = new List<object>();
                 if (j < 0)
                 {
                     //negative roll
                     int n1 = n + j;
                     for (int i = 0; i < n1; i++)
                     {
-                        moved.AddFirst(stack.Pop());
+                        moved.Add(stack.Pop());
                     }
                     for (int i = j; i < 0; i++)
                     {
-                        rolled.AddFirst(stack.Pop());
+                        rolled.Add(stack.Pop());
                     }
-                    context.SetStack(AddAll(stack, moved)); //stack.addAll(moved); // TODO - check
-                    context.SetStack(AddAll(stack, rolled)); // stack.addAll(rolled); // TODO - check
+
+                    stack = context.SetStack(AddAll(stack, moved));
+                    stack = context.SetStack(AddAll(stack, rolled));
                 }
                 else
                 {
@@ -129,14 +141,15 @@
                     int n1 = n - j;
                     for (int i = j; i > 0; i--)
                     {
-                        rolled.AddFirst(stack.Pop());
+                        rolled.Add(stack.Pop());
                     }
                     for (int i = 0; i < n1; i++)
                     {
-                        moved.AddFirst(stack.Pop());
+                        moved.Add(stack.Pop());
                     }
-                    context.SetStack(AddAll(stack, rolled)); // stack.addAll(rolled); // TODO - check
-                    context.SetStack(AddAll(stack, moved)); // stack.addAll(moved); // TODO - check
+
+                    stack = context.SetStack(AddAll(stack, rolled));
+                    stack = context.SetStack(AddAll(stack, moved));
                 }
             }
         }

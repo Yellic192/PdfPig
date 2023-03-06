@@ -3,325 +3,367 @@
     using System;
     using System.Collections.Generic;
 
-    /**
-     * Provides the arithmetic operators such as "add" and "sub".
-     *
-     */
-    class ArithmeticOperators
+    /// <summary>
+    /// Provides the arithmetic operators such as "add" and "sub".
+    /// </summary>
+    internal sealed class ArithmeticOperators
     {
-        private static double toRadians(double val)
-        {
-            return (Math.PI / 180.0) * val;
-        }
-
-        private static double toDegrees(double val)
-        {
-            return (180.0 / Math.PI) * val;
-        }
-
         private ArithmeticOperators()
         {
             // Private constructor.
         }
 
-        /**  :  the "Abs" operator. */
-        internal class Abs : Operator
+        private static double ToRadians(double val)
         {
-            public void execute(ExecutionContext context)
+            return (Math.PI / 180.0) * val;
+        }
+
+        private static double ToDegrees(double val)
+        {
+            return (180.0 / Math.PI) * val;
+        }
+
+        /// <summary>
+        /// the "Abs" operator.
+        /// </summary>
+        internal sealed class Abs : Operator
+        {
+            public void Execute(ExecutionContext context)
             {
-                var num = context.popNumber();
+                var num = context.PopNumber();
                 if (num is int numi)
                 {
-                    context.getStack().Push(Math.Abs(numi));
+                    context.GetStack().Push(Math.Abs(numi));
                 }
                 else
                 {
-                    context.getStack().Push(Math.Abs((float)num));
+                    context.GetStack().Push(Math.Abs(Convert.ToDouble(num)));
                 }
             }
         }
 
-        /**  :  the "add" operator. */
-        internal class Add : Operator
+        /// <summary>
+        /// the "add" operator.
+        /// </summary>
+        internal sealed class Add : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                var num2 = context.popNumber();
-                var num1 = context.popNumber();
+                var num2 = context.PopNumber();
+                var num1 = context.PopNumber();
                 if (num1 is int num1i && num2 is int num2i)
                 {
-                    long sum = num1i + num2i;
+                    long sum = (long)num1i + (long)num2i; // Keep both cast here
                     if (sum < int.MinValue || sum > int.MaxValue)
                     {
-                        context.getStack().Push((float)sum);
+                        context.GetStack().Push((double)sum);
                     }
                     else
                     {
-                        context.getStack().Push((int)sum);
+                        context.GetStack().Push((int)sum);
                     }
                 }
                 else
                 {
-                    float sum = (float)num1 + (float)num2;
-                    context.getStack().Push(sum);
+                    double sum = Convert.ToDouble(num1) + Convert.ToDouble(num2);
+                    context.GetStack().Push(sum);
                 }
             }
         }
 
-        /**  :  the "atan" operator. */
-        internal class Atan : Operator
+        /// <summary>
+        /// the "atan" operator.
+        /// </summary>
+        internal sealed class Atan : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                float den = context.popReal();
-                float num = context.popReal();
-                float atan = (float)Math.Atan2(num, den);
-                atan = (float)toDegrees(atan) % 360;
+                double den = context.PopReal();
+                double num = context.PopReal();
+                double atan = Math.Atan2(num, den);
+                atan = ToDegrees(atan) % 360;
                 if (atan < 0)
                 {
-                    atan = atan + 360;
+                    atan += 360;
                 }
-                context.getStack().Push(atan);
+                context.GetStack().Push(atan);
             }
         }
 
-        /**  :  the "ceiling" operator. */
-        internal class Ceiling : Operator
+        /// <summary>
+        /// the "ceiling" operator.
+        /// </summary>
+        internal sealed class Ceiling : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                var num = context.popNumber();
+                var num = context.PopNumber();
                 if (num is int numi)
                 {
-                    context.getStack().Push(numi);
+                    context.GetStack().Push(numi);
                 }
                 else
                 {
-                    context.getStack().Push((float)Math.Ceiling((double)num));
+                    context.GetStack().Push(Math.Ceiling(Convert.ToDouble(num)));
                 }
             }
         }
 
-        /**  :  the "cos" operator. */
-        internal class Cos : Operator
+        /// <summary>
+        /// the "cos" operator.
+        /// </summary>
+        internal sealed class Cos : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                float angle = context.popReal();
-                float cos = (float)Math.Cos(toRadians(angle));
-                context.getStack().Push(cos);
+                double angle = context.PopReal();
+                double cos = Math.Cos(ToRadians(angle));
+                context.GetStack().Push(cos);
             }
         }
 
-        /**  :  the "cvi" operator. */
-        internal class Cvi : Operator
+        /// <summary>
+        /// the "cvi" operator.
+        /// </summary>
+        internal sealed class Cvi : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                var num = context.popNumber();
-                context.getStack().Push((int)num);
+                var num = context.PopNumber();
+                context.GetStack().Push((int)Math.Truncate(Convert.ToDouble(num)));
             }
         }
 
-        /**  :  the "cvr" operator. */
-        internal class Cvr : Operator
+        /// <summary>
+        /// the "cvr" operator.
+        /// </summary>
+        internal sealed class Cvr : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                var num = context.popNumber();
-                context.getStack().Push((float)num);
+                var num = context.PopNumber();
+                context.GetStack().Push(Convert.ToDouble(num));
             }
         }
 
-        /**  :  the "div" operator. */
-        internal class Div : Operator
+        /// <summary>
+        /// the "div" operator.
+        /// </summary>
+        internal sealed class Div : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                var num2 = context.popNumber();
-                var num1 = context.popNumber();
-                context.getStack().Push((float)num1 / (float)num2);
+                double num2 = Convert.ToDouble(context.PopNumber());
+                double num1 = Convert.ToDouble(context.PopNumber());
+                context.GetStack().Push(num1 / num2);
             }
         }
 
-        /**  :  the "exp" operator. */
-        internal class Exp : Operator
+        /// <summary>
+        /// the "exp" operator.
+        /// </summary>
+        internal sealed class Exp : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                var exp = context.popNumber();
-                var base_ = context.popNumber();
-                double value = Math.Pow((double)base_, (double)exp);
-                context.getStack().Push((float)value);
+                double exp = Convert.ToDouble(context.PopNumber());
+                double base_ = Convert.ToDouble(context.PopNumber());
+                double value = Math.Pow(base_, exp);
+                context.GetStack().Push(value);
             }
         }
 
-        /**  :  the "floor" operator. */
-        internal class Floor : Operator
+        /// <summary>
+        /// the "floor" operator.
+        /// </summary>
+        internal sealed class Floor : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                var num = context.popNumber();
+                var num = context.PopNumber();
                 if (num is int numi)
                 {
-                    context.getStack().Push(numi);
+                    context.GetStack().Push(numi);
                 }
                 else
                 {
-                    context.getStack().Push((float)Math.Floor((double)num));
+                    context.GetStack().Push(Math.Floor(Convert.ToDouble(num)));
                 }
             }
         }
 
-        /**  :  the "idiv" operator. */
-        internal class IDiv : Operator
+        /// <summary>
+        /// the "idiv" operator.
+        /// </summary>
+        internal sealed class IDiv : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                int num2 = context.popInt();
-                int num1 = context.popInt();
-                context.getStack().Push(num1 / num2);
+                int num2 = context.PopInt();
+                int num1 = context.PopInt();
+                context.GetStack().Push(num1 / num2);
             }
         }
 
-        /**  :  the "ln" operator. */
-        internal class Ln : Operator
+        /// <summary>
+        /// the "ln" operator.
+        /// </summary>
+        internal sealed class Ln : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                var num = context.popNumber();
-                context.getStack().Push((float)Math.Log((double)num));
+                var num = context.PopNumber();
+                context.GetStack().Push(Math.Log(Convert.ToDouble(num)));
             }
         }
 
-        /**  :  the "log" operator. */
-        internal class Log : Operator
+        /// <summary>
+        /// the "log" operator.
+        /// </summary>
+        internal sealed class Log : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                var num = context.popNumber();
-                context.getStack().Push((float)Math.Log10((double)num));
+                var num = context.PopNumber();
+                context.GetStack().Push(Math.Log10(Convert.ToDouble(num)));
             }
         }
 
-        /**  :  the "mod" operator. */
-        internal class Mod : Operator
+        /// <summary>
+        /// the "mod" operator.
+        /// </summary>
+        internal sealed class Mod : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                int int2 = context.popInt();
-                int int1 = context.popInt();
-                context.getStack().Push(int1 % int2);
+                int int2 = context.PopInt();
+                int int1 = context.PopInt();
+                context.GetStack().Push(int1 % int2);
             }
         }
 
-        /**  :  the "mul" operator. */
-        internal class Mul : Operator
+        /// <summary>
+        /// the "mul" operator.
+        /// </summary>
+        internal sealed class Mul : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                var num2 = context.popNumber();
-                var num1 = context.popNumber();
+                var num2 = context.PopNumber();
+                var num1 = context.PopNumber();
                 if (num1 is int num1i && num2 is int num2i)
                 {
-                    long result = num1i * num2i;
+                    long result = (long)num1i * (long)num2i; // Keep both cast here
                     if (result >= int.MinValue && result <= int.MaxValue)
                     {
-                        context.getStack().Push((int)result);
+                        context.GetStack().Push((int)result);
                     }
                     else
                     {
-                        context.getStack().Push((float)result);
+                        context.GetStack().Push((double)result);
                     }
                 }
                 else
                 {
-                    float result = Convert.ToSingle(num1) * Convert.ToSingle(num2);
-                    context.getStack().Push(result);
+                    double result = Convert.ToDouble(num1) * Convert.ToDouble(num2);
+                    context.GetStack().Push(result);
                 }
             }
         }
 
-        /**  :  the "neg" operator. */
-        internal class Neg : Operator
+        /// <summary>
+        /// the "neg" operator.
+        /// </summary>
+        internal sealed class Neg : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                var num = context.popNumber();
+                var num = context.PopNumber();
                 if (num is int v)
                 {
                     if (v == int.MinValue)
                     {
-                        context.getStack().Push(-(float)num);
+                        context.GetStack().Push(-Convert.ToDouble(v));
                     }
                     else
                     {
-                        context.getStack().Push(-(int)num);
+                        context.GetStack().Push(-v);
                     }
                 }
                 else
                 {
-                    context.getStack().Push(-(float)num);
+                    context.GetStack().Push(-Convert.ToDouble(num));
                 }
             }
         }
 
-        /**  :  the "round" operator. */
-        internal class Round : Operator
+        /// <summary>
+        /// the "round" operator.
+        /// </summary>
+        internal sealed class Round : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                var num = context.popNumber();
+                var num = context.PopNumber();
                 if (num is int numi)
                 {
-                    context.getStack().Push(numi);
+                    context.GetStack().Push(numi);
                 }
                 else
                 {
-                    context.getStack().Push((float)Math.Round((double)num));
+                    double value = Convert.ToDouble(num);
+                    // The way java works...
+                    double roundedValue = value < 0 ? Math.Round(value) : Math.Round(value, MidpointRounding.AwayFromZero);
+                    context.GetStack().Push(roundedValue);
                 }
             }
         }
 
-        /**  :  the "sin" operator. */
-        internal class Sin : Operator
+        /// <summary>
+        /// the "sin" operator.
+        /// </summary>
+        internal sealed class Sin : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                float angle = context.popReal();
-                float sin = (float)Math.Sin(toRadians(angle));
-                context.getStack().Push(sin);
+                double angle = context.PopReal();
+                double sin = Math.Sin(ToRadians(angle));
+                context.GetStack().Push(sin);
             }
         }
 
-        /**  :  the "sqrt" operator. */
-        internal class Sqrt : Operator
+        /// <summary>
+        /// the "sqrt" operator.
+        /// </summary>
+        internal sealed class Sqrt : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                float num = context.popReal();
+                double num = context.PopReal();
                 if (num < 0)
                 {
                     throw new ArgumentException("argument must be nonnegative");
                 }
-                context.getStack().Push((float)Math.Sqrt(num));
+                context.GetStack().Push(Math.Sqrt(num));
             }
         }
 
-        /**  :  the "sub" operator. */
-        internal class Sub : Operator
+        /// <summary>
+        /// the "sub" operator.
+        /// </summary>
+        internal sealed class Sub : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.getStack();
-                var num2 = context.popNumber();
-                var num1 = context.popNumber();
+                Stack<object> stack = context.GetStack();
+                var num2 = context.PopNumber();
+                var num1 = context.PopNumber();
                 if (num1 is int num1i && num2 is int num2i)
                 {
-                    long result = num1i - num2i;
+                    long result = (long)num1i - (long)num2i; // Keep both cast here
                     if (result < int.MinValue || result > int.MaxValue)
                     {
-                        stack.Push((float)result);
+                        stack.Push((double)result);
                     }
                     else
                     {
@@ -330,25 +372,27 @@
                 }
                 else
                 {
-                    float result = (float)num1 - (float)num2;
+                    double result = Convert.ToDouble(num1) - Convert.ToDouble(num2);
                     stack.Push(result);
                 }
             }
         }
 
-        /**  :  the "truncate" operator. */
-        internal class Truncate : Operator
+        /// <summary>
+        /// the "truncate" operator.
+        /// </summary>
+        internal sealed class Truncate : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                var num = context.popNumber();
+                var num = context.PopNumber();
                 if (num is int numi)
                 {
-                    context.getStack().Push(numi);
+                    context.GetStack().Push(numi);
                 }
                 else
                 {
-                    context.getStack().Push((float)(int)(num));
+                    context.GetStack().Push(Math.Truncate(Convert.ToDouble(num)));
                 }
             }
         }

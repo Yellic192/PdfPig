@@ -2,34 +2,33 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.ComponentModel.Design.Serialization;
 
-    class BitwiseOperators
+    internal sealed class BitwiseOperators
     {
         private BitwiseOperators()
         {
             // Private constructor.
         }
 
-        /** Abstract base class for logical operators. */
+        /// <summary>
+        /// Abstract base class for logical operators.
+        /// </summary>
         internal abstract class AbstractLogicalOperator : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                Stack<Object> stack = context.getStack();
-                Object op2 = stack.Pop();
-                Object op1 = stack.Pop();
-                if (op1 is Boolean && op2 is Boolean)
+                Stack<object> stack = context.GetStack();
+                object op2 = stack.Pop();
+                object op1 = stack.Pop();
+                if (op1 is bool bool1 && op2 is bool bool2)
                 {
-                    bool bool1 = (Boolean)op1;
-                    bool bool2 = (Boolean)op2;
-                    bool result = applyForBoolean(bool1, bool2);
+                    bool result = ApplyForBoolean(bool1, bool2);
                     stack.Push(result);
                 }
-                else if (op1 is int && op2 is int)
+                else if (op1 is int int1 && op2 is int int2)
                 {
-                    int int1 = (int)op1;
-                    int int2 = (int)op2;
-                    int result = applyforint(int1, int2);
+                    int result = ApplyForInt(int1, int2);
                     stack.Push(result);
                 }
                 else
@@ -38,33 +37,37 @@
                 }
             }
 
-            protected abstract bool applyForBoolean(bool bool1, bool bool2);
+            protected abstract bool ApplyForBoolean(bool bool1, bool bool2);
 
-            protected abstract int applyforint(int int1, int int2);
+            protected abstract int ApplyForInt(int int1, int int2);
         }
 
-        /** Implements the "and" operator. */
-        internal class And : AbstractLogicalOperator
+        /// <summary>
+        /// Implements the "and" operator.
+        /// </summary>
+        internal sealed class And : AbstractLogicalOperator
         {
-            protected override bool applyForBoolean(bool bool1, bool bool2)
+            protected override bool ApplyForBoolean(bool bool1, bool bool2)
             {
                 return bool1 && bool2;
             }
 
-            protected override int applyforint(int int1, int int2)
+            protected override int ApplyForInt(int int1, int int2)
             {
                 return int1 & int2;
             }
         }
 
-        /** Implements the "bitshift" operator. */
-        internal class Bitshift : Operator
+        /// <summary>
+        /// Implements the "bitshift" operator.
+        /// </summary>
+        internal sealed class Bitshift : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                Stack<Object> stack = context.getStack();
-                int shift = (int)stack.Pop();
-                int int1 = (int)stack.Pop();
+                Stack<object> stack = context.GetStack();
+                int shift = Convert.ToInt32(stack.Pop());
+                int int1 = Convert.ToInt32(stack.Pop());
                 if (shift < 0)
                 {
                     int result = int1 >> Math.Abs(shift);
@@ -78,32 +81,34 @@
             }
         }
 
-        /** Implements the "false" operator. */
-        internal class False : Operator
+        /// <summary>
+        /// Implements the "false" operator.
+        /// </summary>
+        internal sealed class False : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                Stack<Object> stack = context.getStack();
+                Stack<object> stack = context.GetStack();
                 stack.Push(false);
             }
         }
 
-        /** Implements the "not" operator. */
-        internal class Not : Operator
+        /// <summary>
+        /// Implements the "not" operator.
+        /// </summary>
+        internal sealed class Not : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                Stack<Object> stack = context.getStack();
-                Object op1 = stack.Pop();
-                if (op1 is Boolean)
+                Stack<object> stack = context.GetStack();
+                object op1 = stack.Pop();
+                if (op1 is bool bool1)
                 {
-                    bool bool1 = (Boolean)op1;
                     bool result = !bool1;
                     stack.Push(result);
                 }
-                else if (op1 is int)
+                else if (op1 is int int1)
                 {
-                    int int1 = (int)op1;
                     int result = -int1;
                     stack.Push(result);
                 }
@@ -114,39 +119,45 @@
             }
         }
 
-        /** Implements the "or" operator. */
-        internal class Or : AbstractLogicalOperator
+        /// <summary>
+        /// Implements the "or" operator.
+        /// </summary>
+        internal sealed class Or : AbstractLogicalOperator
         {
-            protected override bool applyForBoolean(bool bool1, bool bool2)
+            protected override bool ApplyForBoolean(bool bool1, bool bool2)
             {
                 return bool1 || bool2;
             }
 
-            protected override int applyforint(int int1, int int2)
+            protected override int ApplyForInt(int int1, int int2)
             {
                 return int1 | int2;
             }
         }
 
-        /** Implements the "true" operator. */
-        internal class True : Operator
+        /// <summary>
+        /// Implements the "true" operator.
+        /// </summary>
+        internal sealed class True : Operator
         {
-            public void execute(ExecutionContext context)
+            public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.getStack();
+                Stack<object> stack = context.GetStack();
                 stack.Push(true);
             }
         }
 
-        /** Implements the "xor" operator. */
-        internal class Xor : AbstractLogicalOperator
+        /// <summary>
+        /// Implements the "xor" operator.
+        /// </summary>
+        internal sealed class Xor : AbstractLogicalOperator
         {
-            protected override bool applyForBoolean(bool bool1, bool bool2)
+            protected override bool ApplyForBoolean(bool bool1, bool bool2)
             {
                 return bool1 ^ bool2;
             }
 
-            protected override int applyforint(int int1, int int2)
+            protected override int ApplyForInt(int int1, int int2)
             {
                 return int1 ^ int2;
             }
