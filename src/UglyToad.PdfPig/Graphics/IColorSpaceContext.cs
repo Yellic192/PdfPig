@@ -35,7 +35,6 @@
         /// The <see cref="ColorSpace"/> used for non-stroking operations.
         /// </summary>
         ColorSpace CurrentNonStrokingColorSpace { get; }
-        */
 
         /// <summary>
         /// The name of the advanced ColorSpace active for stroking operations, if any.
@@ -46,7 +45,8 @@
         /// The name of the advanced ColorSpace active for non-stroking operations, if any.
         /// </summary>
         NameToken AdvancedNonStrokingColorSpace { get; }
-        
+        */
+
         /// <summary>
         ///  Set the current color space to use for stroking operations.
         /// </summary>

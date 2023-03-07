@@ -200,7 +200,48 @@
                         return new CalRGBColorSpaceDetails(whitePoint, blackPoint, gamma, matrix);
                     }
                 case ColorSpace.Lab:
-                    return UnsupportedColorSpaceDetails.Instance;
+                    {
+                        if (!TryGetColorSpaceArray(imageDictionary, resourceStore, scanner, out var colorSpaceArray)
+                             || colorSpaceArray.Length != 2)
+                        {
+                            return UnsupportedColorSpaceDetails.Instance;
+                        }
+
+                        var first = colorSpaceArray[0] as NameToken;
+
+                        if (first == null || !ColorSpaceMapper.TryMap(first, resourceStore, out var innerColorSpace)
+                            || innerColorSpace != ColorSpace.Lab)
+                        {
+                            return UnsupportedColorSpaceDetails.Instance;
+                        }
+
+                        var second = colorSpaceArray[1];
+
+                        // WhitePoint is required
+                        if (!DirectObjectFinder.TryGet(second, scanner, out DictionaryToken dictionaryToken) ||
+                            !dictionaryToken.TryGet(NameToken.WhitePoint, scanner, out ArrayToken whitePointToken))
+                        {
+                            return UnsupportedColorSpaceDetails.Instance;
+                        }
+
+                        var whitePoint = whitePointToken.Data.OfType<NumericToken>().Select(x => x.Data).ToList();
+
+                        // BlackPoint is optional
+                        IReadOnlyList<decimal> blackPoint = null;
+                        if (dictionaryToken.TryGet(NameToken.BlackPoint, scanner, out ArrayToken blackPointToken))
+                        {
+                            blackPoint = blackPointToken.Data.OfType<NumericToken>().Select(x => x.Data).ToList();
+                        }
+
+                        // Matrix is optional
+                        IReadOnlyList<decimal> matrix = null;
+                        if (dictionaryToken.TryGet(NameToken.Matrix, scanner, out ArrayToken matrixToken))
+                        {
+                            matrix = matrixToken.Data.OfType<NumericToken>().Select(x => x.Data).ToList();
+                        }
+
+                        return new LabColorSpaceDetails(whitePoint, blackPoint, matrix);
+                    }
                 case ColorSpace.ICCBased:
                     {
                         if (!TryGetColorSpaceArray(imageDictionary, resourceStore, scanner, out var colorSpaceArray)

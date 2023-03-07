@@ -891,7 +891,6 @@
                     SKShaderTileMode.Clamp);
 
                 // check if bbox not null
-
                 _canvas.DrawPaint(paint);
             }
         }

@@ -42,6 +42,12 @@
         /// <param name="values"></param>
         /// <returns></returns>
         public abstract IColor GetColor(IReadOnlyList<decimal> values);
+
+        /// <summary>
+        /// Init color.
+        /// </summary>
+        /// <returns></returns>
+        public abstract IColor GetInitColor();
     }
 
     /// <summary>
@@ -81,6 +87,12 @@
             {
                 return new GrayColor(gray);
             }
+        }
+
+        /// <inheritdoc/>
+        public override IColor GetInitColor()
+        {
+            return GrayColor.Black;
         }
     }
 
@@ -122,6 +134,12 @@
 
             return new RGBColor(r, g, b);
         }
+
+        /// <inheritdoc/>
+        public override IColor GetInitColor()
+        {
+            return RGBColor.Black;
+        }
     }
 
     /// <summary>
@@ -160,6 +178,12 @@
             }
 
             return new CMYKColor(c, m, y, k);
+        }
+
+        /// <inheritdoc/>
+        public override IColor GetInitColor()
+        {
+            return CMYKColor.Black;
         }
     }
 
@@ -223,6 +247,12 @@
 
             var csBytes = ColorSpaceDetailsByteConverter.UnwrapIndexedColorSpaceBytes(this, values.Select(d => (byte)d).ToArray());
             return BaseColorSpaceDetails.GetColor(csBytes.Select(b => b / 255m).ToArray());
+        }
+
+        /// <inheritdoc/>
+        public override IColor GetInitColor()
+        {
+            return RGBColor.Black; // TODO - not correct
         }
     }
 
@@ -326,6 +356,13 @@
             var evaled = func.Eval(values.Select(v => (double)v).ToArray()).Select(k => (decimal)k).ToArray();
             return AlternateColorSpaceDetails.GetColor(evaled);
         }
+
+        /// <inheritdoc/>
+        public override IColor GetInitColor()
+        {
+            // The initial value for both the stroking and nonstroking colour in the graphics state shall be 1.0.
+            return GetColor(new decimal[] { 1 });
+        }
     }
 
     /// <summary>
@@ -350,7 +387,7 @@
         public IReadOnlyList<decimal> BlackPoint { get; }
 
         /// <summary>
-        /// A number defining defining the gamma for the gray (A) component. Gamma must be positive and is generally
+        /// A number defining the gamma for the gray (A) component. Gamma must be positive and is generally
         /// greater than or equal to 1. Default value: 1.
         /// </summary>
         public decimal Gamma { get; }
@@ -405,6 +442,16 @@
         public override IColor GetColor(IReadOnlyList<decimal> values)
         {
             return TransformToRGB(values[0]); // TODO
+        }
+
+        /// <inheritdoc/>
+        public override IColor GetInitColor()
+        {
+            // Setting the current stroking or nonstroking colour space to any CIE-based colour space shall
+            // initialize all components of the corresponding current colour to 0.0 (unless the range of valid
+            // values for a given component does not include 0.0, in which case the nearest valid value shall
+            // be substituted.)
+            return TransformToRGB(0);
         }
     }
 
@@ -503,6 +550,131 @@
         public override IColor GetColor(IReadOnlyList<decimal> values)
         {
             return TransformToRGB((values[0], values[1], values[2]));
+        }
+
+        /// <inheritdoc/>
+        public override IColor GetInitColor()
+        {
+            // Setting the current stroking or nonstroking colour space to any CIE-based colour space shall
+            // initialize all components of the corresponding current colour to 0.0 (unless the range of valid
+            // values for a given component does not include 0.0, in which case the nearest valid value shall
+            // be substituted.)
+            return TransformToRGB((0, 0, 0));
+        }
+    }
+
+    /// <summary>
+    /// CIE (Commission Internationale de l'Éclairage) colorspace.
+    /// Specifies color related to human visual perception with the aim of producing consistent color on different output devices.
+    /// CalRGB - A CIE ABC color space with a single transformation.
+    /// A, B and C represent red, green and blue color values in the range 0.0 to 1.0. 
+    /// </summary>
+    public class LabColorSpaceDetails : ColorSpaceDetails
+    {
+        private readonly CIEBasedColorSpaceTransformer colorSpaceTransformer;
+
+        /// <summary>
+        /// An array of three numbers [XW  YW  ZW] specifying the tristimulus value, in the CIE 1931 XYZ space of the
+        /// diffuse white point. The numbers XW and ZW shall be positive, and YW shall be equal to 1.0.
+        /// </summary>
+        public IReadOnlyList<decimal> WhitePoint { get; }
+
+        /// <summary>
+        /// An array of three numbers [XB  YB  ZB] specifying the tristimulus value, in the CIE 1931 XYZ space of the
+        /// diffuse black point. All three numbers must be non-negative. Default value: [0.0  0.0  0.0].
+        /// </summary>
+        public IReadOnlyList<decimal> BlackPoint { get; }
+
+        /// <summary>
+        /// An array of four numbers [a_min a_max b_min b_max] that shall specify the range of valid values for the a* and b* (B and C)
+        /// components of the colour space — that is, a_min ≤ a* ≤ a_max and b_min ≤ b* ≤ b_max
+        /// <para>Component values falling outside the specified range shall be adjusted to the nearest valid value without error indication.</para>
+        /// Default value: [−100 100 −100 100].
+        /// </summary>
+        public IReadOnlyList<decimal> Matrix { get; }
+
+        /// <summary>
+        /// Create a new <see cref="LabColorSpaceDetails"/>.
+        /// </summary>
+        public LabColorSpaceDetails([NotNull] IReadOnlyList<decimal> whitePoint, [CanBeNull] IReadOnlyList<decimal> blackPoint, [CanBeNull] IReadOnlyList<decimal> matrix)
+            : base(ColorSpace.CalRGB)
+        {
+            WhitePoint = whitePoint ?? throw new ArgumentNullException(nameof(whitePoint));
+            if (WhitePoint.Count != 3)
+            {
+                throw new ArgumentOutOfRangeException(nameof(whitePoint), whitePoint, $"Must consist of exactly three numbers, but was passed {whitePoint.Count}.");
+            }
+
+            BlackPoint = blackPoint ?? new[] { 0m, 0, 0 };
+            if (BlackPoint.Count != 3)
+            {
+                throw new ArgumentOutOfRangeException(nameof(blackPoint), blackPoint, $"Must consist of exactly three numbers, but was passed {blackPoint.Count}.");
+            }
+
+            Matrix = matrix ?? new[] { -100m, 100, -100, 100 };
+            if (Matrix.Count != 4)
+            {
+                throw new ArgumentOutOfRangeException(nameof(matrix), matrix, $"Must consist of exactly nine numbers, but was passed {matrix.Count}.");
+            }
+
+            colorSpaceTransformer =
+                new CIEBasedColorSpaceTransformer(((double)WhitePoint[0], (double)WhitePoint[1], (double)WhitePoint[2]), RGBWorkingSpace.sRGB)
+                {
+                    //DecoderABC = color => (
+                    //Math.Pow(color.A, (double)Gamma[0]),
+                    //Math.Pow(color.B, (double)Gamma[1]),
+                    //Math.Pow(color.C, (double)Gamma[2])),
+
+                    //MatrixABC = new Matrix3x3(
+                    //(double)Matrix[0], (double)Matrix[3], (double)Matrix[6],
+                    //(double)Matrix[1], (double)Matrix[4], (double)Matrix[7],
+                    //(double)Matrix[2], (double)Matrix[5], (double)Matrix[8])
+                };
+        }
+
+        /// <summary>
+        /// Transforms the supplied ABC color to RGB (sRGB) using the properties of this <see cref="LabColorSpaceDetails"/>
+        /// in the transformation process.
+        /// A, B and C represent TODO
+        /// </summary>
+        internal RGBColor TransformToRGB((decimal A, decimal B, decimal C) colorAbc)
+        {
+            // TODO - take in account Matrix numbers
+            decimal L = (colorAbc.A + 16) / 116m + colorAbc.B / 500m;
+            decimal M = (colorAbc.A + 16) / 116m;
+            decimal N = (colorAbc.A + 16) / 116m - colorAbc.C / 200m;
+
+            decimal X = WhitePoint[0] * g(L);
+            decimal Y = WhitePoint[1] * g(M);
+            decimal Z = WhitePoint[2] * g(N);
+
+            var (R, G, B) = colorSpaceTransformer.TransformToRGB(((double)X, (double)Y, (double)Z));
+            return new RGBColor((decimal)R, (decimal)G, (decimal)B);
+        }
+
+        private decimal g(decimal x)
+        {
+            if (x > 6m / 29m)
+            {
+                return x * x * x;
+            }
+            return 108m / 841m * (x - 4m / 29m);
+        }
+
+        /// <inheritdoc/>
+        public override IColor GetColor(IReadOnlyList<decimal> values)
+        {
+            return TransformToRGB((values[0], values[1], values[2]));
+        }
+
+        /// <inheritdoc/>
+        public override IColor GetInitColor()
+        {
+            // Setting the current stroking or nonstroking colour space to any CIE-based colour space shall
+            // initialize all components of the corresponding current colour to 0.0 (unless the range of valid
+            // values for a given component does not include 0.0, in which case the nearest valid value shall
+            // be substituted.)
+            return TransformToRGB((0, 0, 0));
         }
     }
 
@@ -608,6 +780,17 @@
 
             return AlternateColorSpaceDetails.GetColor(values);
         }
+
+        /// <inheritdoc/>
+        public override IColor GetInitColor()
+        {
+            // Setting the current stroking or nonstroking colour space to any CIE-based colour space shall
+            // initialize all components of the corresponding current colour to 0.0 (unless the range of valid
+            // values for a given component does not include 0.0, in which case the nearest valid value shall
+            // be substituted.)
+            decimal[] init = Enumerable.Repeat(0m, NumberOfColorComponents).ToArray();
+            return GetColor(init);
+        }
     }
 
     /// <summary>
@@ -626,6 +809,14 @@
 
         /// <inheritdoc/>
         public override IColor GetColor(IReadOnlyList<decimal> values)
+        {
+            // TODO - error
+            return new RGBColor(255m / 255m, 20m / 255m, 147m / 255m);
+            //throw new NotImplementedException();
+        }
+
+        /// <inheritdoc/>
+        public override IColor GetInitColor()
         {
             // TODO - error
             return new RGBColor(255m / 255m, 20m / 255m, 147m / 255m);
