@@ -149,12 +149,14 @@
                 decimal g = colorRgb.g;
                 decimal b = colorRgb.b;
 
-                //if (pdfColor.ColorSpace == ColorSpace.DeviceCMYK)
-                //{
-                //    r *= 0.8m;
-                //    g *= 0.8m;
-                //    b *= 0.8m;
-                //}
+                /*
+                if (pdfColor.ColorSpace == ColorSpace.DeviceCMYK)
+                {
+                    r *= 0.8m;
+                    g *= 0.8m;
+                    b *= 0.8m;
+                }
+                */
 
                 if (pdfColor is AlphaColor alphaColor)
                 {

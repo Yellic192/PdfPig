@@ -710,19 +710,19 @@
         public LabColorSpaceDetails([NotNull] IReadOnlyList<decimal> whitePoint, [CanBeNull] IReadOnlyList<decimal> blackPoint, [CanBeNull] IReadOnlyList<decimal> matrix)
             : base(ColorSpace.CalRGB)
         {
-            WhitePoint = whitePoint?.Cast<double>().ToArray() ?? throw new ArgumentNullException(nameof(whitePoint));
+            WhitePoint = whitePoint?.Select(v => (double)v).ToArray() ?? throw new ArgumentNullException(nameof(whitePoint));
             if (WhitePoint.Count != 3)
             {
                 throw new ArgumentOutOfRangeException(nameof(whitePoint), whitePoint, $"Must consist of exactly three numbers, but was passed {whitePoint.Count}.");
             }
 
-            BlackPoint = blackPoint?.Cast<double>().ToArray() ?? new[] { 0.0, 0.0, 0.0 };
+            BlackPoint = blackPoint?.Select(v => (double)v).ToArray() ?? new[] { 0.0, 0.0, 0.0 };
             if (BlackPoint.Count != 3)
             {
                 throw new ArgumentOutOfRangeException(nameof(blackPoint), blackPoint, $"Must consist of exactly three numbers, but was passed {blackPoint.Count}.");
             }
 
-            Matrix = matrix?.Cast<double>().ToArray() ?? new[] { -100.0, 100.0, -100.0, 100.0 };
+            Matrix = matrix?.Select(v => (double)v).ToArray() ?? new[] { -100.0, 100.0, -100.0, 100.0 };
             if (Matrix.Count != 4)
             {
                 throw new ArgumentOutOfRangeException(nameof(matrix), matrix, $"Must consist of exactly four numbers, but was passed {matrix.Count}.");
