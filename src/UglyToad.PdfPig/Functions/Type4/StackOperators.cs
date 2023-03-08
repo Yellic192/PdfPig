@@ -29,14 +29,13 @@
         {
             public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.GetStack();
-                int n = ((int)stack.Pop());
+                int n = (int)context.Stack.Pop();
                 if (n > 0)
                 {
-                    int size = stack.Count;
+                    int size = context.Stack.Count;
                     //Need to copy to a new list to avoid ConcurrentModificationException
-                    List<object> copy = stack.ToList().GetRange(size - n - 1, n);
-                    stack = context.SetStack(AddAll(stack, copy));
+                    List<object> copy = context.Stack.ToList().GetRange(size - n - 1, n);
+                    context.SetStack(AddAll(context.Stack, copy));
                 }
             }
         }
@@ -48,8 +47,7 @@
         {
             public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.GetStack();
-                stack.Push(stack.Peek());
+                context.Stack.Push(context.Stack.Peek());
             }
         }
 
@@ -60,11 +58,10 @@
         {
             public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.GetStack();
-                object any2 = stack.Pop();
-                object any1 = stack.Pop();
-                stack.Push(any2);
-                stack.Push(any1);
+                object any2 = context.Stack.Pop();
+                object any1 = context.Stack.Pop();
+                context.Stack.Push(any2);
+                context.Stack.Push(any1);
             }
         }
 
@@ -75,14 +72,12 @@
         {
             public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.GetStack();
-                int n = Convert.ToInt32(stack.Pop());
+                int n = Convert.ToInt32(context.Stack.Pop());
                 if (n < 0)
                 {
                     throw new ArgumentException("rangecheck: " + n);
                 }
-                int size = stack.Count;
-                stack.Push(stack.ElementAt(n));
+                context.Stack.Push(context.Stack.ElementAt(n));
             }
         }
 
@@ -93,8 +88,7 @@
         {
             public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.GetStack();
-                stack.Pop();
+                context.Stack.Pop();
             }
         }
 
@@ -105,9 +99,8 @@
         {
             public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.GetStack();
-                int j = ((int)stack.Pop());
-                int n = ((int)stack.Pop());
+                int j = ((int)context.Stack.Pop());
+                int n = ((int)context.Stack.Pop());
                 if (j == 0)
                 {
                     return; //Nothing to do
@@ -125,15 +118,15 @@
                     int n1 = n + j;
                     for (int i = 0; i < n1; i++)
                     {
-                        moved.Add(stack.Pop());
+                        moved.Add(context.Stack.Pop());
                     }
                     for (int i = j; i < 0; i++)
                     {
-                        rolled.Add(stack.Pop());
+                        rolled.Add(context.Stack.Pop());
                     }
 
-                    stack = context.SetStack(AddAll(stack, moved));
-                    stack = context.SetStack(AddAll(stack, rolled));
+                    context.SetStack(AddAll(context.Stack, moved));
+                    context.SetStack(AddAll(context.Stack, rolled));
                 }
                 else
                 {
@@ -141,15 +134,15 @@
                     int n1 = n - j;
                     for (int i = j; i > 0; i--)
                     {
-                        rolled.Add(stack.Pop());
+                        rolled.Add(context.Stack.Pop());
                     }
                     for (int i = 0; i < n1; i++)
                     {
-                        moved.Add(stack.Pop());
+                        moved.Add(context.Stack.Pop());
                     }
 
-                    stack = context.SetStack(AddAll(stack, rolled));
-                    stack = context.SetStack(AddAll(stack, moved));
+                    context.SetStack(AddAll(context.Stack, rolled));
+                    context.SetStack(AddAll(context.Stack, moved));
                 }
             }
         }

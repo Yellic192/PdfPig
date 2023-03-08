@@ -240,6 +240,11 @@
                             matrix = matrixToken.Data.OfType<NumericToken>().Select(x => x.Data).ToList();
                         }
 
+                        // Test with TIKA_1552_0.pdf
+                        // https://icolorpalette.com/color/pantone-289-c
+                        // Pantone 289 C Color | #0C2340
+                        // Rgb : rgb(12,35,64)
+                        // CIE L*a*b* : 13.53, 2.89, -21.08
                         return new LabColorSpaceDetails(whitePoint, blackPoint, matrix);
                     }
                 case ColorSpace.ICCBased:
@@ -491,7 +496,87 @@
                             functionTokensUnion, tintFunc);
                     }
                 case ColorSpace.DeviceN:
-                    return UnsupportedColorSpaceDetails.Instance;
+                    {
+                        if (!TryGetColorSpaceArray(imageDictionary, resourceStore, scanner, out var colorSpaceArray)
+                             || (colorSpaceArray.Length != 4 && colorSpaceArray.Length != 5))
+                        {
+                            // Error instead?
+                            return UnsupportedColorSpaceDetails.Instance;
+                        }
+
+                        if (!DirectObjectFinder.TryGet(colorSpaceArray[0], scanner, out NameToken deviceNColorSpaceNameToken)
+                            || !deviceNColorSpaceNameToken.Equals(NameToken.DeviceN))
+                        {
+                            return UnsupportedColorSpaceDetails.Instance;
+                        }
+
+                        if (!DirectObjectFinder.TryGet(colorSpaceArray[1], scanner, out ArrayToken deviceNNamesToken))
+                        {
+                            return UnsupportedColorSpaceDetails.Instance;
+                        }
+
+                        ColorSpaceDetails alternateColorSpaceDetails;
+                        if (DirectObjectFinder.TryGet(colorSpaceArray[2], scanner, out NameToken alternateNameToken)
+                            && ColorSpaceMapper.TryMap(alternateNameToken, resourceStore, out var baseColorSpaceName))
+                        {
+                            alternateColorSpaceDetails = GetColorSpaceDetails(
+                                baseColorSpaceName,
+                                imageDictionary,
+                                scanner,
+                                resourceStore,
+                                filterProvider,
+                                true);
+                        }
+                        else if (DirectObjectFinder.TryGet(colorSpaceArray[2], scanner, out ArrayToken alternateArrayToken)
+                        && alternateArrayToken.Length > 0
+                        && alternateArrayToken[0] is NameToken alternateColorSpaceNameToken
+                        && ColorSpaceMapper.TryMap(alternateColorSpaceNameToken, resourceStore, out var alternateArrayColorSpace))
+                        {
+                            var pseudoImageDictionary = new DictionaryToken(
+                                new Dictionary<NameToken, IToken>
+                                {
+                                {NameToken.ColorSpace, alternateArrayToken}
+                                });
+
+                            alternateColorSpaceDetails = GetColorSpaceDetails(
+                                alternateArrayColorSpace,
+                                pseudoImageDictionary,
+                                scanner,
+                                resourceStore,
+                                filterProvider,
+                                true);
+                        }
+                        else
+                        {
+                            return UnsupportedColorSpaceDetails.Instance;
+                        }
+
+                        Union<DictionaryToken, StreamToken> functionTokensUnion;
+                        PdfFunction tintFunc;
+                        var func = colorSpaceArray[3];
+                        if (DirectObjectFinder.TryGet(func, scanner, out DictionaryToken functionDictionary))
+                        {
+                            functionTokensUnion = Union<DictionaryToken, StreamToken>.One(functionDictionary);
+                            tintFunc = PdfFunctionParser.Create(functionDictionary, scanner, filterProvider);
+                        }
+                        else if (DirectObjectFinder.TryGet(func, scanner, out StreamToken functionStream))
+                        {
+                            functionTokensUnion = Union<DictionaryToken, StreamToken>.Two(functionStream);
+                            tintFunc = PdfFunctionParser.Create(functionStream, scanner, filterProvider);
+                        }
+                        else
+                        {
+                            return UnsupportedColorSpaceDetails.Instance;
+                        }
+
+                        if (colorSpaceArray.Length > 4 && DirectObjectFinder.TryGet(colorSpaceArray[4], scanner, out DictionaryToken deviceNAttributesToken))
+                        {
+                            // optionnal
+                            return new DeviceNColorSpaceDetails(deviceNNamesToken.Data.OfType<NameToken>().ToArray(), alternateColorSpaceDetails, tintFunc, deviceNAttributesToken);
+                        }
+
+                        return new DeviceNColorSpaceDetails(deviceNNamesToken.Data.OfType<NameToken>().ToArray(), alternateColorSpaceDetails, tintFunc);
+                    }
                 default:
                     return UnsupportedColorSpaceDetails.Instance;
             }

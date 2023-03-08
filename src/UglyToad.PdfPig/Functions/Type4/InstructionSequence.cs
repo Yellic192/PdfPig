@@ -59,7 +59,6 @@
         /// <param name="context">the execution context</param>
         public void Execute(ExecutionContext context)
         {
-            Stack<object> stack = context.GetStack();
             foreach (object o in instructions)
             {
                 if (o is string name)
@@ -76,14 +75,14 @@
                 }
                 else
                 {
-                    stack.Push(o);
+                    context.Stack.Push(o);
                 }
             }
 
             //Handles top-level procs that simply need to be executed
-            while (stack.Any() && stack.Peek() is InstructionSequence)
+            while (context.Stack.Any() && context.Stack.Peek() is InstructionSequence)
             {
-                InstructionSequence nested = (InstructionSequence)stack.Pop();
+                InstructionSequence nested = (InstructionSequence)context.Stack.Pop();
                 nested.Execute(context);
             }
         }

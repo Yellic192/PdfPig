@@ -2,7 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.ComponentModel.Design.Serialization;
 
     internal sealed class BitwiseOperators
     {
@@ -18,7 +17,7 @@
         {
             public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.GetStack();
+                Stack<object> stack = context.Stack;
                 object op2 = stack.Pop();
                 object op1 = stack.Pop();
                 if (op1 is bool bool1 && op2 is bool bool2)
@@ -65,7 +64,7 @@
         {
             public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.GetStack();
+                Stack<object> stack = context.Stack;
                 int shift = Convert.ToInt32(stack.Pop());
                 int int1 = Convert.ToInt32(stack.Pop());
                 if (shift < 0)
@@ -88,7 +87,7 @@
         {
             public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.GetStack();
+                Stack<object> stack = context.Stack;
                 stack.Push(false);
             }
         }
@@ -100,7 +99,7 @@
         {
             public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.GetStack();
+                Stack<object> stack = context.Stack;
                 object op1 = stack.Pop();
                 if (op1 is bool bool1)
                 {
@@ -142,7 +141,7 @@
         {
             public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.GetStack();
+                Stack<object> stack = context.Stack;
                 stack.Push(true);
             }
         }

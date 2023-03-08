@@ -20,7 +20,7 @@
         {
             public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.GetStack();
+                Stack<object> stack = context.Stack;
                 object op2 = stack.Pop();
                 object op1 = stack.Pop();
                 bool result = IsEqual(op1, op2);
@@ -49,7 +49,7 @@
         {
             public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.GetStack();
+                Stack<object> stack = context.Stack;
                 object op2 = stack.Pop();
                 object op1 = stack.Pop();
                 double num1 = Convert.ToDouble(op1);

@@ -6,7 +6,12 @@
     internal sealed class ExecutionContext
     {
         private readonly Operators operators;
-        private Stack<object> stack = new Stack<object>();
+
+        /// <summary>
+        /// Returns the stack used by this execution context.
+        /// </summary>
+        /// <returns>the stack</returns>
+        public Stack<object> Stack { get; private set; } = new Stack<object>();
 
         /// <summary>
         /// Creates a new execution context.
@@ -17,19 +22,10 @@
             this.operators = operatorSet;
         }
 
-        /// <summary>
-        /// Returns the stack used by this execution context.
-        /// </summary>
-        /// <returns>the stack</returns>
-        public Stack<object> GetStack()
-        {
-            return this.stack;
-        }
-
         internal Stack<object> SetStack(Stack<object> stack)
         {
-            this.stack = stack;
-            return this.stack;
+            this.Stack = stack;
+            return this.Stack;
         }
 
         /// <summary>
@@ -47,7 +43,7 @@
         /// <returns>the number</returns>
         public object PopNumber()
         {
-            object popped = this.stack.Pop();
+            object popped = this.Stack.Pop();
             if (popped is int || popped is double || popped is float)
             {
                 return popped;
@@ -61,7 +57,7 @@
         /// <returns>the int value</returns>
         public int PopInt()
         {
-            object popped = stack.Pop();
+            object popped = Stack.Pop();
             if (popped is int poppedInt)
             {
                 return poppedInt;
@@ -76,7 +72,7 @@
         /// <returns>the real value</returns>
         public double PopReal()
         {
-            return Convert.ToDouble(stack.Pop());
+            return Convert.ToDouble(Stack.Pop());
         }
     }
 }

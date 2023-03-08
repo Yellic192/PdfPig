@@ -222,7 +222,7 @@
         /// <param name="rangeMin">the min value of the range</param>
         /// <param name="rangeMax">the max value of the range</param>
         /// <returns>the clipped value</returns>
-        protected static double ClipToRange(double x, double rangeMin, double rangeMax)
+        internal static double ClipToRange(double x, double rangeMin, double rangeMax)
         {
             if (x < rangeMin)
             {

@@ -154,7 +154,7 @@
         public static readonly NameToken Dests = new NameToken("Dests");
         public static readonly NameToken Devicecmyk = new NameToken("DeviceCMYK");
         public static readonly NameToken Devicegray = new NameToken("DeviceGray");
-        public static readonly NameToken Devicen = new NameToken("DeviceN");
+        public static readonly NameToken DeviceN = new NameToken("DeviceN");
         public static readonly NameToken Devicergb = new NameToken("DeviceRGB");
         public static readonly NameToken Di = new NameToken("Di");
         public static readonly NameToken Difference = new NameToken("Difference");

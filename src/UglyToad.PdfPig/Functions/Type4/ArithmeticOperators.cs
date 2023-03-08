@@ -33,11 +33,11 @@
                 var num = context.PopNumber();
                 if (num is int numi)
                 {
-                    context.GetStack().Push(Math.Abs(numi));
+                    context.Stack.Push(Math.Abs(numi));
                 }
                 else
                 {
-                    context.GetStack().Push(Math.Abs(Convert.ToDouble(num)));
+                    context.Stack.Push(Math.Abs(Convert.ToDouble(num)));
                 }
             }
         }
@@ -56,17 +56,17 @@
                     long sum = (long)num1i + (long)num2i; // Keep both cast here
                     if (sum < int.MinValue || sum > int.MaxValue)
                     {
-                        context.GetStack().Push((double)sum);
+                        context.Stack.Push((double)sum);
                     }
                     else
                     {
-                        context.GetStack().Push((int)sum);
+                        context.Stack.Push((int)sum);
                     }
                 }
                 else
                 {
                     double sum = Convert.ToDouble(num1) + Convert.ToDouble(num2);
-                    context.GetStack().Push(sum);
+                    context.Stack.Push(sum);
                 }
             }
         }
@@ -86,7 +86,7 @@
                 {
                     atan += 360;
                 }
-                context.GetStack().Push(atan);
+                context.Stack.Push(atan);
             }
         }
 
@@ -100,11 +100,11 @@
                 var num = context.PopNumber();
                 if (num is int numi)
                 {
-                    context.GetStack().Push(numi);
+                    context.Stack.Push(numi);
                 }
                 else
                 {
-                    context.GetStack().Push(Math.Ceiling(Convert.ToDouble(num)));
+                    context.Stack.Push(Math.Ceiling(Convert.ToDouble(num)));
                 }
             }
         }
@@ -118,7 +118,7 @@
             {
                 double angle = context.PopReal();
                 double cos = Math.Cos(ToRadians(angle));
-                context.GetStack().Push(cos);
+                context.Stack.Push(cos);
             }
         }
 
@@ -130,7 +130,7 @@
             public void Execute(ExecutionContext context)
             {
                 var num = context.PopNumber();
-                context.GetStack().Push((int)Math.Truncate(Convert.ToDouble(num)));
+                context.Stack.Push((int)Math.Truncate(Convert.ToDouble(num)));
             }
         }
 
@@ -142,7 +142,7 @@
             public void Execute(ExecutionContext context)
             {
                 var num = context.PopNumber();
-                context.GetStack().Push(Convert.ToDouble(num));
+                context.Stack.Push(Convert.ToDouble(num));
             }
         }
 
@@ -155,7 +155,7 @@
             {
                 double num2 = Convert.ToDouble(context.PopNumber());
                 double num1 = Convert.ToDouble(context.PopNumber());
-                context.GetStack().Push(num1 / num2);
+                context.Stack.Push(num1 / num2);
             }
         }
 
@@ -169,7 +169,7 @@
                 double exp = Convert.ToDouble(context.PopNumber());
                 double base_ = Convert.ToDouble(context.PopNumber());
                 double value = Math.Pow(base_, exp);
-                context.GetStack().Push(value);
+                context.Stack.Push(value);
             }
         }
 
@@ -183,11 +183,11 @@
                 var num = context.PopNumber();
                 if (num is int numi)
                 {
-                    context.GetStack().Push(numi);
+                    context.Stack.Push(numi);
                 }
                 else
                 {
-                    context.GetStack().Push(Math.Floor(Convert.ToDouble(num)));
+                    context.Stack.Push(Math.Floor(Convert.ToDouble(num)));
                 }
             }
         }
@@ -201,7 +201,7 @@
             {
                 int num2 = context.PopInt();
                 int num1 = context.PopInt();
-                context.GetStack().Push(num1 / num2);
+                context.Stack.Push(num1 / num2);
             }
         }
 
@@ -213,7 +213,7 @@
             public void Execute(ExecutionContext context)
             {
                 var num = context.PopNumber();
-                context.GetStack().Push(Math.Log(Convert.ToDouble(num)));
+                context.Stack.Push(Math.Log(Convert.ToDouble(num)));
             }
         }
 
@@ -225,7 +225,7 @@
             public void Execute(ExecutionContext context)
             {
                 var num = context.PopNumber();
-                context.GetStack().Push(Math.Log10(Convert.ToDouble(num)));
+                context.Stack.Push(Math.Log10(Convert.ToDouble(num)));
             }
         }
 
@@ -238,7 +238,7 @@
             {
                 int int2 = context.PopInt();
                 int int1 = context.PopInt();
-                context.GetStack().Push(int1 % int2);
+                context.Stack.Push(int1 % int2);
             }
         }
 
@@ -256,17 +256,17 @@
                     long result = (long)num1i * (long)num2i; // Keep both cast here
                     if (result >= int.MinValue && result <= int.MaxValue)
                     {
-                        context.GetStack().Push((int)result);
+                        context.Stack.Push((int)result);
                     }
                     else
                     {
-                        context.GetStack().Push((double)result);
+                        context.Stack.Push((double)result);
                     }
                 }
                 else
                 {
                     double result = Convert.ToDouble(num1) * Convert.ToDouble(num2);
-                    context.GetStack().Push(result);
+                    context.Stack.Push(result);
                 }
             }
         }
@@ -283,16 +283,16 @@
                 {
                     if (v == int.MinValue)
                     {
-                        context.GetStack().Push(-Convert.ToDouble(v));
+                        context.Stack.Push(-Convert.ToDouble(v));
                     }
                     else
                     {
-                        context.GetStack().Push(-v);
+                        context.Stack.Push(-v);
                     }
                 }
                 else
                 {
-                    context.GetStack().Push(-Convert.ToDouble(num));
+                    context.Stack.Push(-Convert.ToDouble(num));
                 }
             }
         }
@@ -307,14 +307,14 @@
                 var num = context.PopNumber();
                 if (num is int numi)
                 {
-                    context.GetStack().Push(numi);
+                    context.Stack.Push(numi);
                 }
                 else
                 {
                     double value = Convert.ToDouble(num);
                     // The way java works...
                     double roundedValue = value < 0 ? Math.Round(value) : Math.Round(value, MidpointRounding.AwayFromZero);
-                    context.GetStack().Push(roundedValue);
+                    context.Stack.Push(roundedValue);
                 }
             }
         }
@@ -328,7 +328,7 @@
             {
                 double angle = context.PopReal();
                 double sin = Math.Sin(ToRadians(angle));
-                context.GetStack().Push(sin);
+                context.Stack.Push(sin);
             }
         }
 
@@ -344,7 +344,7 @@
                 {
                     throw new ArgumentException("argument must be nonnegative");
                 }
-                context.GetStack().Push(Math.Sqrt(num));
+                context.Stack.Push(Math.Sqrt(num));
             }
         }
 
@@ -355,7 +355,7 @@
         {
             public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.GetStack();
+                Stack<object> stack = context.Stack;
                 var num2 = context.PopNumber();
                 var num1 = context.PopNumber();
                 if (num1 is int num1i && num2 is int num2i)
@@ -388,11 +388,11 @@
                 var num = context.PopNumber();
                 if (num is int numi)
                 {
-                    context.GetStack().Push(numi);
+                    context.Stack.Push(numi);
                 }
                 else
                 {
-                    context.GetStack().Push(Math.Truncate(Convert.ToDouble(num)));
+                    context.Stack.Push(Math.Truncate(Convert.ToDouble(num)));
                 }
             }
         }

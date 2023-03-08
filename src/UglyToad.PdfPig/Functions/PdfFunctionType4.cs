@@ -40,7 +40,7 @@
             {
                 PdfRange domain = GetDomainForInput(i);
                 double value = ClipToRange(input[i], domain.Min, domain.Max);
-                context.GetStack().Push(value);
+                context.Stack.Push(value);
             }
 
             //Execute the type 4 function.
@@ -48,7 +48,7 @@
 
             //Extract the output values
             int numberOfOutputValues = NumberOfOutputParameters;
-            int numberOfActualOutputValues = context.GetStack().Count;
+            int numberOfActualOutputValues = context.Stack.Count;
             if (numberOfActualOutputValues < numberOfOutputValues)
             {
                 throw new ArgumentOutOfRangeException("The type 4 function returned "

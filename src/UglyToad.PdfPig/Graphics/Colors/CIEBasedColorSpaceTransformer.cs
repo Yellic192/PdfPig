@@ -5,10 +5,11 @@
 
     /// <summary>
     /// Transformer for CIEBased color spaces.
-    ///
+    /// <para>
     /// In addition to the PDF spec itself, the transformation implementation is based on the descriptions in:
     /// https://en.wikipedia.org/wiki/SRGB#The_forward_transformation_(CIE_XYZ_to_sRGB) and
     /// http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_RGB.html
+    /// </para>
     /// </summary>
     internal class CIEBasedColorSpaceTransformer
     {

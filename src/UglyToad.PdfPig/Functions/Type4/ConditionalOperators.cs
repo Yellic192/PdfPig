@@ -20,7 +20,7 @@
         {
             public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.GetStack();
+                Stack<object> stack = context.Stack;
                 InstructionSequence proc = (InstructionSequence)stack.Pop();
                 bool condition = (bool)stack.Pop();
                 if (condition)
@@ -37,7 +37,7 @@
         {
             public void Execute(ExecutionContext context)
             {
-                Stack<object> stack = context.GetStack();
+                Stack<object> stack = context.Stack;
                 InstructionSequence proc2 = (InstructionSequence)stack.Pop();
                 InstructionSequence proc1 = (InstructionSequence)stack.Pop();
                 bool condition = Convert.ToBoolean(stack.Pop());

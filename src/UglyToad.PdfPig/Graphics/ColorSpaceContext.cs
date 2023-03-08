@@ -1,9 +1,9 @@
 ﻿namespace UglyToad.PdfPig.Graphics
 {
-    using System;
-    using System.Collections.Generic;
     using Colors;
     using Content;
+    using System;
+    using System.Collections.Generic;
     using Tokens;
 
     internal class ColorSpaceContext : IColorSpaceContext
@@ -30,14 +30,6 @@
         /// </summary>
         public ColorSpaceDetails CurrentNonStrokingColorSpaceDetails { get; private set; } = DeviceGrayColorSpaceDetails.Instance;
 
-        //public ColorSpace CurrentStrokingColorSpace { get; private set; } = ColorSpace.DeviceGray;
-
-        //public ColorSpace CurrentNonStrokingColorSpace { get; private set; } = ColorSpace.DeviceGray;
-
-        //public NameToken AdvancedStrokingColorSpace { get; private set; }
-
-        //public NameToken AdvancedNonStrokingColorSpace { get; private set; }
-
         public ColorSpaceContext(Func<CurrentGraphicsState> currentStateFunc, IResourceStore resourceStore)
         {
             this.currentStateFunc = currentStateFunc ?? throw new ArgumentNullException(nameof(currentStateFunc));
@@ -47,13 +39,13 @@
         public void SetStrokingColorspace(NameToken colorspace)
         {
             CurrentStrokingColorSpaceDetails = resourceStore.GetColorSpaceDetails(colorspace, null);
-            currentStateFunc().CurrentStrokingColor = CurrentStrokingColorSpaceDetails.GetInitColor();
+            currentStateFunc().CurrentStrokingColor = CurrentStrokingColorSpaceDetails.GetInitializeColor();
         }
 
         public void SetNonStrokingColorspace(NameToken colorspace)
         {
             CurrentNonStrokingColorSpaceDetails = resourceStore.GetColorSpaceDetails(colorspace, null);
-            currentStateFunc().CurrentNonStrokingColor = CurrentNonStrokingColorSpaceDetails.GetInitColor();
+            currentStateFunc().CurrentNonStrokingColor = CurrentNonStrokingColorSpaceDetails.GetInitializeColor();
         }
 
         public void SetStrokingColor(IReadOnlyList<decimal> operands)
@@ -63,7 +55,6 @@
 
         public void SetStrokingColorGray(decimal gray)
         {
-            //CurrentStrokingColorSpace = ColorSpace.DeviceGray;
             CurrentStrokingColorSpaceDetails = DeviceGrayColorSpaceDetails.Instance;
 
             if (gray == 0)
@@ -82,7 +73,6 @@
 
         public void SetStrokingColorRgb(decimal r, decimal g, decimal b)
         {
-            //CurrentStrokingColorSpace = ColorSpace.DeviceRGB;
             CurrentStrokingColorSpaceDetails = DeviceRgbColorSpaceDetails.Instance;
 
             if (r == 0 && g == 0 && b == 0)
@@ -101,8 +91,16 @@
 
         public void SetStrokingColorCmyk(decimal c, decimal m, decimal y, decimal k)
         {
-            //CurrentStrokingColorSpace = ColorSpace.DeviceCMYK;
             CurrentStrokingColorSpaceDetails = DeviceCmykColorSpaceDetails.Instance;
+
+            if (c == 0 && m == 0 && y == 0 && k == 1)
+            {
+                currentStateFunc().CurrentStrokingColor = CMYKColor.Black;
+            }
+            else if (c == 0 && m == 0 && y == 0 && k == 0)
+            {
+                currentStateFunc().CurrentStrokingColor = CMYKColor.White;
+            }
 
             currentStateFunc().CurrentStrokingColor = new CMYKColor(c, m, y, k);
         }
@@ -114,7 +112,6 @@
 
         public void SetNonStrokingColorGray(decimal gray)
         {
-            //CurrentNonStrokingColorSpace = ColorSpace.DeviceGray;
             CurrentNonStrokingColorSpaceDetails = DeviceGrayColorSpaceDetails.Instance;
 
             if (gray == 0)
@@ -133,7 +130,6 @@
 
         public void SetNonStrokingColorRgb(decimal r, decimal g, decimal b)
         {
-            //CurrentNonStrokingColorSpace = ColorSpace.DeviceRGB;
             CurrentNonStrokingColorSpaceDetails = DeviceRgbColorSpaceDetails.Instance;
 
             if (r == 0 && g == 0 && b == 0)
@@ -152,7 +148,6 @@
 
         public void SetNonStrokingColorCmyk(decimal c, decimal m, decimal y, decimal k)
         {
-            //CurrentNonStrokingColorSpace = ColorSpace.DeviceCMYK;
             CurrentNonStrokingColorSpaceDetails = DeviceCmykColorSpaceDetails.Instance;
             currentStateFunc().CurrentNonStrokingColor = new CMYKColor(c, m, y, k);
         }
