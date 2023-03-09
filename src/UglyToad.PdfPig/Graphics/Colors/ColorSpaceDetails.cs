@@ -314,17 +314,15 @@
 
             // The special colorant name None shall not produce any visible output. Painting operations in a
             // Separationspace with this colorant name shall have no effect on the current page.
-            { "None", new AlphaColor(0, GrayColor.Black) }
+            { "None", null } // TODO
         };
 
         /// <summary>
         /// Create a new <see cref="SeparationColorSpaceDetails"/>.
         /// </summary>
-        public DeviceNColorSpaceDetails(IReadOnlyList<NameToken> names,
-            ColorSpaceDetails alternateColorSpaceDetails,
-            PdfFunction tintFunction,
-            DictionaryToken attributes = null)
-            : base(ColorSpace.Separation)
+        public DeviceNColorSpaceDetails(IReadOnlyList<NameToken> names, ColorSpaceDetails alternateColorSpaceDetails,
+            PdfFunction tintFunction, DictionaryToken attributes = null)
+            : base(ColorSpace.DeviceN)
         {
             Names = names;
             n = Names.Count;
@@ -402,9 +400,7 @@
         /// The function is called with the tint value and must return the corresponding color component values.
         /// That is, the number of components and the interpretation of their values depend on the <see cref="AlternateColorSpaceDetails"/>.
         /// </summary>
-        public Union<DictionaryToken, StreamToken> TintFunctionData { get; }
-
-        private readonly PdfFunction func;
+        public PdfFunction TintFunction { get; }
 
         private readonly Dictionary<string, IColor> lookupTable = new Dictionary<string, IColor>()
         {
@@ -423,7 +419,7 @@
 
             // The special colorant name None shall not produce any visible output. Painting operations in a
             // Separationspace with this colorant name shall have no effect on the current page.
-            { "None", new AlphaColor(0, GrayColor.Black) }
+            { "None", null }
         };
 
         /// <summary>
@@ -431,13 +427,11 @@
         /// </summary>
         public SeparationColorSpaceDetails(NameToken name,
             ColorSpaceDetails alternateColorSpaceDetails,
-            Union<DictionaryToken, StreamToken> tintFunctionData,
             PdfFunction tintFunction)
             : base(ColorSpace.Separation)
         {
             Name = name;
             AlternateColorSpaceDetails = alternateColorSpaceDetails;
-            TintFunctionData = tintFunctionData;
 
             if (lookupTable.TryGetValue(name, out var lookup))
             {
@@ -447,7 +441,7 @@
             {
                 System.Diagnostics.Debug.WriteLine($"Unknown color name '{Name.Data}'");
             }
-            func = tintFunction;
+            TintFunction = tintFunction;
         }
 
         /// <inheritdoc/>
@@ -459,7 +453,7 @@
             }
 
             // TODO - caching
-            var evaled = func.Eval(values.Select(v => (double)v).ToArray()).Select(k => (decimal)k).ToArray();
+            var evaled = TintFunction.Eval(values.Select(v => (double)v).ToArray()).Select(k => (decimal)k).ToArray();
             return AlternateColorSpaceDetails.GetColor(evaled);
         }
 
@@ -708,7 +702,7 @@
         /// Create a new <see cref="LabColorSpaceDetails"/>.
         /// </summary>
         public LabColorSpaceDetails([NotNull] IReadOnlyList<decimal> whitePoint, [CanBeNull] IReadOnlyList<decimal> blackPoint, [CanBeNull] IReadOnlyList<decimal> matrix)
-            : base(ColorSpace.CalRGB)
+            : base(ColorSpace.Lab)
         {
             WhitePoint = whitePoint?.Select(v => (double)v).ToArray() ?? throw new ArgumentNullException(nameof(whitePoint));
             if (WhitePoint.Count != 3)
@@ -884,6 +878,51 @@
             // be substituted.)
             decimal[] init = Enumerable.Repeat(0m, NumberOfColorComponents).ToArray();
             return GetColor(init);
+        }
+    }
+
+    /// <summary>
+    /// TODO
+    /// </summary>
+    public sealed class PatternColorSpaceDetails : ColorSpaceDetails
+    {
+        /// <summary>
+        /// TODO
+        /// </summary>
+        public IReadOnlyDictionary<NameToken, Pattern> Patterns { get; }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        public PatternColorSpaceDetails(IReadOnlyDictionary<NameToken, Pattern> patterns) : base(ColorSpace.Pattern)
+        {
+            if (patterns == null)
+            {
+                throw new ArgumentNullException(nameof(patterns));
+            }
+            Patterns = patterns;
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public Pattern GetPattern(NameToken name)
+        {
+            return Patterns[name];
+        }
+
+        /// <inheritdoc/>
+        public override IColor GetColor(IReadOnlyList<decimal> values)
+        {
+            throw new InvalidOperationException("PatternColorSpaceDetails");
+        }
+
+        /// <inheritdoc/>
+        public override IColor GetInitializeColor()
+        {
+            return null;
         }
     }
 

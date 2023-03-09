@@ -402,7 +402,24 @@
                         return new IndexedColorSpaceDetails(baseDetails, (byte)hival, tableBytes);
                     }
                 case ColorSpace.Pattern:
-                    return UnsupportedColorSpaceDetails.Instance;
+                    {
+                        if (imageDictionary.Data.Count > 0)
+                        {
+                            if (!TryGetColorSpaceArray(imageDictionary, resourceStore, scanner, out var colorSpaceArray)
+                                || colorSpaceArray.Length != 1)
+                            {
+                                return UnsupportedColorSpaceDetails.Instance;
+                            }
+
+                            if (!DirectObjectFinder.TryGet(colorSpaceArray[0], scanner, out NameToken separationColorSpaceNameToken)
+                                || !separationColorSpaceNameToken.Equals(NameToken.Pattern))
+                            {
+                                return UnsupportedColorSpaceDetails.Instance;
+                            }
+                        }
+                    }
+                    return new PatternColorSpaceDetails(resourceStore.GetPatterns());
+                    //return UnsupportedColorSpaceDetails.Instance;
                 case ColorSpace.Separation:
                     {
                         if (!TryGetColorSpaceArray(imageDictionary, resourceStore, scanner, out var colorSpaceArray)
@@ -459,32 +476,14 @@
                             return UnsupportedColorSpaceDetails.Instance;
                         }
 
-                        Union<DictionaryToken, StreamToken> functionTokensUnion;
                         PdfFunction tintFunc;
                         var func = colorSpaceArray[3];
                         if (DirectObjectFinder.TryGet(func, scanner, out DictionaryToken functionDictionary))
                         {
-                            functionTokensUnion = Union<DictionaryToken, StreamToken>.One(functionDictionary);
                             tintFunc = PdfFunctionParser.Create(functionDictionary, scanner, filterProvider);
                         }
                         else if (DirectObjectFinder.TryGet(func, scanner, out StreamToken functionStream))
                         {
-                            if (functionStream.StreamDictionary.ContainsKey(NameToken.Filter))
-                            {
-                                // TODO - something better
-                                var decoded = functionStream.Decode(filterProvider, scanner);
-
-                                var strDic = functionStream.StreamDictionary.Data.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-                                if (strDic.ContainsKey(NameToken.Filter.Data))
-                                {
-                                    strDic.Remove(NameToken.Filter.Data);
-                                    strDic.Remove(NameToken.Length.Data);
-                                }
-
-                                functionStream = new StreamToken(new DictionaryToken(strDic), decoded);
-                            }
-
-                            functionTokensUnion = Union<DictionaryToken, StreamToken>.Two(functionStream);
                             tintFunc = PdfFunctionParser.Create(functionStream, scanner, filterProvider);
                         }
                         else
@@ -492,8 +491,7 @@
                             return UnsupportedColorSpaceDetails.Instance;
                         }
 
-                        return new SeparationColorSpaceDetails(separationNameToken, alternateColorSpaceDetails,
-                            functionTokensUnion, tintFunc);
+                        return new SeparationColorSpaceDetails(separationNameToken, alternateColorSpaceDetails, tintFunc);
                     }
                 case ColorSpace.DeviceN:
                     {

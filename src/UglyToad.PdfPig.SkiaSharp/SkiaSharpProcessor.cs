@@ -281,12 +281,7 @@
                 {
                     if (color != null)
                     {
-                        if (GetCurrentState().AlphaConstantNonStroking != 1)
-                        {
-                            color = new AlphaColor(GetCurrentState().AlphaConstantNonStroking, color);
-                        }
-
-                        fillBrush.Color = color.ToSKColor();
+                        fillBrush.Color = color.ToSKColor(GetCurrentState().AlphaConstantNonStroking); // todo - check intent, could be stroking
                     }
                     _canvas.DrawPath(gp, fillBrush);
                 }
@@ -378,14 +373,9 @@
                 }
             }
 
-            if (GetCurrentState().AlphaConstantNonStroking != 1)
-            {
-                color = new AlphaColor(GetCurrentState().AlphaConstantNonStroking, color);
-            }
-
             var fontPaint = new SKPaint(drawFont.ToFont((float)(pointSize * _mult)))
             {
-                Color = color.ToSKColor()
+                Color = color.ToSKColor(GetCurrentState().AlphaConstantNonStroking)
             };
 
             //System.Diagnostics.Debug.WriteLine($"DrawLetter: '{font.Name}'\t{fontSize} -> Font name used: '{drawFont.FamilyName}'");
@@ -515,23 +505,40 @@
 
         private void PaintStrokePath(CurrentGraphicsState currentGraphicsState)
         {
-            using (SKPaint paint = new SKPaint())
+            if (currentGraphicsState.ColorSpaceContext.CurrentStrokingColorSpaceDetails.Type == ColorSpace.Pattern)
             {
-                float lineWidth = Math.Max((float)0.5, GetScaledLineWidth()) * (float)_mult; // A guess
-
-                paint.Color = currentGraphicsState.GetCurrentStrokingColorSKColor(); //.CurrentStrokingColor.ToSKColor();
-                paint.Style = SKPaintStyle.Stroke;
-                paint.StrokeWidth = lineWidth;
-                paint.StrokeJoin = currentGraphicsState.JoinStyle.ToSKStrokeJoin();
-                paint.StrokeCap = currentGraphicsState.CapStyle.ToSKStrokeCap();
-
-                var pathEffect = currentGraphicsState.LineDashPattern.ToSKPathEffect(_mult);
-                if (pathEffect != null)
+                Pattern pattern = currentGraphicsState.CurrentStrokingPattern;
+                switch (pattern.PatternType)
                 {
-                    paint.PathEffect = pathEffect;
-                }
+                    case 1:
+                        throw new NotImplementedException("PaintStrokePath Shader");
+                        break;
 
-                _canvas.DrawPath(CurrentPath, paint);
+                    case 2:
+                        this.RenderShadingPattern(pattern, true);
+                        break;
+                }
+            }
+            else
+            {
+                using (SKPaint paint = new SKPaint())
+                {
+                    float lineWidth = Math.Max((float)0.5, GetScaledLineWidth()) * (float)_mult; // A guess
+
+                    paint.Color = currentGraphicsState.GetCurrentStrokingColorSKColor();
+                    paint.Style = SKPaintStyle.Stroke;
+                    paint.StrokeWidth = lineWidth;
+                    paint.StrokeJoin = currentGraphicsState.JoinStyle.ToSKStrokeJoin();
+                    paint.StrokeCap = currentGraphicsState.CapStyle.ToSKStrokeCap();
+
+                    var pathEffect = currentGraphicsState.LineDashPattern.ToSKPathEffect(_mult);
+                    if (pathEffect != null)
+                    {
+                        paint.PathEffect = pathEffect;
+                    }
+
+                    _canvas.DrawPath(CurrentPath, paint);
+                }
             }
         }
 
@@ -554,11 +561,28 @@
         {
             CurrentPath.FillType = fillingRule.ToSKPathFillType();
 
-            using (SKPaint paint = new SKPaint())
+            if (currentGraphicsState.ColorSpaceContext.CurrentNonStrokingColorSpaceDetails.Type == ColorSpace.Pattern)
             {
-                paint.Color = currentGraphicsState.GetCurrentNonStrokingColorSKColor(); //.CurrentNonStrokingColor.ToSKColor();
-                paint.Style = SKPaintStyle.Fill;
-                _canvas.DrawPath(CurrentPath, paint);
+                Pattern pattern = currentGraphicsState.CurrentNonStrokingPattern;
+                switch (pattern.PatternType)
+                {
+                    case 1:
+                        throw new NotImplementedException("PaintFillPath Shader");
+                        break;
+
+                    case 2:
+                        this.RenderShadingPattern(pattern, false);
+                        break;
+                }
+            }
+            else
+            {
+                using (SKPaint paint = new SKPaint())
+                {
+                    paint.Color = currentGraphicsState.GetCurrentNonStrokingColorSKColor();
+                    paint.Style = SKPaintStyle.Fill;
+                    _canvas.DrawPath(CurrentPath, paint);
+                }
             }
         }
 
@@ -734,6 +758,8 @@
 
         private void RenderRadialShading(Shading shading)
         {
+            // TODO check shadding type
+
             // Not correct
             var coords = shading.Coords.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
             var domain = shading.Domain.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
@@ -775,7 +801,7 @@
                 double tx = t0 + (t / (double)factor) * t1;
                 double[] v = shading.Function.Eval(new double[] { tx });
                 IColor c = shading.ColorSpace.GetColor(v.Select(k => (decimal)k).ToArray());
-                colors.Add(c.ToSKColor());
+                colors.Add(c.ToSKColor(GetCurrentState().AlphaConstantNonStroking)); // TODO - is it non stroking??
             }
 
             if (shading.BBox.HasValue)
@@ -840,6 +866,7 @@
 
         private void RenderAxialShading(Shading shading)
         {
+            // TODO check shadding type
             var coords = shading.Coords.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
             var domain = shading.Domain.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
 
@@ -879,7 +906,7 @@
                 double tx = t0 + (t / (double)factor) * t1;
                 double[] v = shading.Function.Eval(new double[] { tx });
                 IColor c = shading.ColorSpace.GetColor(v.Select(k => (decimal)k).ToArray());
-                colors.Add(c.ToSKColor());
+                colors.Add(c.ToSKColor(GetCurrentState().AlphaConstantNonStroking)); // TODO - is it non stroking??
             }
 
             using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias })
@@ -892,6 +919,81 @@
 
                 // check if bbox not null
                 _canvas.DrawPaint(paint);
+            }
+        }
+
+        private void RenderShadingPattern(Pattern pattern, bool isStroke)
+        {
+            if (pattern.PatternType != 2)
+            {
+                throw new ArgumentException("TODO");
+            }
+
+            var matrix = TransformationMatrix.FromArray(pattern.Matrix.Data.OfType<NumericToken>().Select(n => n.Data).ToArray());
+
+            Shading shading = pattern.Shading;
+
+            var coords = shading.Coords.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
+            var domain = shading.Domain.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
+
+            var (x0, y0) = matrix.Multiply(CurrentTransformationMatrix).Transform(coords[0], coords[1]);
+            var (x1, y1) = matrix.Multiply(CurrentTransformationMatrix).Transform(coords[2], coords[3]);
+
+            float xs0 = (float)(x0 * _mult);
+            float ys0 = (float)(_height - (y0 * _mult));
+            float xs1 = (float)(x1 * _mult);
+            float ys1 = (float)(_height - (y1 * _mult));
+
+            var colors = new List<SKColor>();
+            float t0 = domain[0];
+            float t1 = domain[1];
+
+            if (shading.BBox.HasValue)
+            {
+
+            }
+
+            if (shading.Background != null)
+            {
+
+            }
+
+            float maxX = CurrentPath.Bounds.Right;
+            float maxY = CurrentPath.Bounds.Top;
+            float minX = CurrentPath.Bounds.Left;
+            float minY = CurrentPath.Bounds.Bottom;
+
+            // worst case for the number of steps is opposite diagonal corners, so use that
+            double dist = Math.Sqrt(Math.Pow(maxX - minX, 2) + Math.Pow(maxY - minY, 2));
+            int factor = (int)Math.Ceiling(dist); // too much?
+
+            for (int t = 0; t <= factor; t++)
+            {
+                double tx = t0 + (t / (double)factor) * t1;
+                double[] v = shading.Function.Eval(new double[] { tx });
+                IColor c = shading.ColorSpace.GetColor(v.Select(k => (decimal)k).ToArray());
+                colors.Add(c.ToSKColor(isStroke ? GetCurrentState().AlphaConstantStroking : GetCurrentState().AlphaConstantNonStroking));
+            }
+
+            using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias,  })
+            {
+                paint.Shader = SKShader.CreateLinearGradient(
+                    new SKPoint(xs0, ys0),
+                    new SKPoint(xs1, ys1),
+                    colors.ToArray(),
+                    SKShaderTileMode.Clamp);
+
+                // check if bbox not null
+                if (isStroke)
+                {
+                    // TODO - To Check
+                    paint.IsStroke = true;
+                    paint.StrokeWidth = Math.Max((float)0.5, GetScaledLineWidth()) * (float)_mult; // A guess
+                    paint.StrokeJoin = GetCurrentState().JoinStyle.ToSKStrokeJoin();
+                    paint.StrokeCap = GetCurrentState().CapStyle.ToSKStrokeCap();
+                    paint.PathEffect = GetCurrentState().LineDashPattern.ToSKPathEffect(_mult);
+                }
+                _canvas.DrawPath(CurrentPath, paint);
             }
         }
     }

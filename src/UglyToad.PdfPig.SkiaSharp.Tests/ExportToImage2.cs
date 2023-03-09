@@ -310,6 +310,12 @@
             Run(PigProduction, 15);
         }
 
+        [Fact]
+        public void PigProductionTest4()
+        {
+            Run(PigProduction, 5);
+        }
+
         [Fact] //(Skip = "Not all")]
         public void PigProductionTestAll()
         {

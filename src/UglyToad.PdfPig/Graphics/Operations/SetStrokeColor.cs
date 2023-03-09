@@ -36,22 +36,6 @@
         public void Run(IOperationContext operationContext)
         {
             operationContext.GetCurrentState().ColorSpaceContext.SetStrokingColor(Operands);
-            /*
-            switch (Operands.Count)
-            {
-                case 1:
-                    operationContext.ColorSpaceContext.SetStrokingColorGray(Operands[0]);
-                    break;
-                case 3:
-                    operationContext.ColorSpaceContext.SetStrokingColorRgb(Operands[0], Operands[1], Operands[2]);
-                    break;
-                case 4:
-                    operationContext.ColorSpaceContext.SetStrokingColorCmyk(Operands[0], Operands[1], Operands[2], Operands[3]);
-                    break;
-                default:
-                    return;
-            }
-            */
         }
 
         /// <inheritdoc />

@@ -6,10 +6,10 @@
     using PdfFonts;
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using Tokenization.Scanner;
     using Tokens;
     using UglyToad.PdfPig.Filters;
-    using UglyToad.PdfPig.Functions;
     using Util;
 
     internal class ResourceStore : IResourceStore
@@ -32,6 +32,8 @@
         private readonly Dictionary<NameToken, DictionaryToken> markedContentProperties = new Dictionary<NameToken, DictionaryToken>();
 
         private readonly Dictionary<NameToken, Shading> shadingsProperties = new Dictionary<NameToken, Shading>();
+
+        internal readonly Dictionary<NameToken, Pattern> patternsProperties = new Dictionary<NameToken, Pattern>();
 
         private (NameToken name, IFont font) lastLoadedFont;
 
@@ -130,6 +132,61 @@
                 }
             }
 
+            if (resourceDictionary.TryGet(NameToken.Pattern, scanner, out DictionaryToken patternDictionary))
+            {
+                foreach (var namePatternPair in patternDictionary.Data)
+                {
+                    var name = NameToken.Create(namePatternPair.Key);
+
+                    if (DirectObjectFinder.TryGet(namePatternPair.Value, scanner, out DictionaryToken patternArray))
+                    {
+                        int patternType = (patternArray.Data[NameToken.PatternType] as NumericToken).Int;
+
+                        ArrayToken patternMatrix = null;
+                        if (!(patternArray.Data.ContainsKey(NameToken.Matrix) &&
+                            DirectObjectFinder.TryGet(patternArray.Data[NameToken.Matrix], scanner, out patternMatrix)))
+                        {
+                            // optional - Default value: the identity matrix [1 0 0 1 0 0]
+                            patternMatrix = new ArrayToken(new decimal[] { 1, 0, 0, 1, 0, 0 }.Select(v => new NumericToken(v)).ToArray());
+                        }
+
+                        DictionaryToken patternExtGState = null;
+                        if (!(patternArray.Data.ContainsKey(NameToken.ExtGState) &&
+                            DirectObjectFinder.TryGet(patternArray.Data[NameToken.ExtGState], scanner, out patternExtGState)))
+                        {
+                            // optional
+                        }
+
+                        switch (patternType)
+                        {
+                            case 1: // Tilling
+                                break;
+
+                            case 2: // Shading
+                                Shading patternShading = null;
+                                if (DirectObjectFinder.TryGet(patternArray.Data[NameToken.Shading], scanner, out DictionaryToken patternShadingDic))
+                                {
+                                    patternShading = ShadingParser.Create(patternShadingDic, scanner, this, filterProvider);
+                                }
+                                else if (DirectObjectFinder.TryGet(patternArray.Data[NameToken.Shading], scanner, out StreamToken patternShadingStr))
+                                {
+                                    patternShading = ShadingParser.Create(patternShadingStr, scanner, this, filterProvider);
+                                }
+                                else
+                                {
+                                    throw new ArgumentException();
+                                }
+                                patternsProperties[name] = new Pattern(patternType, patternMatrix, patternShading, patternExtGState);
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        throw new PdfDocumentFormatException($"Invalid Pattern token encountered in page resource dictionary: {namePatternPair.Value}.");
+                    }
+                }
+            }
+
             if (resourceDictionary.TryGet(NameToken.ColorSpace, scanner, out DictionaryToken colorSpaceDictionary))
             {
                 foreach (var nameColorSpacePair in colorSpaceDictionary.Data)
@@ -183,11 +240,9 @@
                 foreach (var pair in shadingList.Data)
                 {
                     var key = NameToken.Create(pair.Key);
-
-                    DictionaryToken shadingDictionary = null;
                     if (DirectObjectFinder.TryGet(pair.Value, scanner, out DictionaryToken namedPropertiesDictionary))
                     {
-                        shadingDictionary = namedPropertiesDictionary;
+                        shadingsProperties[key] = ShadingParser.Create(namedPropertiesDictionary, scanner, this, filterProvider);
                     }
                     else if (DirectObjectFinder.TryGet(pair.Value, scanner, out StreamToken namedPropertiesStream))
                     {
@@ -197,111 +252,12 @@
                          * and may contain any of the standard entries common to all streams (see Table 5). In particular,
                          * shall include a Length entry.
                          */
-                        shadingDictionary = namedPropertiesStream.StreamDictionary; // TODO - Check if correct
+                        shadingsProperties[key] = ShadingParser.Create(namedPropertiesStream, scanner, this, filterProvider);
                     }
                     else
                     {
                         throw new NotImplementedException("Shading");
                     }
-
-                    if (!shadingDictionary.TryGet<NumericToken>(NameToken.ShadingType, scanner, out var shadingTypeToken))
-                    {
-                        throw new ArgumentException("ShadingType is required.");
-                        /*
-                            1 Function-based shading
-                            2 Axial shading
-                            3 Radial shading
-                            4 Free-form Gouraud-shaded triangle mesh
-                            5 Lattice-form Gouraud-shaded triangle mesh
-                            6 Coons patch mesh
-                            7 Tensor-product patch mesh
-                         */
-                    }
-
-                    ColorSpaceDetails colorSpaceDetails = null;
-                    if (shadingDictionary.TryGet<NameToken>(NameToken.ColorSpace, scanner, out var colorSpaceToken))
-                    {
-                        var details = GetColorSpaceDetails(colorSpaceToken, shadingDictionary);
-                    }
-                    else if (shadingDictionary.TryGet<ArrayToken>(NameToken.ColorSpace, scanner, out var colorSpaceSToken))
-                    {
-                        var first = colorSpaceSToken.Data[0];
-                        if (first is NameToken firstColorSpaceName)
-                        {
-                            colorSpaceDetails = GetColorSpaceDetails(firstColorSpaceName, shadingDictionary);
-                        }
-                    }
-                    else
-                    {
-                        throw new ArgumentException("ColorSpace is required.");
-                    }
-
-                    PdfFunction function = null;
-                    /*
-                     * In addition, some shading dictionaries also include a Function entry whose value shall be a
-                     * function object (dictionary or stream) defining how colours vary across the area to be shaded.
-                     * In such cases, the shading dictionary usually defines the geometry of the shading, and the
-                     * function defines the colour transitions across that geometry. The function is required for
-                     * some types of shading and optional for others.
-                     */
-                    if (shadingDictionary.TryGet<DictionaryToken>(NameToken.Function, scanner, out var functionToken))
-                    {
-                        function = PdfFunctionParser.Create(functionToken, scanner, filterProvider);
-                    }
-                    else if (shadingDictionary.TryGet<StreamToken>(NameToken.Function, scanner, out var functionStreamToken))
-                    {
-                        function = PdfFunctionParser.Create(functionStreamToken, scanner, filterProvider);
-                    }
-                    else
-                    {
-                        // 8.7.4.5.2 Type 1 (Function-Based) Shadings - Required
-                        // 8.7.4.5.3 Type 2 (Axial) Shadings - Required
-                        // 8.7.4.5.4 Type 3 (Radial) Shadings - Required
-                        // 8.7.4.5.5 Type 4 Shadings (Free-Form Gouraud-Shaded Triangle Meshes) - Optional
-                        // 8.7.4.5.6 Type 5 Shadings (Lattice-Form Gouraud-Shaded Triangle Meshes) - Optional
-                        // 8.7.4.5.7 Type 6 Shadings (Coons Patch Meshes) - Optional
-                        // 8.7.4.5.8 Type 7 Shadings (Tensor-Product Patch Meshes) - N/A
-                    }
-
-                    if (!shadingDictionary.TryGet<ArrayToken>(NameToken.Background, scanner, out var backgroundToken))
-                    {
-                        // Optional
-                    }
-
-                    if (shadingDictionary.TryGet<ArrayToken>(NameToken.Bbox, scanner, out var bboxToken))
-                    {
-                        // TODO - check if array (sais it's 'rectangle')
-                        // Optional
-                    }
-
-
-                    if (!shadingDictionary.TryGet<BooleanToken>(NameToken.AntiAlias, scanner, out var antiAliasToken))
-                    {
-                        // Optional
-                        // Default value: false.
-                    }
-
-                    if (!shadingDictionary.TryGet<ArrayToken>(NameToken.Coords, scanner, out var coordsToken))
-                    {
-
-                    }
-
-                    if (!shadingDictionary.TryGet<ArrayToken>(NameToken.Domain, scanner, out var domainToken))
-                    {
-                        // set default values
-                        domainToken = new ArrayToken(new IToken[] { new NumericToken(0), new NumericToken(1) });
-                    }
-
-                    if (!shadingDictionary.TryGet<ArrayToken>(NameToken.Extend, scanner, out var extendToken))
-                    {
-                        // set default values
-                        extendToken = new ArrayToken(new IToken[] { BooleanToken.False, BooleanToken.False });
-                    }
-
-                    Shading shading = new Shading(shadingTypeToken.Int, antiAliasToken.Data,
-                        shadingDictionary, colorSpaceDetails, function, coordsToken, domainToken,
-                        extendToken, bboxToken?.ToRectangle(scanner), backgroundToken);
-                    shadingsProperties[key] = shading;
                 }
             }
         }
@@ -442,6 +398,11 @@
         public Shading GetShadingDictionary(NameToken name)
         {
             return shadingsProperties[name];
+        }
+
+        public IReadOnlyDictionary<NameToken, Pattern> GetPatterns()
+        {
+            return patternsProperties;
         }
     }
 }

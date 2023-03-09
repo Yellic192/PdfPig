@@ -48,9 +48,17 @@
             currentStateFunc().CurrentNonStrokingColor = CurrentNonStrokingColorSpaceDetails.GetInitializeColor();
         }
 
-        public void SetStrokingColor(IReadOnlyList<decimal> operands)
+        public void SetStrokingColor(IReadOnlyList<decimal> operands, NameToken patternName)
         {
-            currentStateFunc().CurrentStrokingColor = CurrentStrokingColorSpaceDetails.GetColor(operands);
+            if (patternName != null && CurrentStrokingColorSpaceDetails is PatternColorSpaceDetails patternColorSpaceDetails)
+            {
+                currentStateFunc().CurrentStrokingPattern = patternColorSpaceDetails.GetPattern(patternName);
+                //currentStateFunc().CurrentStrokingColor = null;
+            }
+            else
+            {
+                currentStateFunc().CurrentStrokingColor = CurrentStrokingColorSpaceDetails.GetColor(operands);
+            }
         }
 
         public void SetStrokingColorGray(decimal gray)
@@ -105,9 +113,17 @@
             currentStateFunc().CurrentStrokingColor = new CMYKColor(c, m, y, k);
         }
 
-        public void SetNonStrokingColor(IReadOnlyList<decimal> operands)
+        public void SetNonStrokingColor(IReadOnlyList<decimal> operands, NameToken patternName)
         {
-            currentStateFunc().CurrentNonStrokingColor = CurrentNonStrokingColorSpaceDetails.GetColor(operands);
+            if (patternName != null && CurrentNonStrokingColorSpaceDetails is PatternColorSpaceDetails patternColorSpaceDetails)
+            {
+                currentStateFunc().CurrentNonStrokingPattern = patternColorSpaceDetails.GetPattern(patternName);
+                //currentStateFunc().CurrentNonStrokingColor = null;
+            }
+            else
+            {
+                currentStateFunc().CurrentNonStrokingColor = CurrentNonStrokingColorSpaceDetails.GetColor(operands);
+            }
         }
 
         public void SetNonStrokingColorGray(decimal gray)

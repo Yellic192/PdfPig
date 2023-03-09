@@ -136,12 +136,9 @@
             return fillingRule == FillingRule.NonZeroWinding ? SKPathFillType.Winding : SKPathFillType.EvenOdd;
         }
 
-        /// <summary>
-        /// Default to Black.
-        /// </summary>
-        /// <param name="pdfColor"></param>
-        public static SKColor ToSKColor(this IColor pdfColor)
+        public static SKColor ToSKColor(this IColor pdfColor, decimal alpha)
         {
+            SKColor color = SKColors.Black;
             if (pdfColor != null)
             {
                 var colorRgb = pdfColor.ToRGBValues();
@@ -158,31 +155,19 @@
                 }
                 */
 
-                if (pdfColor is AlphaColor alphaColor)
-                {
-                    return new SKColor((byte)(r * 255), (byte)(g * 255), (byte)(b * 255), (byte)(alphaColor.A * 255));
-                }
-                return new SKColor((byte)(r * 255), (byte)(g * 255), (byte)(b * 255));
+                color = new SKColor((byte)(r * 255), (byte)(g * 255), (byte)(b * 255));
             }
-            return SKColors.Black;
+            return color.WithAlpha((byte)(alpha * 255));
         }
 
         public static SKColor GetCurrentNonStrokingColorSKColor(this CurrentGraphicsState currentGraphicsState)
         {
-            if (currentGraphicsState.AlphaConstantNonStroking != 1)
-            {
-                return new AlphaColor(currentGraphicsState.AlphaConstantNonStroking, currentGraphicsState.CurrentNonStrokingColor).ToSKColor();
-            }
-            return currentGraphicsState.CurrentNonStrokingColor.ToSKColor();
+            return currentGraphicsState.CurrentNonStrokingColor.ToSKColor(currentGraphicsState.AlphaConstantNonStroking);
         }
 
         public static SKColor GetCurrentStrokingColorSKColor(this CurrentGraphicsState currentGraphicsState)
         {
-            if (currentGraphicsState.AlphaConstantStroking != 1)
-            {
-                return new AlphaColor(currentGraphicsState.AlphaConstantStroking, currentGraphicsState.CurrentStrokingColor).ToSKColor();
-            }
-            return currentGraphicsState.CurrentStrokingColor.ToSKColor();
+            return currentGraphicsState.CurrentStrokingColor.ToSKColor(currentGraphicsState.AlphaConstantStroking);
         }
     }
 }

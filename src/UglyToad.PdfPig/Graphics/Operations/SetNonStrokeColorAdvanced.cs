@@ -57,19 +57,19 @@
         public void Run(IOperationContext operationContext)
         {
             // TODO - check if needed
-            if (operationContext.GetCurrentState().ColorSpaceContext.CurrentNonStrokingColorSpaceDetails is SeparationColorSpaceDetails separation)
-            {
-                if (separation.AlternateColorSpaceDetails.BaseType.GetFamily() != ColorSpaceFamily.Device)
-                {
-                    return;
-                }
-            }
-            else if (operationContext.GetCurrentState().ColorSpaceContext.CurrentNonStrokingColorSpaceDetails.BaseType.GetFamily() != ColorSpaceFamily.Device)
-            {
-                return;
-            }
+            //if (operationContext.GetCurrentState().ColorSpaceContext.CurrentNonStrokingColorSpaceDetails is SeparationColorSpaceDetails separation)
+            //{
+            //    if (separation.AlternateColorSpaceDetails.BaseType.GetFamily() != ColorSpaceFamily.Device)
+            //    {
+            //        return;
+            //    }
+            //}
+            //else if (operationContext.GetCurrentState().ColorSpaceContext.CurrentNonStrokingColorSpaceDetails.BaseType.GetFamily() != ColorSpaceFamily.Device)
+            //{
+            //    return;
+            //}
 
-            operationContext.GetCurrentState().ColorSpaceContext.SetNonStrokingColor(Operands);
+            operationContext.GetCurrentState().ColorSpaceContext.SetNonStrokingColor(Operands, PatternName);
         }
 
         /// <inheritdoc />

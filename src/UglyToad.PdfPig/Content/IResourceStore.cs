@@ -2,10 +2,13 @@
 {
     using Graphics.Colors;
     using PdfFonts;
+    using System.Collections.Generic;
     using Tokens;
 
     internal interface IResourceStore
     {
+        IReadOnlyDictionary<NameToken, Pattern> GetPatterns();
+
         void LoadResourceDictionary(DictionaryToken resourceDictionary, InternalParsingOptions parsingOptions);
 
         /// <summary>

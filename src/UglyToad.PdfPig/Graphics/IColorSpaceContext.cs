@@ -25,28 +25,6 @@
         /// </summary>
         ColorSpaceDetails CurrentNonStrokingColorSpaceDetails { get; }
 
-        /*
-        /// <summary>
-        /// The <see cref="ColorSpace"/> used for stroking operations.
-        /// </summary>
-        ColorSpace CurrentStrokingColorSpace { get; }
-
-        /// <summary>
-        /// The <see cref="ColorSpace"/> used for non-stroking operations.
-        /// </summary>
-        ColorSpace CurrentNonStrokingColorSpace { get; }
-
-        /// <summary>
-        /// The name of the advanced ColorSpace active for stroking operations, if any.
-        /// </summary>
-        NameToken AdvancedStrokingColorSpace { get; }
-
-        /// <summary>
-        /// The name of the advanced ColorSpace active for non-stroking operations, if any.
-        /// </summary>
-        NameToken AdvancedNonStrokingColorSpace { get; }
-        */
-
         /// <summary>
         ///  Set the current color space to use for stroking operations.
         /// </summary>
@@ -61,7 +39,8 @@
         /// TODO
         /// </summary>
         /// <param name="operands"></param>
-        void SetStrokingColor(IReadOnlyList<decimal> operands);
+        /// <param name="PatternName"></param>
+        void SetStrokingColor(IReadOnlyList<decimal> operands, NameToken PatternName = null);
 
         /// <summary>
         /// Set the stroking color space to DeviceGray and set the gray level to use for stroking operations.
@@ -90,7 +69,8 @@
         /// TODO
         /// </summary>
         /// <param name="operands"></param>
-        void SetNonStrokingColor(IReadOnlyList<decimal> operands);
+        /// <param name="patternName"></param>
+        void SetNonStrokingColor(IReadOnlyList<decimal> operands, NameToken patternName = null);
 
         /// <summary>
         /// Set the nonstroking color space to DeviceGray and set the gray level to use for nonstroking operations.

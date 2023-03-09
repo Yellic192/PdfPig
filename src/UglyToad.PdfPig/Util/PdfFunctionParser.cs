@@ -32,6 +32,28 @@
                 functionDictionary = fd;
             }
 
+            Dictionary<NameToken, IToken> values = new Dictionary<NameToken, IToken>();
+            foreach (var pair in functionDictionary.Data)
+            {
+                var name = NameToken.Create(pair.Key);
+                switch (name)
+                {
+                    case "Bounds":
+                    case "Encode":
+                    case "C0":
+                    case "C1":
+                    case "Range":
+                        values[name] = DirectObjectFinder.Get<ArrayToken>(pair.Value, scanner);
+                        break;
+
+                    default:
+                        values[name] = pair.Value;
+                        break;
+                }
+            }
+
+            functionDictionary = new DictionaryToken(values);
+
             int functionType = (functionDictionary.Data[NameToken.FunctionType] as NumericToken).Int;
 
             switch (functionType)
