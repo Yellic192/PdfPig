@@ -66,6 +66,7 @@
 
         private const string MOZILLA_7952_0 = "MOZILLA-7952-0.pdf";
         private const string MOZILLA_11308_0 = "MOZILLA-11308-0.pdf";
+        private const string MOZILLA_10145_0 = "MOZILLA-10145-0.pdf";
 
         private static string GetFilename(string name)
         {
@@ -89,6 +90,12 @@
         public void MOZILLA_11308_0Test()
         {
             RunAllPages(MOZILLA_11308_0);
+        }
+
+        [Fact]
+        public void MOZILLA_10145_0Test()
+        {
+            RunAllPages(MOZILLA_10145_0); // DeviceN with stream
         }
 
         [Fact]

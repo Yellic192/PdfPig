@@ -866,7 +866,11 @@
 
         private void RenderAxialShading(Shading shading)
         {
-            // TODO check shadding type
+            if (shading.ShadingType != 2)
+            {
+                throw new ArgumentException(nameof(shading));
+            }
+
             var coords = shading.Coords.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
             var domain = shading.Domain.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
 
@@ -899,7 +903,7 @@
 
             // worst case for the number of steps is opposite diagonal corners, so use that
             double dist = Math.Sqrt(Math.Pow(maxX - minX, 2) + Math.Pow(maxY - minY, 2));
-            int factor = (int)Math.Ceiling(dist); // too much?
+            int factor = Math.Max(10, (int)Math.Ceiling(dist)); // too much? - Min of 10
 
             for (int t = 0; t <= factor; t++)
             {

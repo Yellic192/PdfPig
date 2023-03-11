@@ -569,8 +569,39 @@
 
                         if (colorSpaceArray.Length > 4 && DirectObjectFinder.TryGet(colorSpaceArray[4], scanner, out DictionaryToken deviceNAttributesToken))
                         {
-                            // optionnal
-                            return new DeviceNColorSpaceDetails(deviceNNamesToken.Data.OfType<NameToken>().ToArray(), alternateColorSpaceDetails, tintFunc, deviceNAttributesToken);
+                            // Optionnal
+                            // Subtype - NameToken - Optional - Default value: DeviceN.
+                            // Colorants - dictionary - Required if Subtype is NChannel and the colour space includes spot colorants; otherwise optional
+                            // Process - dictionary - Required if Subtype is NChannel and the colour space includes components of a process colour space, otherwise optional; PDF 1.6
+                            // MixingHints - dictionary - Optional
+
+                            NameToken subtype = NameToken.DeviceN;
+                            if (deviceNAttributesToken.ContainsKey(NameToken.Subtype))
+                            {
+                                subtype = deviceNAttributesToken.Get<NameToken>(NameToken.Subtype, scanner);
+                            }
+
+                            DictionaryToken colorants = null;
+                            if (deviceNAttributesToken.ContainsKey(NameToken.Colorants))
+                            {
+                                colorants = deviceNAttributesToken.Get<DictionaryToken>(NameToken.Colorants, scanner);
+                            }
+
+                            DictionaryToken process = null;
+                            if (deviceNAttributesToken.ContainsKey(NameToken.Process))
+                            {
+                                process = deviceNAttributesToken.Get<DictionaryToken>(NameToken.Process, scanner);
+                            }
+
+                            DictionaryToken mixingHints = null;
+                            if (deviceNAttributesToken.ContainsKey(NameToken.MixingHints))
+                            {
+                                mixingHints = deviceNAttributesToken.Get<DictionaryToken>(NameToken.MixingHints, scanner);
+                            }
+
+                            var attributes = new DeviceNColorSpaceDetails.DeviceNColorSpaceAttributes(subtype, colorants, process, mixingHints);
+
+                            return new DeviceNColorSpaceDetails(deviceNNamesToken.Data.OfType<NameToken>().ToArray(), alternateColorSpaceDetails, tintFunc, attributes);
                         }
 
                         return new DeviceNColorSpaceDetails(deviceNNamesToken.Data.OfType<NameToken>().ToArray(), alternateColorSpaceDetails, tintFunc);

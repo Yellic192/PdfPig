@@ -1,6 +1,5 @@
 ﻿namespace UglyToad.PdfPig.Graphics.Colors
 {
-    using PdfPig.Core;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -285,7 +284,7 @@
         /// <summary>
         /// TODO
         /// </summary>
-        public DictionaryToken Attributes { get; }
+        public DeviceNColorSpaceAttributes? Attributes { get; }
 
         /// <summary>
         /// During subsequent painting operations, an application calls this function to transform a tint value into
@@ -321,13 +320,13 @@
         /// Create a new <see cref="SeparationColorSpaceDetails"/>.
         /// </summary>
         public DeviceNColorSpaceDetails(IReadOnlyList<NameToken> names, ColorSpaceDetails alternateColorSpaceDetails,
-            PdfFunction tintFunction, DictionaryToken attributes = null)
+            PdfFunction tintFunction, DeviceNColorSpaceAttributes? attributes = null)
             : base(ColorSpace.DeviceN)
         {
             Names = names;
             n = Names.Count;
             AlternateColorSpaceDetails = alternateColorSpaceDetails;
-            Attributes = attributes;
+            Attributes = attributes; // TODO - use attributes
             /*
             if (lookupTable.TryGetValue(name, out var lookup))
             {
@@ -358,6 +357,54 @@
             // shall be given an initial value of 1.0. The SCN and scn operators respectively shall set the current
             // stroking and nonstroking colour.
             return GetColor(Enumerable.Repeat(1m, n).ToArray());
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        public struct DeviceNColorSpaceAttributes
+        {
+            /// <summary>
+            /// Subtype - NameToken - Optional - Default value: DeviceN.
+            /// </summary>
+            public NameToken Subtype { get; }
+
+            /// <summary>
+            /// Colorants - dictionary - Required if Subtype is NChannel and the colour space includes spot colorants; otherwise optional
+            /// </summary>
+            public DictionaryToken Colorants { get; }
+
+            /// <summary>
+            /// Process - dictionary - Required if Subtype is NChannel and the colour space includes components of a process colour space, otherwise optional
+            /// </summary>
+            public DictionaryToken Process { get; }
+
+            /// <summary>
+            /// MixingHints - dictionary - Optional
+            /// </summary>
+            public DictionaryToken MixingHints { get; }
+
+            /// <summary>
+            /// TODO
+            /// </summary>
+            public DeviceNColorSpaceAttributes()
+            {
+                Subtype = NameToken.DeviceN;
+                Colorants = null;
+                Process = null;
+                MixingHints = null;
+            }
+
+            /// <summary>
+            /// TODO
+            /// </summary>
+            public DeviceNColorSpaceAttributes(NameToken subtype, DictionaryToken colorants, DictionaryToken process, DictionaryToken mixingHints)
+            {
+                Subtype = subtype;
+                Colorants = colorants;
+                Process = process;
+                MixingHints = mixingHints;
+            }
         }
     }
 
