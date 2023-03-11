@@ -463,6 +463,77 @@
 
             var startState = GetCurrentState();
 
+            if (formStream.StreamDictionary.TryGet<DictionaryToken>(NameToken.Group, pdfScanner, out var formGroupToken))
+            {
+                // Transparency Group XObjects
+                if (!formGroupToken.TryGet<NameToken>(NameToken.S, pdfScanner, out var sToken) || sToken != NameToken.Transparency)
+                {
+                    throw new InvalidOperationException("Transparency Group XObjects");
+                }
+
+                /*
+                 * A conforming reader shall implicitly reset this parameter to its initial value at the beginning of execution of a
+                 * transparency group XObject (see 11.6.6, "Transparency Group XObjects"). Initial value: Normal.
+                 */
+                startState.BlendMode = BlendMode.Normal;
+
+                /*
+                 * A conforming reader shall implicitly reset this parameter implicitly reset to its initial value at the beginning
+                 * of execution of a transparency group XObject (see 11.6.6, "Transparency Group XObjects"). Initial value: None.
+                 */
+                // TODO
+
+                /*
+                 * A conforming reader shall implicitly reset this parameter to its initial value at the beginning of execution of a
+                 * transparency group XObject (see 11.6.6, "Transparency Group XObjects"). Initial value: 1.0.
+                 */
+                startState.AlphaConstantNonStroking = 1m;
+                startState.AlphaConstantStroking = 1m;
+
+                if (formGroupToken.TryGet<NameToken>(NameToken.Cs, pdfScanner, out NameToken csNameToken))
+                {
+                    startState.ColorSpaceContext.CurrentNonStrokingColorSpaceDetails = resourceStore.GetColorSpaceDetails(csNameToken, null);
+                }
+                else if (formGroupToken.TryGet<ArrayToken>(NameToken.Cs, pdfScanner, out ArrayToken csArrayToken)
+                    && csArrayToken.Length > 0)
+                {
+                    var first = csArrayToken.Data[0];
+                    if (first is NameToken firstColorSpaceName)
+                    {
+                        startState.ColorSpaceContext.CurrentNonStrokingColorSpaceDetails = resourceStore.GetColorSpaceDetails(firstColorSpaceName, formGroupToken);
+                    }
+                    else
+                    {
+                        throw new ArgumentNullException("");
+                    }
+                }
+
+                bool isolated = false;
+                if (formGroupToken.TryGet<BooleanToken>(NameToken.I, pdfScanner, out var isolatedToken))
+                {
+                    /*
+                     * Optional) A flag specifying whether the transparency group is isolated (see “Isolated Groups”).
+                     * If this flag is true, objects within the group shall be composited against a fully transparent
+                     * initial backdrop; if false, they shall be composited against the group’s backdrop.
+                     * Default value: false.
+                     */
+                    isolated = isolatedToken.Data;
+                }
+
+                bool knockout = false;
+                if (formGroupToken.TryGet<BooleanToken>(NameToken.K, pdfScanner, out var knockoutToken))
+                {
+                    /*
+                     * (Optional) A flag specifying whether the transparency group is a knockout group (see “Knockout Groups”).
+                     * If this flag is false, later objects within the group shall be composited with earlier ones with which
+                     * they overlap; if true, they shall be composited with the group’s initial backdrop and shall overwrite
+                     * (“knock out”) any earlier overlapping objects.
+                     * Default value: false.
+                     */
+                    knockout = knockoutToken.Data;
+                }
+            }
+
             var formMatrix = TransformationMatrix.Identity;
             if (formStream.StreamDictionary.TryGet<ArrayToken>(NameToken.Matrix, pdfScanner, out var formMatrixToken))
             {
@@ -665,7 +736,7 @@
             var currentGraphicsState = GetCurrentState();
 
             // Standard separable blend modes -  1.7 - Page 520
-            if (bmNameToken == NameToken.Normal)
+            if (bmNameToken == NameToken.Normal || bmNameToken == NameToken.Compatible)
             {
                 currentGraphicsState.BlendMode = BlendMode.Normal;
             }

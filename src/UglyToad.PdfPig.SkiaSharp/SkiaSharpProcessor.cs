@@ -276,15 +276,10 @@
                 using (SKPaint fillBrush = new SKPaint()
                 {
                     Style = SKPaintStyle.Fill,
-                    BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(), // TODO - check if correct
+                    //BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(), // TODO - check if correct
                     Color = SKColors.Black
                 })
                 {
-                    if (GetCurrentState().BlendMode != Graphics.Core.BlendMode.Normal)
-                    {
-
-                    }
-
                     if (color != null)
                     {
                         fillBrush.Color = color.ToSKColor(GetCurrentState().AlphaConstantNonStroking); // todo - check intent, could be stroking
@@ -382,7 +377,7 @@
             var fontPaint = new SKPaint(drawFont.ToFont((float)(pointSize * _mult)))
             {
                 Style = SKPaintStyle.Fill,
-                BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(), // TODO - check if correct
+                //BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(), // TODO - check if correct
                 Color = SKColors.Black
             };
 
@@ -546,7 +541,7 @@
                     paint.StrokeWidth = lineWidth;
                     paint.StrokeJoin = currentGraphicsState.JoinStyle.ToSKStrokeJoin();
                     paint.StrokeCap = currentGraphicsState.CapStyle.ToSKStrokeCap();
-                    paint.BlendMode = currentGraphicsState.BlendMode.ToSKBlendMode();
+                    //paint.BlendMode = currentGraphicsState.BlendMode.ToSKBlendMode();
 
                     var pathEffect = currentGraphicsState.LineDashPattern.ToSKPathEffect(_mult);
                     if (pathEffect != null)
@@ -602,7 +597,7 @@
                 {
                     paint.Color = currentGraphicsState.GetCurrentNonStrokingColorSKColor();
                     paint.Style = SKPaintStyle.Fill;
-                    paint.BlendMode = currentGraphicsState.BlendMode.ToSKBlendMode();
+                    //paint.BlendMode = currentGraphicsState.BlendMode.ToSKBlendMode();
                     _canvas.DrawPath(CurrentPath, paint);
                 }
             }
@@ -764,7 +759,7 @@
             float ys1 = (float)(_height - (y1 * _mult));
             using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias })
             {
-                paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
+                //paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
 
                 paint.Shader = SKShader.CreateLinearGradient(
                     new SKPoint(xs0, ys0),
@@ -844,7 +839,7 @@
             {
                 using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias })
                 {
-                    paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
+                    //paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
 
                     paint.Shader = SKShader.CreateRadialGradient(
                         new SKPoint((float)xs1, (float)ys1),
@@ -861,7 +856,7 @@
             {
                 using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias })
                 {
-                    paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
+                    //paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
 
                     paint.Shader = SKShader.CreateRadialGradient(
                         new SKPoint((float)xs0, (float)ys0),
@@ -878,7 +873,7 @@
             {
                 using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias })
                 {
-                    paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
+                    //paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
 
                     paint.Shader = SKShader.CreateTwoPointConicalGradient(
                         new SKPoint((float)xs0, (float)ys0),
@@ -946,7 +941,7 @@
 
             using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias })
             {
-                paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
+                //paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
 
                 paint.Shader = SKShader.CreateLinearGradient(
                     new SKPoint(xs0, ys0),
@@ -1014,7 +1009,7 @@
 
             using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias,  })
             {
-                paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode();
+                //paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); 
 
                 paint.Shader = SKShader.CreateLinearGradient(
                     new SKPoint(xs0, ys0),
@@ -1026,7 +1021,7 @@
                 if (isStroke)
                 {
                     // TODO - To Check
-                    paint.IsStroke = true;
+                    paint.Style = SKPaintStyle.Stroke;
                     paint.StrokeWidth = Math.Max((float)0.5, GetScaledLineWidth()) * (float)_mult; // A guess
                     paint.StrokeJoin = GetCurrentState().JoinStyle.ToSKStrokeJoin();
                     paint.StrokeCap = GetCurrentState().CapStyle.ToSKStrokeCap();

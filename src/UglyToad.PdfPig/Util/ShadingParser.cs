@@ -25,7 +25,7 @@
                 shadingDictionary = fd;
             }
 
-            ShadingTypes shadingType = 0;
+            ShadingTypes shadingType;
             if (shadingDictionary.TryGet<NumericToken>(NameToken.ShadingType, scanner, out var shadingTypeToken))
             {
                 shadingType = (ShadingTypes)shadingTypeToken.Int;

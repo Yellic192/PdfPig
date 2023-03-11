@@ -23,7 +23,7 @@
         /// <summary>
         /// The <see cref="ColorSpaceDetails"/> used for non-stroking operations.
         /// </summary>
-        ColorSpaceDetails CurrentNonStrokingColorSpaceDetails { get; }
+        ColorSpaceDetails CurrentNonStrokingColorSpaceDetails { get; internal set; } // TODO - to check - internal set for 'transparency group attributes'
 
         /// <summary>
         ///  Set the current color space to use for stroking operations.

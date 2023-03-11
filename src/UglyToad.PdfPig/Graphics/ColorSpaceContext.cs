@@ -28,7 +28,7 @@
         /// <summary>
         /// The <see cref="ColorSpaceDetails"/> used for non-stroking operations.
         /// </summary>
-        public ColorSpaceDetails CurrentNonStrokingColorSpaceDetails { get; private set; } = DeviceGrayColorSpaceDetails.Instance;
+        public ColorSpaceDetails CurrentNonStrokingColorSpaceDetails { get; set; } = DeviceGrayColorSpaceDetails.Instance;
 
         public ColorSpaceContext(Func<CurrentGraphicsState> currentStateFunc, IResourceStore resourceStore)
         {
