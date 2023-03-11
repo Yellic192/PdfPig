@@ -988,6 +988,11 @@
                 throw new ArgumentException("TODO");
             }
 
+            if (pattern.ExtGState != null)
+            {
+
+            }
+
             var matrix = TransformationMatrix.FromArray(pattern.Matrix.Data.OfType<NumericToken>().Select(n => n.Data).ToArray());
 
             Shading shading = pattern.Shading;
