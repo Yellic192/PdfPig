@@ -12,7 +12,7 @@
         /// <summary>
         /// TODO
         /// </summary>
-        public int ShadingType { get; }
+        public ShadingTypes ShadingType { get; }
 
         /// <summary>
         /// TODO
@@ -62,7 +62,7 @@
         /// <summary>
         /// TODO
         /// </summary>
-        public Shading(int shadingType, bool antiAlias, DictionaryToken shadingDictionary,
+        public Shading(ShadingTypes shadingType, bool antiAlias, DictionaryToken shadingDictionary,
             ColorSpaceDetails colorSpace, PdfFunction function, ArrayToken coords,
              ArrayToken domain, ArrayToken extend, PdfRectangle? bbox, ArrayToken background)
         {
@@ -77,5 +77,46 @@
             BBox = bbox;
             Background = background;
         }
+    }
+
+    /// <summary>
+    /// SHading types.
+    /// </summary>
+    public enum ShadingTypes : byte
+    {
+        /// <summary>
+        /// Function-based shading.
+        /// </summary>
+        FunctionBased = 1,
+
+        /// <summary>
+        /// Axial shading.
+        /// </summary>
+        Axial = 2,
+
+        /// <summary>
+        /// Radial shading.
+        /// </summary>
+        Radial = 3,
+
+        /// <summary>
+        /// Free-form Gouraud-shaded triangle mesh.
+        /// </summary>
+        FreeFormGouraud = 4,
+
+        /// <summary>
+        /// Lattice-form Gouraud-shaded triangle mesh.
+        /// </summary>
+        LatticeFormGouraud = 5,
+
+        /// <summary>
+        /// Coons patch mesh.
+        /// </summary>
+        CoonsPatch = 6,
+
+        /// <summary>
+        /// Tensor-product patch mesh
+        /// </summary>
+        TensorProductPatch = 7
     }
 }

@@ -35,7 +35,7 @@
         {
             operationContext.GetCurrentState().ColorSpaceContext.SetStrokingColorGray(Gray);
         }
-        
+
         /// <inheritdoc />
         public void Write(Stream stream)
         {

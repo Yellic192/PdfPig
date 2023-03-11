@@ -12,7 +12,7 @@
         /// The symbol for this operation in a stream.
         /// </summary>
         public const string Symbol = "K";
-        
+
         /// <inheritdoc />
         public string Operator => Symbol;
 

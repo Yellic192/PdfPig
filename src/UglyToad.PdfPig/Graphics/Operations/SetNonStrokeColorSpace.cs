@@ -7,7 +7,7 @@
 
     /// <inheritdoc />
     /// <summary>
-    /// Set the current color space to use for nonstroking operations. 
+    /// Set the current color space to use for nonstroking operations.
     /// </summary>
     public class SetNonStrokeColorSpace : IGraphicsStateOperation
     {

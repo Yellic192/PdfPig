@@ -710,19 +710,19 @@
         {
             switch (shading.ShadingType)
             {
-                case 2: // 2 Axial shading
+                case ShadingTypes.Axial:
                     RenderAxialShading(shading);
                     break;
 
-                case 3: // 3 Radial shading
+                case ShadingTypes.Radial:
                     RenderRadialShading(shading);
                     break;
 
-                case 1: // 1 Function-based shading
-                case 4: // 4 Free-form Gouraud-shaded triangle mesh
-                case 5: // 5 Lattice-form Gouraud-shaded triangle mesh
-                case 6: // 6 Coons patch mesh
-                case 7: // 7 Tensor-product patch mesh
+                case ShadingTypes.FunctionBased:
+                case ShadingTypes.FreeFormGouraud:
+                case ShadingTypes.LatticeFormGouraud:
+                case ShadingTypes.CoonsPatch:
+                case ShadingTypes.TensorProductPatch:
                 default:
                     RenderUnsupportedShading(shading);
                     break;
@@ -866,7 +866,7 @@
 
         private void RenderAxialShading(Shading shading)
         {
-            if (shading.ShadingType != 2)
+            if (shading.ShadingType != ShadingTypes.Axial)
             {
                 throw new ArgumentException(nameof(shading));
             }

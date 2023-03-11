@@ -25,18 +25,14 @@
                 shadingDictionary = fd;
             }
 
-            if (!shadingDictionary.TryGet<NumericToken>(NameToken.ShadingType, scanner, out var shadingTypeToken))
+            ShadingTypes shadingType = 0;
+            if (shadingDictionary.TryGet<NumericToken>(NameToken.ShadingType, scanner, out var shadingTypeToken))
+            {
+                shadingType = (ShadingTypes)shadingTypeToken.Int;
+            }
+            else
             {
                 throw new ArgumentException("ShadingType is required.");
-                /*
-                    1 Function-based shading
-                    2 Axial shading
-                    3 Radial shading
-                    4 Free-form Gouraud-shaded triangle mesh
-                    5 Lattice-form Gouraud-shaded triangle mesh
-                    6 Coons patch mesh
-                    7 Tensor-product patch mesh
-                 */
             }
 
             ColorSpaceDetails colorSpaceDetails = null;
@@ -82,6 +78,11 @@
                 // 8.7.4.5.6 Type 5 Shadings (Lattice-Form Gouraud-Shaded Triangle Meshes) - Optional
                 // 8.7.4.5.7 Type 6 Shadings (Coons Patch Meshes) - Optional
                 // 8.7.4.5.8 Type 7 Shadings (Tensor-Product Patch Meshes) - N/A
+
+                if (shadingType == ShadingTypes.FunctionBased || shadingType == ShadingTypes.Axial || shadingType == ShadingTypes.Radial)
+                {
+                    throw new ArgumentNullException($"{NameToken.Function} is required for shading type '{shadingType}'.");
+                }
             }
 
             if (!shadingDictionary.TryGet<ArrayToken>(NameToken.Background, scanner, out var backgroundToken))
@@ -94,7 +95,6 @@
                 // TODO - check if array (sais it's 'rectangle')
                 // Optional
             }
-
 
             if (!shadingDictionary.TryGet<BooleanToken>(NameToken.AntiAlias, scanner, out var antiAliasToken))
             {
@@ -120,7 +120,7 @@
                 extendToken = new ArrayToken(new IToken[] { BooleanToken.False, BooleanToken.False });
             }
 
-            return new Shading(shadingTypeToken.Int, antiAliasToken.Data,
+            return new Shading(shadingType, antiAliasToken.Data,
                 shadingDictionary, colorSpaceDetails, function, coordsToken, domainToken,
                 extendToken, bboxToken?.ToRectangle(scanner), backgroundToken);
         }

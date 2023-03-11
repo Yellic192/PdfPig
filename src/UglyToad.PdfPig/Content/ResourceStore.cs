@@ -159,8 +159,8 @@
 
                         switch (patternType)
                         {
-                            case 1: // Tilling
-                                break;
+                            case 1: // Tiling
+                                throw new NotImplementedException("Tiling style pattern");
 
                             case 2: // Shading
                                 Shading patternShading = null;
@@ -347,14 +347,12 @@
                 throw new PdfDocumentFormatException($"The requested font reference token {fontReferenceToken} wasn't a font.");
             }
 
-            var font = fontFactory.Get(fontDictionaryToken);
-
-            return font;
+            return fontFactory.Get(fontDictionaryToken);
         }
 
         public bool TryGetNamedColorSpace(NameToken name, out ResourceColorSpace namedToken)
         {
-            namedToken = default(ResourceColorSpace);
+            namedToken = default;
 
             if (name == null)
             {
@@ -374,10 +372,7 @@
         public StreamToken GetXObject(NameToken name)
         {
             var reference = currentResourceState[name];
-
-            var stream = DirectObjectFinder.Get<StreamToken>(new IndirectReferenceToken(reference), scanner);
-
-            return stream;
+            return DirectObjectFinder.Get<StreamToken>(new IndirectReferenceToken(reference), scanner);
         }
 
         public DictionaryToken GetExtendedGraphicsStateDictionary(NameToken name)

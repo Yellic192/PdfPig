@@ -38,6 +38,7 @@
                 var name = NameToken.Create(pair.Key);
                 switch (name)
                 {
+                    // TODO - improve that,this is bad code
                     case "Bounds":
                     case "Encode":
                     case "C0":
