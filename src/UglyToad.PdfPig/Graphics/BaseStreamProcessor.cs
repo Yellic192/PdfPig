@@ -576,8 +576,7 @@
                 // Blending Color Space and Blend Mode”).
                 SetBlendModeFromToken(bmNameToken);
             }
-
-            if (state.TryGet(NameToken.Bm, pdfScanner, out ArrayToken bmArrayToken))
+            else if (state.TryGet(NameToken.Bm, pdfScanner, out ArrayToken bmArrayToken))
             {
                 // Page 223
                 // (Optional; PDF 1.4) The current blend mode to be used in the transparent
@@ -663,76 +662,82 @@
 
         private void SetBlendModeFromToken(NameToken bmNameToken)
         {
+            var currentGraphicsState = GetCurrentState();
+
             // Standard separable blend modes -  1.7 - Page 520
-            if (bmNameToken.Data == NameToken.Normal)
+            if (bmNameToken == NameToken.Normal)
             {
-                // TODO
+                currentGraphicsState.BlendMode = BlendMode.Normal;
             }
-            else if (bmNameToken.Data == NameToken.Multiply)
+            else if (bmNameToken == NameToken.Multiply)
             {
-                // TODO
+                currentGraphicsState.BlendMode = BlendMode.Multiply;
             }
-            else if (bmNameToken.Data == NameToken.Screen)
+            else if (bmNameToken == NameToken.Screen)
             {
-                // TODO
+                currentGraphicsState.BlendMode = BlendMode.Screen;
             }
-            else if (bmNameToken.Data == NameToken.Overlay)
+            else if (bmNameToken == NameToken.Overlay)
             {
-                // TODO
+                currentGraphicsState.BlendMode = BlendMode.Overlay;
             }
-            else if (bmNameToken.Data == NameToken.Darken)
+            else if (bmNameToken == NameToken.Darken)
             {
-                // TODO
+                currentGraphicsState.BlendMode = BlendMode.Darken;
             }
-            else if (bmNameToken.Data == NameToken.Lighten)
+            else if (bmNameToken == NameToken.Lighten)
             {
-                // TODO
+                currentGraphicsState.BlendMode = BlendMode.Lighten;
             }
-            else if (bmNameToken.Data == NameToken.ColorDodge)
+            else if (bmNameToken == NameToken.ColorDodge)
             {
-                // TODO
+                currentGraphicsState.BlendMode = BlendMode.ColorDodge;
             }
-            else if (bmNameToken.Data == NameToken.ColorBurn)
+            else if (bmNameToken == NameToken.ColorBurn)
             {
-                // TODO
+                currentGraphicsState.BlendMode = BlendMode.ColorBurn;
             }
-            else if (bmNameToken.Data == NameToken.HardLight)
+            else if (bmNameToken == NameToken.HardLight)
             {
-                // TODO
+                currentGraphicsState.BlendMode = BlendMode.HardLight;
             }
-            else if (bmNameToken.Data == NameToken.SoftLight)
+            else if (bmNameToken == NameToken.SoftLight)
             {
-                // TODO
+                currentGraphicsState.BlendMode = BlendMode.SoftLight;
             }
-            else if (bmNameToken.Data == NameToken.Difference)
+            else if (bmNameToken == NameToken.Difference)
             {
-                // TODO
+                currentGraphicsState.BlendMode = BlendMode.Difference;
             }
-            else if (bmNameToken.Data == NameToken.Exclusion)
+            else if (bmNameToken == NameToken.Exclusion)
             {
-                // TODO
+                currentGraphicsState.BlendMode = BlendMode.Exclusion;
             }
 
             // Standard nonseparable blend modes - Page 524
-            if (bmNameToken.Data == NameToken.Normal)
+            //if (bmNameToken.Data == NameToken.Normal)
+            //{
+            //    // TODO
+            //}
+            else if (bmNameToken == "Hue")
             {
-                // TODO
+                currentGraphicsState.BlendMode = BlendMode.Hue;
             }
-            else if (bmNameToken.Data == "Hue")
+            else if (bmNameToken == "Saturation")
             {
-                // TODO
+                currentGraphicsState.BlendMode = BlendMode.Saturation;
             }
-            else if (bmNameToken.Data == "Saturation")
+            else if (bmNameToken == "Color")
             {
-                // TODO
+                currentGraphicsState.BlendMode = BlendMode.Color;
             }
-            else if (bmNameToken.Data == "Color")
+            else if (bmNameToken == "Luminosity")
             {
-                // TODO
+                currentGraphicsState.BlendMode = BlendMode.Luminosity;
             }
-            else if (bmNameToken.Data == "Luminosity")
+            else
             {
-                // TODO
+                throw new NotImplementedException($"Blend mode '{bmNameToken.Data}'.");
             }
         }
 

@@ -59,6 +59,11 @@ namespace UglyToad.PdfPig.Graphics
         public RenderingIntent RenderingIntent { get; set; } = RenderingIntent.RelativeColorimetric;
 
         /// <summary>
+        /// TODO
+        /// </summary>
+        public BlendMode BlendMode { get; set; } = BlendMode.Normal;
+
+        /// <summary>
         /// Should a correction for rasterization effects be applied?
         /// </summary>
         public bool StrokeAdjustment { get; set; } = false;

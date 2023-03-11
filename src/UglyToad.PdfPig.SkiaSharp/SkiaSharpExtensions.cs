@@ -169,5 +169,65 @@
         {
             return currentGraphicsState.CurrentStrokingColor.ToSKColor(currentGraphicsState.AlphaConstantStroking);
         }
+
+        public static SKBlendMode ToSKBlendMode(this BlendMode blendMode)
+        {
+            switch (blendMode)
+            {
+                // Standard separable blend modes
+                case BlendMode.Normal:
+                case BlendMode.Compatible:
+                    return SKBlendMode.Src; // TODO - Check if correct
+
+                case BlendMode.Multiply:
+                    return SKBlendMode.Multiply;
+
+                case BlendMode.Screen:
+                    return SKBlendMode.Screen;
+
+                case BlendMode.Overlay:
+                    return SKBlendMode.Overlay;
+
+                case BlendMode.Darken:
+                    return SKBlendMode.Darken;
+
+                case BlendMode.Lighten:
+                    return SKBlendMode.Lighten;
+
+                case BlendMode.ColorDodge:
+                    return SKBlendMode.ColorDodge;
+
+                case BlendMode.ColorBurn:
+                    return SKBlendMode.ColorBurn;
+
+                case BlendMode.HardLight:
+                    return SKBlendMode.HardLight;
+
+                case BlendMode.SoftLight:
+                    return SKBlendMode.SoftLight;
+
+                case BlendMode.Difference:
+                    return SKBlendMode.Difference;
+
+                case BlendMode.Exclusion:
+                    return SKBlendMode.Exclusion;
+
+                // Standard nonseparable blend modes
+                case BlendMode.Hue:
+                    return SKBlendMode.Hue;
+
+                case BlendMode.Saturation:
+                    return SKBlendMode.Saturation;
+
+                case BlendMode.Color:
+                    return SKBlendMode.Color;
+
+                case BlendMode.Luminosity:
+                    return SKBlendMode.Luminosity;
+
+                default:
+                    throw new NotImplementedException($"Cannot convert blend mode '{blendMode}' to SKBlendMode.");
+            }
+        }
     }
 }
