@@ -4,7 +4,7 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
-    using UglyToad.PdfPig.Core;
+    using UglyToad.PdfPig;
     using UglyToad.PdfPig.Tokens;
 
     /// <summary>

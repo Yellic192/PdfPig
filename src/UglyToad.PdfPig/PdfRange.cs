@@ -1,4 +1,4 @@
-﻿namespace UglyToad.PdfPig.Core
+﻿namespace UglyToad.PdfPig
 {
     using System.Collections.Generic;
     using System.Linq;

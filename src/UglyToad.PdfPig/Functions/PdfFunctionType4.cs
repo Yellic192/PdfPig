@@ -2,6 +2,7 @@
 {
     using System;
     using System.Linq;
+    using UglyToad.PdfPig;
     using UglyToad.PdfPig.Core;
     using UglyToad.PdfPig.Functions.Type4;
     using UglyToad.PdfPig.Tokens;
