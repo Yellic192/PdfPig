@@ -137,7 +137,9 @@
                 foreach (var namePatternPair in patternDictionary.Data)
                 {
                     var name = NameToken.Create(namePatternPair.Key);
+                    patternsProperties[name] = PatternParser.Create(namePatternPair.Value, scanner, this, filterProvider);
 
+                    /*
                     if (DirectObjectFinder.TryGet(namePatternPair.Value, scanner, out DictionaryToken patternArray))
                     {
                         int patternType = (patternArray.Data[NameToken.PatternType] as NumericToken).Int;
@@ -184,6 +186,7 @@
                     {
                         throw new PdfDocumentFormatException($"Invalid Pattern token encountered in page resource dictionary: {namePatternPair.Value}.");
                     }
+                    */
                 }
             }
 
