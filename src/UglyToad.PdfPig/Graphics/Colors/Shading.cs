@@ -1,13 +1,16 @@
 ﻿namespace UglyToad.PdfPig.Graphics.Colors
 {
+    using System;
     using UglyToad.PdfPig.Core;
     using UglyToad.PdfPig.Functions;
     using UglyToad.PdfPig.Tokens;
 
+    // TODO - implement : IEquatable<PatternColor> and override Equals
+
     /// <summary>
     /// TODO
     /// </summary>
-    public class Shading
+    public class Shading // : IEquatable<PatternColor>
     {
         /// <summary>
         /// TODO

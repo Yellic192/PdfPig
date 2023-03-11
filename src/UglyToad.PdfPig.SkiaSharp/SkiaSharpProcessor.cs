@@ -505,9 +505,13 @@
 
         private void PaintStrokePath(CurrentGraphicsState currentGraphicsState)
         {
-            if (currentGraphicsState.ColorSpaceContext.CurrentStrokingColorSpaceDetails.Type == ColorSpace.Pattern)
+            if (currentGraphicsState.CurrentStrokingColor?.ColorSpace == ColorSpace.Pattern)
             {
-                Pattern pattern = currentGraphicsState.CurrentStrokingPattern;
+                if (!(currentGraphicsState.CurrentStrokingColor is PatternColor pattern))
+                {
+                    throw new ArgumentNullException("TODO");
+                }
+
                 switch (pattern.PatternType)
                 {
                     case 1:
@@ -561,9 +565,13 @@
         {
             CurrentPath.FillType = fillingRule.ToSKPathFillType();
 
-            if (currentGraphicsState.ColorSpaceContext.CurrentNonStrokingColorSpaceDetails.Type == ColorSpace.Pattern)
+            if (currentGraphicsState.CurrentNonStrokingColor?.ColorSpace == ColorSpace.Pattern)
             {
-                Pattern pattern = currentGraphicsState.CurrentNonStrokingPattern;
+                if (!(currentGraphicsState.CurrentNonStrokingColor is PatternColor pattern))
+                {
+                    throw new ArgumentNullException("TODO");
+                }
+
                 switch (pattern.PatternType)
                 {
                     case 1:
@@ -926,7 +934,7 @@
             }
         }
 
-        private void RenderShadingPattern(Pattern pattern, bool isStroke)
+        private void RenderShadingPattern(PatternColor pattern, bool isStroke)
         {
             if (pattern.PatternType != 2)
             {

@@ -7,7 +7,7 @@
 
     internal interface IResourceStore
     {
-        IReadOnlyDictionary<NameToken, Pattern> GetPatterns();
+        IReadOnlyDictionary<NameToken, PatternColor> GetPatterns();
 
         void LoadResourceDictionary(DictionaryToken resourceDictionary, InternalParsingOptions parsingOptions);
 

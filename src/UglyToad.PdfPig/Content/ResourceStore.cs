@@ -33,7 +33,7 @@
 
         private readonly Dictionary<NameToken, Shading> shadingsProperties = new Dictionary<NameToken, Shading>();
 
-        internal readonly Dictionary<NameToken, Pattern> patternsProperties = new Dictionary<NameToken, Pattern>();
+        internal readonly Dictionary<NameToken, PatternColor> patternsProperties = new Dictionary<NameToken, PatternColor>();
 
         private (NameToken name, IFont font) lastLoadedFont;
 
@@ -398,7 +398,7 @@
             return shadingsProperties[name];
         }
 
-        public IReadOnlyDictionary<NameToken, Pattern> GetPatterns()
+        public IReadOnlyDictionary<NameToken, PatternColor> GetPatterns()
         {
             return patternsProperties;
         }

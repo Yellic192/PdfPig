@@ -39,8 +39,8 @@
         /// TODO
         /// </summary>
         /// <param name="operands"></param>
-        /// <param name="PatternName"></param>
-        void SetStrokingColor(IReadOnlyList<decimal> operands, NameToken PatternName = null);
+        /// <param name="patternName"></param>
+        void SetStrokingColor(IReadOnlyList<decimal> operands, NameToken patternName = null);
 
         /// <summary>
         /// Set the stroking color space to DeviceGray and set the gray level to use for stroking operations.

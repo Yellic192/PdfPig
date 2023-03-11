@@ -122,16 +122,6 @@ namespace UglyToad.PdfPig.Graphics
         /// </summary>
         public IColor CurrentNonStrokingColor { get; set; }
 
-        /// <summary>
-        /// TODO
-        /// </summary>
-        public Pattern CurrentNonStrokingPattern { get; set; }
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        public Pattern CurrentStrokingPattern { get; set; }
-
         #endregion
 
         /// <inheritdoc />

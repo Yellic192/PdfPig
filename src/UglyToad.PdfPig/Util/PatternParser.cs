@@ -15,7 +15,7 @@
         /// <summary>
         /// TODO
         /// </summary>
-        public static Pattern Create(IToken pattern, IPdfTokenScanner scanner, IResourceStore resourceStore, ILookupFilterProvider filterProvider)
+        public static PatternColor Create(IToken pattern, IPdfTokenScanner scanner, IResourceStore resourceStore, ILookupFilterProvider filterProvider)
         {
             if (DirectObjectFinder.TryGet(pattern, scanner, out DictionaryToken patternArray))
             {
@@ -54,7 +54,7 @@
                         {
                             throw new ArgumentException();
                         }
-                        return new Pattern(patternType, patternMatrix, patternShading, patternExtGState);
+                        return new PatternColor(patternType, patternMatrix, patternShading, patternExtGState);
 
                     default:
                         throw new PdfDocumentFormatException($"Invalid Pattern type encountered in page resource dictionary: {patternType}.");

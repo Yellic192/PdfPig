@@ -52,8 +52,7 @@
         {
             if (patternName != null && CurrentStrokingColorSpaceDetails is PatternColorSpaceDetails patternColorSpaceDetails)
             {
-                currentStateFunc().CurrentStrokingPattern = patternColorSpaceDetails.GetPattern(patternName);
-                //currentStateFunc().CurrentStrokingColor = null;
+                currentStateFunc().CurrentStrokingColor = patternColorSpaceDetails.GetPattern(patternName);
             }
             else
             {
@@ -117,8 +116,7 @@
         {
             if (patternName != null && CurrentNonStrokingColorSpaceDetails is PatternColorSpaceDetails patternColorSpaceDetails)
             {
-                currentStateFunc().CurrentNonStrokingPattern = patternColorSpaceDetails.GetPattern(patternName);
-                //currentStateFunc().CurrentNonStrokingColor = null;
+                currentStateFunc().CurrentNonStrokingColor = patternColorSpaceDetails.GetPattern(patternName);
             }
             else
             {

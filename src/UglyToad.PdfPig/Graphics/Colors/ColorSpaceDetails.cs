@@ -936,12 +936,12 @@
         /// <summary>
         /// TODO
         /// </summary>
-        public IReadOnlyDictionary<NameToken, Pattern> Patterns { get; }
+        public IReadOnlyDictionary<NameToken, PatternColor> Patterns { get; }
 
         /// <summary>
         /// TODO
         /// </summary>
-        public PatternColorSpaceDetails(IReadOnlyDictionary<NameToken, Pattern> patterns) : base(ColorSpace.Pattern)
+        public PatternColorSpaceDetails(IReadOnlyDictionary<NameToken, PatternColor> patterns) : base(ColorSpace.Pattern)
         {
             if (patterns == null)
             {
@@ -955,7 +955,7 @@
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public Pattern GetPattern(NameToken name)
+        public PatternColor GetPattern(NameToken name)
         {
             return Patterns[name];
         }
