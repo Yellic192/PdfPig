@@ -170,14 +170,21 @@
             return currentGraphicsState.CurrentStrokingColor.ToSKColor(currentGraphicsState.AlphaConstantStroking);
         }
 
+        private static bool doBlending = false;
+
         public static SKBlendMode ToSKBlendMode(this BlendMode blendMode)
         {
+            if (!doBlending)
+            {
+                return SKBlendMode.SrcOver;
+            }
+
             switch (blendMode)
             {
                 // Standard separable blend modes
                 case BlendMode.Normal:
                 case BlendMode.Compatible:
-                    return SKBlendMode.Src; // TODO - Check if correct
+                    return SKBlendMode.SrcOver; // TODO - Check if correct
 
                 case BlendMode.Multiply:
                     return SKBlendMode.Multiply;

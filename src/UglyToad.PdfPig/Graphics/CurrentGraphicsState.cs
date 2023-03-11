@@ -16,7 +16,7 @@ namespace UglyToad.PdfPig.Graphics
         /// <summary>
         /// The active colorspaces for this content stream.
         /// </summary>
-        public IColorSpaceContext ColorSpaceContext { get; set; } 
+        public IColorSpaceContext ColorSpaceContext { get; set; }
 
         /// <summary>
         /// The current clipping path.
@@ -136,6 +136,7 @@ namespace UglyToad.PdfPig.Graphics
             {
                 FontState = FontState?.DeepClone(),
                 RenderingIntent = RenderingIntent,
+                BlendMode = BlendMode,
                 LineDashPattern = LineDashPattern,
                 CurrentTransformationMatrix = CurrentTransformationMatrix,
                 LineWidth = LineWidth,

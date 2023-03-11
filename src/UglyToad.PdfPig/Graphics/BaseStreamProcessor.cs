@@ -463,7 +463,7 @@
 
             var startState = GetCurrentState();
 
-            if (formStream.StreamDictionary.TryGet<DictionaryToken>(NameToken.Group, pdfScanner, out var formGroupToken))
+            if (formStream.StreamDictionary.TryGet(NameToken.Group, pdfScanner, out DictionaryToken formGroupToken))
             {
                 // Transparency Group XObjects
                 if (!formGroupToken.TryGet<NameToken>(NameToken.S, pdfScanner, out var sToken) || sToken != NameToken.Transparency)
@@ -487,14 +487,14 @@
                  * A conforming reader shall implicitly reset this parameter to its initial value at the beginning of execution of a
                  * transparency group XObject (see 11.6.6, "Transparency Group XObjects"). Initial value: 1.0.
                  */
-                startState.AlphaConstantNonStroking = 1m;
-                startState.AlphaConstantStroking = 1m;
+                startState.AlphaConstantNonStroking = 1.0m;
+                startState.AlphaConstantStroking = 1.0m;
 
                 if (formGroupToken.TryGet<NameToken>(NameToken.Cs, pdfScanner, out NameToken csNameToken))
                 {
                     startState.ColorSpaceContext.CurrentNonStrokingColorSpaceDetails = resourceStore.GetColorSpaceDetails(csNameToken, null);
                 }
-                else if (formGroupToken.TryGet<ArrayToken>(NameToken.Cs, pdfScanner, out ArrayToken csArrayToken)
+                else if (formGroupToken.TryGet(NameToken.Cs, pdfScanner, out ArrayToken csArrayToken)
                     && csArrayToken.Length > 0)
                 {
                     var first = csArrayToken.Data[0];
@@ -509,7 +509,7 @@
                 }
 
                 bool isolated = false;
-                if (formGroupToken.TryGet<BooleanToken>(NameToken.I, pdfScanner, out var isolatedToken))
+                if (formGroupToken.TryGet(NameToken.I, pdfScanner, out BooleanToken isolatedToken))
                 {
                     /*
                      * Optional) A flag specifying whether the transparency group is isolated (see “Isolated Groups”).
@@ -521,7 +521,7 @@
                 }
 
                 bool knockout = false;
-                if (formGroupToken.TryGet<BooleanToken>(NameToken.K, pdfScanner, out var knockoutToken))
+                if (formGroupToken.TryGet(NameToken.K, pdfScanner, out BooleanToken knockoutToken))
                 {
                     /*
                      * (Optional) A flag specifying whether the transparency group is a knockout group (see “Knockout Groups”).
@@ -535,7 +535,7 @@
             }
 
             var formMatrix = TransformationMatrix.Identity;
-            if (formStream.StreamDictionary.TryGet<ArrayToken>(NameToken.Matrix, pdfScanner, out var formMatrixToken))
+            if (formStream.StreamDictionary.TryGet(NameToken.Matrix, pdfScanner, out ArrayToken formMatrixToken))
             {
                 formMatrix = TransformationMatrix.FromArray(formMatrixToken.Data.OfType<NumericToken>().Select(x => x.Double).ToArray());
             }

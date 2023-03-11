@@ -47,6 +47,10 @@
                 {
                     colorSpaceDetails = resourceStore.GetColorSpaceDetails(firstColorSpaceName, shadingDictionary);
                 }
+                else
+                {
+                    throw new ArgumentException("ColorSpace is required.");
+                }
             }
             else
             {

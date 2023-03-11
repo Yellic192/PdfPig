@@ -60,6 +60,7 @@
 
         public override MemoryStream Process(int pageNumberCurrent, IReadOnlyList<IGraphicsStateOperation> operations)
         {
+            // https://github.com/apache/pdfbox/blob/94b3d15fd24b9840abccece261173593625ff85c/pdfbox/src/main/java/org/apache/pdfbox/rendering/PDFRenderer.java#L274
             var ms = new MemoryStream();
 
             CloneAllStates();
@@ -67,10 +68,10 @@
             using (var bitmap = new SKBitmap(_width, _height))
             using (_canvas = new SKCanvas(bitmap))
             {
-                using (var paint = new SKPaint() { Style = SKPaintStyle.Fill, Color = SKColors.White })
-                {
-                    _canvas.DrawRect(0, 0, _width, _height, paint);
-                }
+                //using (var paint = new SKPaint() { Style = SKPaintStyle.Fill, Color = SKColors.White })
+                //{
+                //    _canvas.DrawRect(0, 0, _width, _height, paint); // Issue with Blend mode
+                //}
 
                 DrawAnnotations(true);
 
@@ -78,10 +79,28 @@
 
                 DrawAnnotations(false);
 
-                using (SKData d = bitmap.Encode(SKEncodedImageFormat.Png, 100))
+                _canvas.Flush();
+
+                using (var bitmapBg = new SKBitmap(_width, _height))
+                using (var _canvasBg = new SKCanvas(bitmapBg))
                 {
-                    d.SaveTo(ms);
+                    using (var paint = new SKPaint() { Style = SKPaintStyle.Fill, Color = SKColors.White })
+                    {
+                        _canvasBg.DrawRect(0, 0, _width, _height, paint);
+                    }
+
+                    _canvasBg.DrawBitmap(bitmap, new SKPoint(0, 0));
+
+                    using (SKData d = bitmapBg.Encode(SKEncodedImageFormat.Png, 100))
+                    {
+                        d.SaveTo(ms);
+                    }
                 }
+
+                //using (SKData d = bitmap.Encode(SKEncodedImageFormat.Png, 100))
+                //{
+                //    d.SaveTo(ms);
+                //}
             }
             ms.Position = 0;
             return ms;
@@ -276,7 +295,7 @@
                 using (SKPaint fillBrush = new SKPaint()
                 {
                     Style = SKPaintStyle.Fill,
-                    //BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(), // TODO - check if correct
+                    BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(), // TODO - check if correct
                     Color = SKColors.Black
                 })
                 {
@@ -377,7 +396,7 @@
             var fontPaint = new SKPaint(drawFont.ToFont((float)(pointSize * _mult)))
             {
                 Style = SKPaintStyle.Fill,
-                //BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(), // TODO - check if correct
+                BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(), // TODO - check if correct
                 Color = SKColors.Black
             };
 
@@ -541,7 +560,7 @@
                     paint.StrokeWidth = lineWidth;
                     paint.StrokeJoin = currentGraphicsState.JoinStyle.ToSKStrokeJoin();
                     paint.StrokeCap = currentGraphicsState.CapStyle.ToSKStrokeCap();
-                    //paint.BlendMode = currentGraphicsState.BlendMode.ToSKBlendMode();
+                    paint.BlendMode = currentGraphicsState.BlendMode.ToSKBlendMode();
 
                     var pathEffect = currentGraphicsState.LineDashPattern.ToSKPathEffect(_mult);
                     if (pathEffect != null)
@@ -597,7 +616,7 @@
                 {
                     paint.Color = currentGraphicsState.GetCurrentNonStrokingColorSKColor();
                     paint.Style = SKPaintStyle.Fill;
-                    //paint.BlendMode = currentGraphicsState.BlendMode.ToSKBlendMode();
+                    paint.BlendMode = currentGraphicsState.BlendMode.ToSKBlendMode();
                     _canvas.DrawPath(CurrentPath, paint);
                 }
             }
@@ -674,35 +693,43 @@
 
                 if (bytes?.Length > 0)
                 {
-                    //using (Stream s = new FileStream($"{DateTime.UtcNow.Ticks}_skia-sharp.png", FileMode.Create))
-                    //using (var bitmap = SKBitmap.Decode(bytes, skImageInfo))
-                    //{
-                    //    SKData d = SKImage.FromBitmap(bitmap).Encode(SKEncodedImageFormat.Png, 100);
-                    //    d.SaveTo(s);
-                    //}
-
                     try
                     {
+                        using (SKPaint paint = new SKPaint() { BlendMode = GetCurrentState().BlendMode.ToSKBlendMode() })
                         using (var bitmap = SKBitmap.Decode(bytes))
                         {
-                            _canvas.DrawBitmap(bitmap, destRect);
+                            //if (image.IsImageMask)
+                            //{
+                            //    paint.MaskFilter = SKMaskFilter.CreateTable(bytes);
+                            //}
+                            _canvas.DrawBitmap(bitmap, destRect, paint);
                         }
                     }
                     catch (Exception)
                     {
                         // Try with raw bytes
+                        using (SKPaint paint = new SKPaint() { BlendMode = GetCurrentState().BlendMode.ToSKBlendMode() })
                         using (var bitmap = SKBitmap.Decode(image.RawBytes.ToArray()))
                         {
-                            _canvas.DrawBitmap(bitmap, destRect);
+                            //if (image.IsImageMask)
+                            //{
+                            //    paint.MaskFilter = SKMaskFilter.CreateTable(bytes);
+                            //}
+                            _canvas.DrawBitmap(bitmap, destRect, paint);
                         }
                     }
                 }
                 else
                 {
                     bytes = image.RawBytes.ToArray();
+                    using (SKPaint paint = new SKPaint() { BlendMode = GetCurrentState().BlendMode.ToSKBlendMode() })
                     using (var bitmap = SKBitmap.Decode(bytes))
                     {
-                        _canvas.DrawBitmap(bitmap, destRect);
+                        //if (image.IsImageMask)
+                        //{
+                        //    paint.MaskFilter = SKMaskFilter.CreateTable(bytes);
+                        //}
+                        _canvas.DrawBitmap(bitmap, destRect, paint);
                     }
                 }
             }
@@ -759,7 +786,7 @@
             float ys1 = (float)(_height - (y1 * _mult));
             using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias })
             {
-                //paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
+                paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
 
                 paint.Shader = SKShader.CreateLinearGradient(
                     new SKPoint(xs0, ys0),
@@ -839,7 +866,7 @@
             {
                 using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias })
                 {
-                    //paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
+                    paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
 
                     paint.Shader = SKShader.CreateRadialGradient(
                         new SKPoint((float)xs1, (float)ys1),
@@ -856,7 +883,7 @@
             {
                 using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias })
                 {
-                    //paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
+                    paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
 
                     paint.Shader = SKShader.CreateRadialGradient(
                         new SKPoint((float)xs0, (float)ys0),
@@ -873,7 +900,7 @@
             {
                 using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias })
                 {
-                    //paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
+                    paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
 
                     paint.Shader = SKShader.CreateTwoPointConicalGradient(
                         new SKPoint((float)xs0, (float)ys0),
@@ -941,7 +968,7 @@
 
             using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias })
             {
-                //paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
+                paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); // TODO - check if correct
 
                 paint.Shader = SKShader.CreateLinearGradient(
                     new SKPoint(xs0, ys0),
@@ -1007,9 +1034,9 @@
                 colors.Add(c.ToSKColor(isStroke ? GetCurrentState().AlphaConstantStroking : GetCurrentState().AlphaConstantNonStroking));
             }
 
-            using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias,  })
+            using (var paint = new SKPaint() { IsAntialias = shading.AntiAlias })
             {
-                //paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode(); 
+                paint.BlendMode = GetCurrentState().BlendMode.ToSKBlendMode();
 
                 paint.Shader = SKShader.CreateLinearGradient(
                     new SKPoint(xs0, ys0),
