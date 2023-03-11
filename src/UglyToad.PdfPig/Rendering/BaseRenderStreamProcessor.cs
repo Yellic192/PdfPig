@@ -40,7 +40,8 @@
         /// TODO
         /// </summary>
         /// <param name="page"></param>
-        public BaseRenderStreamProcessor(Page page) : this(page.CropBox.Bounds, page.Content.resourceStore, page.Content.userSpaceUnit,
+        public BaseRenderStreamProcessor(Page page) : this(page.Content.resourceStore, page.Content.userSpaceUnit,
+            page.CropBox.Bounds, page.MediaBox.Bounds,
             page.Rotation, page.pdfScanner, page.Content.pageContentParser, page.Content.filterProvider,
             new PdfVector(page.MediaBox.Bounds.Width, page.MediaBox.Bounds.Height), page.Content.internalParsingOptions)
         {
@@ -48,10 +49,17 @@
             pageNumber = page.Number;
         }
 
-        internal BaseRenderStreamProcessor(PdfRectangle cropBox, IResourceStore resourceStore, UserSpaceUnit userSpaceUnit, PageRotationDegrees rotation,
-                                  IPdfTokenScanner pdfScanner, IPageContentParser pageContentParser, ILookupFilterProvider filterProvider, PdfVector pageSize,
-                                  InternalParsingOptions parsingOptions)
-          : base(cropBox, resourceStore, userSpaceUnit, rotation, pdfScanner, pageContentParser, filterProvider, pageSize, parsingOptions)
+        internal BaseRenderStreamProcessor(IResourceStore resourceStore,
+            UserSpaceUnit userSpaceUnit,
+            PdfRectangle cropBox,
+            PdfRectangle mediaBox,
+            PageRotationDegrees rotation,
+            IPdfTokenScanner pdfScanner,
+            IPageContentParser pageContentParser,
+            ILookupFilterProvider filterProvider,
+            PdfVector pageSize,
+            InternalParsingOptions parsingOptions)
+          : base(resourceStore, userSpaceUnit, cropBox, mediaBox, rotation, pdfScanner, pageContentParser, filterProvider, pageSize, parsingOptions)
         { }
 
         /// <summary>

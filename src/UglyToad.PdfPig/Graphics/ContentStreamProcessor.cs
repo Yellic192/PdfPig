@@ -43,10 +43,17 @@
 
         public PdfPath CurrentPath { get; private set; }
 
-        internal ContentStreamProcessor(PdfRectangle cropBox, IResourceStore resourceStore, UserSpaceUnit userSpaceUnit, PageRotationDegrees rotation,
-                                        IPdfTokenScanner pdfScanner, IPageContentParser pageContentParser, ILookupFilterProvider filterProvider, PdfVector pageSize,
-                                        InternalParsingOptions parsingOptions)
-                : base(cropBox, resourceStore, userSpaceUnit, rotation, pdfScanner, pageContentParser, filterProvider, pageSize, parsingOptions)
+        internal ContentStreamProcessor(IResourceStore resourceStore,
+            UserSpaceUnit userSpaceUnit,
+            PdfRectangle cropBox,
+            PdfRectangle mediaBox,
+            PageRotationDegrees rotation,
+            IPdfTokenScanner pdfScanner,
+            IPageContentParser pageContentParser,
+            ILookupFilterProvider filterProvider,
+            PdfVector pageSize,
+            InternalParsingOptions parsingOptions)
+            : base(resourceStore, userSpaceUnit, cropBox, mediaBox, rotation, pdfScanner, pageContentParser, filterProvider, pageSize, parsingOptions)
         { }
 
         /// <summary>

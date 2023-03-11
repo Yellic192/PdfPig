@@ -74,7 +74,7 @@ namespace UglyToad.PdfPig.PdfFonts.Simple
             }
             else
             {
-                Debug.WriteLine($"Warning: Type1Standard14Font with unexpected encoding: '{encoding.EncodingName}' Expected: 'ZapfDingbatsEncoding','SymbolEncoding' or 'StandardEncoding' . Font: '{standardFontMetrics.FontName}'");
+                //Debug.WriteLine($"Warning: Type1Standard14Font with unexpected encoding: '{encoding.EncodingName}' Expected: 'ZapfDingbatsEncoding','SymbolEncoding' or 'StandardEncoding' . Font: '{standardFontMetrics.FontName}'");
                 var listed = GlyphList.AdobeGlyphList.NameToUnicode(name);
 
                 value = listed;

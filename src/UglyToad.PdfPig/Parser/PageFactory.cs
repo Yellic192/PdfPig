@@ -73,18 +73,18 @@
                 stackDepth++;
             }
 
-            // Apply rotation.
-            if (rotation.SwapsAxis)
-            {
-                mediaBox = new MediaBox(new PdfRectangle(mediaBox.Bounds.Bottom,
-                    mediaBox.Bounds.Left,
-                    mediaBox.Bounds.Top,
-                    mediaBox.Bounds.Right));
-                cropBox = new CropBox(new PdfRectangle(cropBox.Bounds.Bottom,
-                    cropBox.Bounds.Left,
-                    cropBox.Bounds.Top,
-                    cropBox.Bounds.Right));
-            }
+            //// Apply rotation.
+            //if (rotation.SwapsAxis)
+            //{
+            //    mediaBox = new MediaBox(new PdfRectangle(mediaBox.Bounds.Bottom,
+            //        mediaBox.Bounds.Left,
+            //        mediaBox.Bounds.Top,
+            //        mediaBox.Bounds.Right));
+            //    cropBox = new CropBox(new PdfRectangle(cropBox.Bounds.Bottom,
+            //        cropBox.Bounds.Left,
+            //        cropBox.Bounds.Top,
+            //        cropBox.Bounds.Right));
+            //}
 
             UserSpaceUnit userSpaceUnit = GetUserSpaceUnits(dictionary);
 
@@ -177,9 +177,10 @@
                 parsingOptions.Logger);
 
             var context = new ContentStreamProcessor(
-                cropBox.Bounds,
                 resourceStore,
                 userSpaceUnit,
+                mediaBox.Bounds,
+                cropBox.Bounds,
                 rotation,
                 pdfScanner,
                 pageContentParser,
@@ -220,7 +221,7 @@
                     return cropBox;
                 }
 
-                cropBox = new CropBox(cropBoxArray.ToIntRectangle(pdfScanner));
+                cropBox = new CropBox(cropBoxArray.ToRectangle(pdfScanner));
             }
             else
             {
@@ -249,7 +250,7 @@
                     return mediaBox;
                 }
 
-                mediaBox = new MediaBox(mediaboxArray.ToIntRectangle(pdfScanner));
+                mediaBox = new MediaBox(mediaboxArray.ToRectangle(pdfScanner));
             }
             else
             {

@@ -11,6 +11,7 @@
     using Tokenization.Scanner;
     using Graphics;
     using System.Linq;
+    using UglyToad.PdfPig.Geometry;
 
     /// <summary>
     /// Contains the content and provides access to methods of a single page in the <see cref="PdfDocument"/>.
@@ -107,10 +108,13 @@
             Content = content;
             textLazy = new Lazy<string>(() => GetText(Content));
 
-            Width = mediaBox.Bounds.Width;
-            Height = mediaBox.Bounds.Height;
+            // Special case where cropbox is outside mediabox: use cropbox instead of intersection
+            var viewBox = mediaBox.Bounds.Intersect(cropBox.Bounds) ?? cropBox.Bounds;
 
-            Size = mediaBox.Bounds.GetPageSize();
+            Width = rotation.SwapsAxis ? viewBox.Height : viewBox.Width;
+            Height = rotation.SwapsAxis ? viewBox.Width : viewBox.Height;
+            Size = viewBox.GetPageSize();
+
             ExperimentalAccess = new Experimental(this, annotationProvider);
             this.annotationProvider = annotationProvider;
             this.pdfScanner = pdfScanner ?? throw new ArgumentNullException(nameof(pdfScanner));
