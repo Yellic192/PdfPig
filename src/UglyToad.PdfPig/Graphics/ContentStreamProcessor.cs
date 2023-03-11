@@ -51,9 +51,8 @@
             IPdfTokenScanner pdfScanner,
             IPageContentParser pageContentParser,
             ILookupFilterProvider filterProvider,
-            PdfVector pageSize,
             InternalParsingOptions parsingOptions)
-            : base(resourceStore, userSpaceUnit, cropBox, mediaBox, rotation, pdfScanner, pageContentParser, filterProvider, pageSize, parsingOptions)
+            : base(resourceStore, userSpaceUnit, cropBox, mediaBox, rotation, pdfScanner, pageContentParser, filterProvider, parsingOptions)
         { }
 
         /// <summary>

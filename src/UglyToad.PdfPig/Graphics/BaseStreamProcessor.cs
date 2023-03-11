@@ -80,7 +80,6 @@
         /// <param name="pdfScanner"></param>
         /// <param name="pageContentParser"></param>
         /// <param name="filterProvider"></param>
-        /// <param name="pageSize"></param>
         /// <param name="parsingOptions"></param>
         /// <exception cref="ArgumentNullException"></exception>
         internal BaseStreamProcessor(IResourceStore resourceStore,
@@ -91,7 +90,6 @@
             IPdfTokenScanner pdfScanner,
             IPageContentParser pageContentParser,
             ILookupFilterProvider filterProvider,
-            PdfVector pageSize,
             InternalParsingOptions parsingOptions)
         {
             this.resourceStore = resourceStore;
@@ -153,16 +151,16 @@
 
             // After rotating around the origin, our points will have negative x/y coordinates.
             // Fix this by translating them by a certain dx/dy after rotation based on the viewbox.
-            double dx, dy;
+            double dx = 0;
+            double dy = 0;
             switch (rotation.Value)
             {
                 case 0:
                     // No need to rotate / translate after rotation, just return the initial
                     // translation matrix.
-                    return t1;
+                    break;
                 case 90:
                     // Move rotated points up by our (unrotated) viewbox width
-                    dx = 0;
                     dy = viewBox.Width;
                     break;
                 case 180:
@@ -173,7 +171,6 @@
                 case 270:
                     // Move rotated points right using the (unrotated) viewbox height
                     dx = viewBox.Height;
-                    dy = 0;
                     break;
                 default:
                     throw new InvalidOperationException($"Invalid value for page rotation: {rotation.Value}.");

@@ -185,7 +185,6 @@
                 pdfScanner,
                 pageContentParser,
                 filterProvider,
-                new PdfVector(mediaBox.Bounds.Width, mediaBox.Bounds.Height),
                 parsingOptions);
 
             return context.Process(pageNumber, operations);

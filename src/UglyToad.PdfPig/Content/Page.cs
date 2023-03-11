@@ -91,8 +91,7 @@
         public Experimental ExperimentalAccess { get; }
 
         internal Page(int number, DictionaryToken dictionary, MediaBox mediaBox, CropBox cropBox, PageRotationDegrees rotation, PageContent content,
-            AnnotationProvider annotationProvider,
-            IPdfTokenScanner pdfScanner)
+            AnnotationProvider annotationProvider, IPdfTokenScanner pdfScanner)
         {
             if (number <= 0)
             {
@@ -111,8 +110,8 @@
             // Special case where cropbox is outside mediabox: use cropbox instead of intersection
             var viewBox = mediaBox.Bounds.Intersect(cropBox.Bounds) ?? cropBox.Bounds;
 
-            Width = rotation.SwapsAxis ? viewBox.Height : viewBox.Width;
-            Height = rotation.SwapsAxis ? viewBox.Width : viewBox.Height;
+            Width = (rotation.SwapsAxis ? viewBox.Height : viewBox.Width);// * content.userSpaceUnit.PointMultiples;
+            Height = (rotation.SwapsAxis ? viewBox.Width : viewBox.Height);// * content.userSpaceUnit.PointMultiples;
             Size = viewBox.GetPageSize();
 
             ExperimentalAccess = new Experimental(this, annotationProvider);

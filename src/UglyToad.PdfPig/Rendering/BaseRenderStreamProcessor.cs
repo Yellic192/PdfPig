@@ -43,7 +43,7 @@
         public BaseRenderStreamProcessor(Page page) : this(page.Content.resourceStore, page.Content.userSpaceUnit,
             page.CropBox.Bounds, page.MediaBox.Bounds,
             page.Rotation, page.pdfScanner, page.Content.pageContentParser, page.Content.filterProvider,
-            new PdfVector(page.MediaBox.Bounds.Width, page.MediaBox.Bounds.Height), page.Content.internalParsingOptions)
+            page.Content.internalParsingOptions)
         {
             dictionary = page.Dictionary;
             pageNumber = page.Number;
@@ -57,9 +57,8 @@
             IPdfTokenScanner pdfScanner,
             IPageContentParser pageContentParser,
             ILookupFilterProvider filterProvider,
-            PdfVector pageSize,
             InternalParsingOptions parsingOptions)
-          : base(resourceStore, userSpaceUnit, cropBox, mediaBox, rotation, pdfScanner, pageContentParser, filterProvider, pageSize, parsingOptions)
+          : base(resourceStore, userSpaceUnit, cropBox, mediaBox, rotation, pdfScanner, pageContentParser, filterProvider, parsingOptions)
         { }
 
         /// <summary>
