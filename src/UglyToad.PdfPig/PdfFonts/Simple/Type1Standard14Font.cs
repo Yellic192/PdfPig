@@ -129,8 +129,7 @@ namespace UglyToad.PdfPig.PdfFonts.Simple
         public bool TryGetPath(int characterCode, out IReadOnlyList<PdfSubpath> path)
         {
             // https://github.com/apache/pdfbox/blob/trunk/pdfbox/src/main/java/org/apache/pdfbox/pdmodel/font/Standard14Fonts.java
-
-            path = new List<PdfSubpath>();
+            path = null;
             return false;
         }
 
