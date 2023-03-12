@@ -756,19 +756,19 @@
         {
             switch (shading.ShadingType)
             {
-                case ShadingTypes.Axial:
+                case ShadingType.Axial:
                     RenderAxialShading(shading);
                     break;
 
-                case ShadingTypes.Radial:
+                case ShadingType.Radial:
                     RenderRadialShading(shading);
                     break;
 
-                case ShadingTypes.FunctionBased:
-                case ShadingTypes.FreeFormGouraud:
-                case ShadingTypes.LatticeFormGouraud:
-                case ShadingTypes.CoonsPatch:
-                case ShadingTypes.TensorProductPatch:
+                case ShadingType.FunctionBased:
+                case ShadingType.FreeFormGouraud:
+                case ShadingType.LatticeFormGouraud:
+                case ShadingType.CoonsPatch:
+                case ShadingType.TensorProductPatch:
                 default:
                     RenderUnsupportedShading(shading);
                     break;
@@ -809,8 +809,8 @@
             // TODO check shadding type
 
             // Not correct
-            var coords = shading.Coords.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
-            var domain = shading.Domain.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
+            var coords = shading.Coords.Select(c => (float)c).ToArray();
+            var domain = shading.Domain.Select(c => (float)c).ToArray();
 
             float r0 = coords[2];
             float r1 = coords[5];
@@ -919,13 +919,13 @@
 
         private void RenderAxialShading(Shading shading)
         {
-            if (shading.ShadingType != ShadingTypes.Axial)
+            if (shading.ShadingType != ShadingType.Axial)
             {
                 throw new ArgumentException(nameof(shading));
             }
 
-            var coords = shading.Coords.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
-            var domain = shading.Domain.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
+            var coords = shading.Coords.Select(c => (float)c).ToArray();
+            var domain = shading.Domain.Select(c => (float)c).ToArray();
 
             var (x0, y0) = CurrentTransformationMatrix.Transform(coords[0], coords[1]);
             var (x1, y1) = CurrentTransformationMatrix.Transform(coords[2], coords[3]);
@@ -993,15 +993,13 @@
 
             }
 
-            var matrix = TransformationMatrix.FromArray(pattern.Matrix.Data.OfType<NumericToken>().Select(n => n.Data).ToArray());
-
             Shading shading = pattern.Shading;
 
-            var coords = shading.Coords.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
-            var domain = shading.Domain.Data.OfType<NumericToken>().Select(c => (float)c.Data).ToArray();
+            var coords = shading.Coords.Select(c => (float)c).ToArray();
+            var domain = shading.Domain.Select(c => (float)c).ToArray();
 
-            var (x0, y0) = matrix.Multiply(CurrentTransformationMatrix).Transform(coords[0], coords[1]);
-            var (x1, y1) = matrix.Multiply(CurrentTransformationMatrix).Transform(coords[2], coords[3]);
+            var (x0, y0) = pattern.Matrix.Multiply(CurrentTransformationMatrix).Transform(coords[0], coords[1]);
+            var (x1, y1) = pattern.Matrix.Multiply(CurrentTransformationMatrix).Transform(coords[2], coords[3]);
 
             float xs0 = (float)(x0 * _mult);
             float ys0 = (float)(_height - (y0 * _mult));

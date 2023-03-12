@@ -476,20 +476,8 @@
                             return UnsupportedColorSpaceDetails.Instance;
                         }
 
-                        PdfFunction tintFunc;
                         var func = colorSpaceArray[3];
-                        if (DirectObjectFinder.TryGet(func, scanner, out DictionaryToken functionDictionary))
-                        {
-                            tintFunc = PdfFunctionParser.Create(functionDictionary, scanner, filterProvider);
-                        }
-                        else if (DirectObjectFinder.TryGet(func, scanner, out StreamToken functionStream))
-                        {
-                            tintFunc = PdfFunctionParser.Create(functionStream, scanner, filterProvider);
-                        }
-                        else
-                        {
-                            return UnsupportedColorSpaceDetails.Instance;
-                        }
+                        PdfFunction tintFunc = PdfFunctionParser.Create(func, scanner, filterProvider);
 
                         return new SeparationColorSpaceDetails(separationNameToken, alternateColorSpaceDetails, tintFunc);
                     }
@@ -549,23 +537,8 @@
                             return UnsupportedColorSpaceDetails.Instance;
                         }
 
-                        Union<DictionaryToken, StreamToken> functionTokensUnion;
-                        PdfFunction tintFunc;
                         var func = colorSpaceArray[3];
-                        if (DirectObjectFinder.TryGet(func, scanner, out DictionaryToken functionDictionary))
-                        {
-                            functionTokensUnion = Union<DictionaryToken, StreamToken>.One(functionDictionary);
-                            tintFunc = PdfFunctionParser.Create(functionDictionary, scanner, filterProvider);
-                        }
-                        else if (DirectObjectFinder.TryGet(func, scanner, out StreamToken functionStream))
-                        {
-                            functionTokensUnion = Union<DictionaryToken, StreamToken>.Two(functionStream);
-                            tintFunc = PdfFunctionParser.Create(functionStream, scanner, filterProvider);
-                        }
-                        else
-                        {
-                            return UnsupportedColorSpaceDetails.Instance;
-                        }
+                        PdfFunction tintFunc = PdfFunctionParser.Create(func, scanner, filterProvider);
 
                         if (colorSpaceArray.Length > 4 && DirectObjectFinder.TryGet(colorSpaceArray[4], scanner, out DictionaryToken deviceNAttributesToken))
                         {

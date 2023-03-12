@@ -17,20 +17,22 @@
         /// </summary>
         public static PatternColor Create(IToken pattern, IPdfTokenScanner scanner, IResourceStore resourceStore, ILookupFilterProvider filterProvider)
         {
-            if (DirectObjectFinder.TryGet(pattern, scanner, out DictionaryToken patternArray))
+            if (DirectObjectFinder.TryGet(pattern, scanner, out DictionaryToken patternDictionaryToken))
             {
-                int patternType = (patternArray.Data[NameToken.PatternType] as NumericToken).Int;
+                int patternType = (patternDictionaryToken.Data[NameToken.PatternType] as NumericToken).Int;
 
-                if (!(patternArray.Data.ContainsKey(NameToken.Matrix) &&
-                    DirectObjectFinder.TryGet(patternArray.Data[NameToken.Matrix], scanner, out ArrayToken patternMatrix)))
+                if (!(patternDictionaryToken.Data.ContainsKey(NameToken.Matrix) &&
+                    DirectObjectFinder.TryGet(patternDictionaryToken.Data[NameToken.Matrix], scanner, out ArrayToken patternMatrix)))
                 {
                     // optional - Default value: the identity matrix [1 0 0 1 0 0]
                     patternMatrix = new ArrayToken(new decimal[] { 1, 0, 0, 1, 0, 0 }.Select(v => new NumericToken(v)).ToArray());
                 }
 
+                var matrix = TransformationMatrix.FromArray(patternMatrix.Data.OfType<NumericToken>().Select(n => n.Data).ToArray());
+
                 DictionaryToken patternExtGState = null;
-                if (!(patternArray.Data.ContainsKey(NameToken.ExtGState) &&
-                    DirectObjectFinder.TryGet(patternArray.Data[NameToken.ExtGState], scanner, out patternExtGState)))
+                if (!(patternDictionaryToken.Data.ContainsKey(NameToken.ExtGState) &&
+                    DirectObjectFinder.TryGet(patternDictionaryToken.Data[NameToken.ExtGState], scanner, out patternExtGState)))
                 {
                     // optional
                 }
@@ -42,11 +44,11 @@
 
                     case 2: // Shading
                         Shading patternShading = null;
-                        if (DirectObjectFinder.TryGet(patternArray.Data[NameToken.Shading], scanner, out DictionaryToken patternShadingDic))
+                        if (DirectObjectFinder.TryGet(patternDictionaryToken.Data[NameToken.Shading], scanner, out DictionaryToken patternShadingDic))
                         {
                             patternShading = ShadingParser.Create(patternShadingDic, scanner, resourceStore, filterProvider);
                         }
-                        else if (DirectObjectFinder.TryGet(patternArray.Data[NameToken.Shading], scanner, out StreamToken patternShadingStr))
+                        else if (DirectObjectFinder.TryGet(patternDictionaryToken.Data[NameToken.Shading], scanner, out StreamToken patternShadingStr))
                         {
                             patternShading = ShadingParser.Create(patternShadingStr, scanner, resourceStore, filterProvider);
                         }
@@ -54,7 +56,7 @@
                         {
                             throw new ArgumentException();
                         }
-                        return new PatternColor(patternType, patternMatrix, patternShading, patternExtGState);
+                        return new PatternColor(patternType, matrix, patternShading, patternExtGState, patternDictionaryToken);
 
                     default:
                         throw new PdfDocumentFormatException($"Invalid Pattern type encountered in page resource dictionary: {patternType}.");

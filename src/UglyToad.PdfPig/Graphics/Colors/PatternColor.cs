@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using UglyToad.PdfPig.Core;
     using UglyToad.PdfPig.Tokens;
 
     /// <summary>
@@ -10,14 +11,19 @@
     public class PatternColor : IColor, IEquatable<PatternColor>
     {
         /// <summary>
-        /// 1 for tilling, 2 for shading.
+        /// TODO
+        /// </summary>
+        public DictionaryToken PatternDictionary { get; }
+
+        /// <summary>
+        /// 1 for tiling, 2 for shading.
         /// </summary>
         public int PatternType { get; }
 
         /// <summary>
         /// TODO
         /// </summary>
-        public ArrayToken Matrix { get; }
+        public TransformationMatrix Matrix { get; }
 
         /// <summary>
         /// TODO
@@ -36,12 +42,14 @@
         /// <param name="matrix"></param>
         /// <param name="shading"></param>
         /// <param name="extGState"></param>
-        public PatternColor(int patternType, ArrayToken matrix, Shading shading, DictionaryToken extGState)
+        /// <param name="patternDictionary"></param>
+        public PatternColor(int patternType, TransformationMatrix matrix, Shading shading, DictionaryToken extGState, DictionaryToken patternDictionary)
         {
             PatternType = patternType;
             Matrix = matrix;
             Shading = shading;
             ExtGState = extGState;
+            PatternDictionary = patternDictionary;
         }
 
         #region IColor
@@ -70,7 +78,7 @@
         public bool Equals(PatternColor other)
         {
             return PatternType == other.PatternType &&
-                   Matrix == other.Matrix &&
+                   Matrix.Equals(other.Matrix) &&
                    Shading == other.Shading &&
                    ExtGState == other.ExtGState;
         }

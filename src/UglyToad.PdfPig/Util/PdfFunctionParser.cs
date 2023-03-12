@@ -11,25 +11,26 @@
 
     internal static class PdfFunctionParser
     {
-        public static PdfFunction Create(IToken function, IPdfTokenScanner scanner,
-            ILookupFilterProvider filterProvider)
+        public static PdfFunction Create(IToken function, IPdfTokenScanner scanner, ILookupFilterProvider filterProvider)
         {
+            StreamToken functionStream = null;
+            DictionaryToken functionDictionary;
             if (function is NameToken identity && identity == NameToken.Identity)
             {
                 return new PdfFunctionTypeIdentity(null);
             }
-
-            DictionaryToken functionDictionary = null;
-            StreamToken functionStream = null;
-
-            if (function is StreamToken fs)
+            else if (DirectObjectFinder.TryGet(function, scanner, out StreamToken fs))
             {
                 functionDictionary = fs.StreamDictionary;
                 functionStream = new StreamToken(fs.StreamDictionary, fs.Decode(filterProvider, scanner));
             }
-            else if (function is DictionaryToken fd)
+            else if (DirectObjectFinder.TryGet(function, scanner, out DictionaryToken fd))
             {
                 functionDictionary = fd;
+            }
+            else
+            {
+                throw new InvalidOperationException("description to do");
             }
 
             Dictionary<NameToken, IToken> values = new Dictionary<NameToken, IToken>();
@@ -38,7 +39,7 @@
                 var name = NameToken.Create(pair.Key);
                 switch (name)
                 {
-                    // TODO - improve that,this is bad code
+                    // TODO - improve that, this is bad code
                     case "Bounds":
                     case "Encode":
                     case "C0":
@@ -70,23 +71,12 @@
                     return new PdfFunctionType2(functionDictionary);
 
                 case 3:
-                    List<PdfFunction> functions = new List<PdfFunction>();
+                    var functions = new List<PdfFunction>();
                     if (functionDictionary.TryGet<ArrayToken>(NameToken.Functions, scanner, out var functionsToken))
                     {
                         foreach (IToken token in functionsToken.Data)
                         {
-                            if (DirectObjectFinder.TryGet<StreamToken>(token, scanner, out var strTk))
-                            {
-                                functions.Add(Create(strTk, scanner, filterProvider));
-                            }
-                            else if (DirectObjectFinder.TryGet<DictionaryToken>(token, scanner, out var dicTk))
-                            {
-                                functions.Add(Create(dicTk, scanner, filterProvider));
-                            }
-                            else
-                            {
-                                throw new NotImplementedException();
-                            }
+                            functions.Add(Create(token, scanner, filterProvider));
                         }
                     }
                     return new PdfFunctionType3(functionDictionary, functions);

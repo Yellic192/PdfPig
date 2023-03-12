@@ -1,21 +1,20 @@
 ﻿namespace UglyToad.PdfPig.Graphics.Colors
 {
-    using System;
     using UglyToad.PdfPig.Core;
     using UglyToad.PdfPig.Functions;
     using UglyToad.PdfPig.Tokens;
 
-    // TODO - implement : IEquatable<PatternColor> and override Equals
+    // TODO - implement : IEquatable<Shading> and override Equals
 
     /// <summary>
     /// TODO
     /// </summary>
-    public class Shading // : IEquatable<PatternColor>
+    public class Shading // : IEquatable<Shading>
     {
         /// <summary>
         /// TODO
         /// </summary>
-        public ShadingTypes ShadingType { get; }
+        public ShadingType ShadingType { get; }
 
         /// <summary>
         /// TODO
@@ -40,17 +39,17 @@
         /// <summary>
         /// TODO
         /// </summary>
-        public ArrayToken Coords { get; }
+        public decimal[] Coords { get; }
 
         /// <summary>
         /// TODO
         /// </summary>
-        public ArrayToken Domain { get; }
+        public decimal[] Domain { get; }
 
         /// <summary>
         /// TODO
         /// </summary>
-        public ArrayToken Extend { get; }
+        public bool[] Extend { get; }
 
         /// <summary>
         /// TODO
@@ -65,9 +64,9 @@
         /// <summary>
         /// TODO
         /// </summary>
-        public Shading(ShadingTypes shadingType, bool antiAlias, DictionaryToken shadingDictionary,
-            ColorSpaceDetails colorSpace, PdfFunction function, ArrayToken coords,
-             ArrayToken domain, ArrayToken extend, PdfRectangle? bbox, ArrayToken background)
+        public Shading(ShadingType shadingType, bool antiAlias, DictionaryToken shadingDictionary,
+            ColorSpaceDetails colorSpace, PdfFunction function, decimal[] coords,
+            decimal[] domain, bool[] extend, PdfRectangle? bbox, ArrayToken background)
         {
             ShadingType = shadingType;
             AntiAlias = antiAlias;
@@ -85,7 +84,7 @@
     /// <summary>
     /// SHading types.
     /// </summary>
-    public enum ShadingTypes : byte
+    public enum ShadingType : byte
     {
         /// <summary>
         /// Function-based shading.

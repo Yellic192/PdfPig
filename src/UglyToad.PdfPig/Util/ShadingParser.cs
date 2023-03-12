@@ -1,6 +1,7 @@
 ﻿namespace UglyToad.PdfPig.Util
 {
     using System;
+    using System.Linq;
     using UglyToad.PdfPig.Content;
     using UglyToad.PdfPig.Filters;
     using UglyToad.PdfPig.Functions;
@@ -25,10 +26,10 @@
                 shadingDictionary = fd;
             }
 
-            ShadingTypes shadingType;
+            ShadingType shadingType;
             if (shadingDictionary.TryGet<NumericToken>(NameToken.ShadingType, scanner, out var shadingTypeToken))
             {
-                shadingType = (ShadingTypes)shadingTypeToken.Int;
+                shadingType = (ShadingType)shadingTypeToken.Int;
             }
             else
             {
@@ -57,7 +58,6 @@
                 throw new ArgumentException("ColorSpace is required.");
             }
 
-            PdfFunction function = null;
             /*
              * In addition, some shading dictionaries also include a Function entry whose value shall be a
              * function object (dictionary or stream) defining how colours vary across the area to be shaded.
@@ -65,13 +65,10 @@
              * function defines the colour transitions across that geometry. The function is required for
              * some types of shading and optional for others.
              */
-            if (shadingDictionary.TryGet<DictionaryToken>(NameToken.Function, scanner, out var functionToken))
+            PdfFunction function = null;
+            if (shadingDictionary.ContainsKey(NameToken.Function))
             {
-                function = PdfFunctionParser.Create(functionToken, scanner, filterProvider);
-            }
-            else if (shadingDictionary.TryGet<StreamToken>(NameToken.Function, scanner, out var functionStreamToken))
-            {
-                function = PdfFunctionParser.Create(functionStreamToken, scanner, filterProvider);
+                function = PdfFunctionParser.Create(shadingDictionary.Data[NameToken.Function], scanner, filterProvider);
             }
             else
             {
@@ -82,8 +79,7 @@
                 // 8.7.4.5.6 Type 5 Shadings (Lattice-Form Gouraud-Shaded Triangle Meshes) - Optional
                 // 8.7.4.5.7 Type 6 Shadings (Coons Patch Meshes) - Optional
                 // 8.7.4.5.8 Type 7 Shadings (Tensor-Product Patch Meshes) - N/A
-
-                if (shadingType == ShadingTypes.FunctionBased || shadingType == ShadingTypes.Axial || shadingType == ShadingTypes.Radial)
+                if (shadingType == ShadingType.FunctionBased || shadingType == ShadingType.Axial || shadingType == ShadingType.Radial)
                 {
                     throw new ArgumentNullException($"{NameToken.Function} is required for shading type '{shadingType}'.");
                 }
@@ -100,33 +96,44 @@
                 // Optional
             }
 
-            if (!shadingDictionary.TryGet<BooleanToken>(NameToken.AntiAlias, scanner, out var antiAliasToken))
+            bool antiAlias = false; // Default value: false.
+            if (shadingDictionary.TryGet<BooleanToken>(NameToken.AntiAlias, scanner, out var antiAliasToken))
             {
                 // Optional
-                // Default value: false.
-                antiAliasToken = BooleanToken.False;
+                antiAlias = antiAliasToken.Data;
             }
 
-            if (!shadingDictionary.TryGet<ArrayToken>(NameToken.Coords, scanner, out var coordsToken))
+            decimal[] coords = null;
+            if (shadingDictionary.TryGet<ArrayToken>(NameToken.Coords, scanner, out var coordsToken))
             {
-
+                coords = coordsToken.Data.OfType<NumericToken>().Select(v => v.Data).ToArray();
             }
 
-            if (!shadingDictionary.TryGet<ArrayToken>(NameToken.Domain, scanner, out var domainToken))
+            decimal[] domain = null;
+            if (shadingDictionary.TryGet<ArrayToken>(NameToken.Domain, scanner, out var domainToken))
+            {
+                domain = domainToken.Data.OfType<NumericToken>().Select(v => v.Data).ToArray();
+            }
+            else
             {
                 // set default values
-                domainToken = new ArrayToken(new IToken[] { new NumericToken(0), new NumericToken(1) });
+                domain = new decimal[] { 0, 1 };
             }
 
-            if (!shadingDictionary.TryGet<ArrayToken>(NameToken.Extend, scanner, out var extendToken))
+            bool[] extend = null;
+            if (shadingDictionary.TryGet<ArrayToken>(NameToken.Extend, scanner, out var extendToken))
+            {
+                extend = extendToken.Data.OfType<BooleanToken>().Select(v => v.Data).ToArray();
+            }
+            else
             {
                 // set default values
-                extendToken = new ArrayToken(new IToken[] { BooleanToken.False, BooleanToken.False });
+                extend = new bool[] { false, false };
             }
 
-            return new Shading(shadingType, antiAliasToken.Data,
-                shadingDictionary, colorSpaceDetails, function, coordsToken, domainToken,
-                extendToken, bboxToken?.ToRectangle(scanner), backgroundToken);
+            return new Shading(shadingType, antiAlias, shadingDictionary,
+                colorSpaceDetails, function, coords, domain, extend,
+                bboxToken?.ToRectangle(scanner), backgroundToken);
         }
     }
 }
