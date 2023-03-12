@@ -7,7 +7,7 @@
     using System.Net.Http.Headers;
     using Xunit;
 
-    public class ExportToImage2
+    public class ExportToImage
     {
         private const int mult = 5;
 
@@ -410,9 +410,10 @@
             Run(steam_in_page_dict, 1);
         }
 
+        private const string directory = "Images2";
+
         private static void Run(string file, int pageNo)
         {
-            const string directory = "Images2";
             if (!Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
@@ -438,7 +439,6 @@
 
         private static void RunAllPages(string file)
         {
-            const string directory = "Images2";
             if (!Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);

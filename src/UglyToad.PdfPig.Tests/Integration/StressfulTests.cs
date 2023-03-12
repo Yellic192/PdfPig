@@ -1,9 +1,7 @@
 ﻿namespace UglyToad.PdfPig.Tests.Integration
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
-    using System.Text;
     using Xunit;
 
     public class StressfulTests
