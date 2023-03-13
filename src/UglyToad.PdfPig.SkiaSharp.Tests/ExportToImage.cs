@@ -68,6 +68,9 @@
         private const string MOZILLA_11308_0 = "MOZILLA-11308-0.pdf";
         private const string MOZILLA_10145_0 = "MOZILLA-10145-0.pdf";
 
+        private const string MOZILLA_10448_0 = "MOZILLA-10448-0.pdf";
+        private const string MOZILLA_10427_0 = "MOZILLA-10427-0.pdf";
+
         private static string GetFilename(string name)
         {
             var documentFolder = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "Documents"));
@@ -78,6 +81,19 @@
             }
 
             return Path.Combine(documentFolder, name);
+        }
+
+        [Fact]
+        public void MOZILLA_10448_0Test()
+        {
+            RunAllPages(MOZILLA_10448_0);
+        }
+
+        [Fact]
+        public void MOZILLA_10427_0Test()
+        {
+            // Image issue  
+            Run(MOZILLA_10427_0, 2);
         }
 
         [Fact]

@@ -16,6 +16,7 @@
     using UglyToad.PdfPig.PdfFonts;
     using UglyToad.PdfPig.Rendering;
     using UglyToad.PdfPig.Tokens;
+    using static System.Net.Mime.MediaTypeNames;
     using static UglyToad.PdfPig.Core.PdfSubpath;
 
     public class SkiaSharpProcessor : BaseRenderStreamProcessor
@@ -667,6 +668,21 @@
             RenderImage(inlineImage);
         }
 
+        private static byte[] GetImageBytes(IPdfImage pdfImage)
+        {
+            if (pdfImage.TryGetPng(out byte[] bytes) && bytes?.Length > 0)
+            {
+                return bytes;
+            }
+
+            if (pdfImage.TryGetBytes(out var bytesL) && bytesL?.Count > 0)
+            {
+                return bytesL.ToArray();
+            }
+
+            return pdfImage.RawBytes.ToArray();
+        }
+
         private void RenderImage(IPdfImage image)
         {
             // TODO - What about blend mode?
@@ -679,49 +695,12 @@
             float bottom = top + (float)(image.Bounds.Height * _mult);
             var destRect = new SKRect(left, top, right, bottom);
 
-            byte[] bytes = null;
-
             try
             {
-                if (!image.TryGetPng(out bytes))
-                {
-                    if (image.TryGetBytes(out var bytesL))
-                    {
-                        bytes = bytesL.ToArray();
-                    }
-                }
+                byte[] bytes = GetImageBytes(image);
 
-                if (bytes?.Length > 0)
+                try
                 {
-                    try
-                    {
-                        using (SKPaint paint = new SKPaint() { BlendMode = GetCurrentState().BlendMode.ToSKBlendMode() })
-                        using (var bitmap = SKBitmap.Decode(bytes))
-                        {
-                            //if (image.IsImageMask)
-                            //{
-                            //    paint.MaskFilter = SKMaskFilter.CreateTable(bytes);
-                            //}
-                            _canvas.DrawBitmap(bitmap, destRect, paint);
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        // Try with raw bytes
-                        using (SKPaint paint = new SKPaint() { BlendMode = GetCurrentState().BlendMode.ToSKBlendMode() })
-                        using (var bitmap = SKBitmap.Decode(image.RawBytes.ToArray()))
-                        {
-                            //if (image.IsImageMask)
-                            //{
-                            //    paint.MaskFilter = SKMaskFilter.CreateTable(bytes);
-                            //}
-                            _canvas.DrawBitmap(bitmap, destRect, paint);
-                        }
-                    }
-                }
-                else
-                {
-                    bytes = image.RawBytes.ToArray();
                     using (SKPaint paint = new SKPaint() { BlendMode = GetCurrentState().BlendMode.ToSKBlendMode() })
                     using (var bitmap = SKBitmap.Decode(bytes))
                     {
@@ -729,6 +708,26 @@
                         //{
                         //    paint.MaskFilter = SKMaskFilter.CreateTable(bytes);
                         //}
+
+                        //if (image.SMask != null)
+                        //{
+                        //    paint.MaskFilter = SKMaskFilter.CreateTable(GetImageBytes(image.SMask));
+                        //}
+
+                        _canvas.DrawBitmap(bitmap, destRect, paint);
+                    }
+                }
+                catch (Exception)
+                {
+                    // Try with raw bytes
+                    using (SKPaint paint = new SKPaint() { BlendMode = GetCurrentState().BlendMode.ToSKBlendMode() })
+                    using (var bitmap = SKBitmap.Decode(image.RawBytes.ToArray()))
+                    {
+                        //if (image.IsImageMask)
+                        //{
+                        //    paint.MaskFilter = SKMaskFilter.CreateTable(bytes);
+                        //}
+
                         _canvas.DrawBitmap(bitmap, destRect, paint);
                     }
                 }

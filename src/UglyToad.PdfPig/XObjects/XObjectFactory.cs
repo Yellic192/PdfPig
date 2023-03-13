@@ -1,17 +1,16 @@
 ﻿namespace UglyToad.PdfPig.XObjects
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using Content;
     using Core;
     using Filters;
     using Graphics;
     using Graphics.Colors;
     using Graphics.Core;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using Tokenization.Scanner;
     using Tokens;
-    using UglyToad.PdfPig.Parser.Parts;
     using Util;
 
     internal static class XObjectFactory
@@ -39,6 +38,13 @@
 
             var isImageMask = dictionary.TryGet(NameToken.ImageMask, pdfScanner, out BooleanToken isMaskToken)
                          && isMaskToken.Data;
+
+            IPdfImage sMaskImage = null;
+            if (dictionary.TryGet(NameToken.Smask, pdfScanner, out StreamToken sMaskStreamToken))
+            {
+                var sMask = new XObjectContentRecord(XObjectType.Image, sMaskStreamToken, xObject.AppliedTransformation, xObject.DefaultRenderingIntent, xObject.DefaultColorSpace);
+                sMaskImage = ReadImage(sMask, pdfScanner, filterProvider, resourceStore);
+            }
 
             var isJpxDecode = dictionary.TryGet(NameToken.Filter, out var token)
                 && token is NameToken filterName
@@ -196,10 +202,9 @@
                 dictionary,
                 xObject.Stream.Data,
                 decodedBytes,
-                details);
+                details,
+                sMaskImage);
         }
-
-        
 
         private static bool TryMapColorSpace(NameToken name, IResourceStore resourceStore, out ColorSpace colorSpaceResult)
         {

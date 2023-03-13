@@ -63,6 +63,11 @@
         bool IsImageMask { get; }
 
         /// <summary>
+        /// TODO
+        /// </summary>
+        IPdfImage SMask { get; }
+
+        /// <summary>
         /// Describes how to map image samples into the values appropriate for the
         /// <see cref="ColorSpace"/>.
         /// The image data is initially composed of values in the range 0 to 2^n - 1
