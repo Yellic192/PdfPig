@@ -39,6 +39,12 @@
             var isImageMask = dictionary.TryGet(NameToken.ImageMask, pdfScanner, out BooleanToken isMaskToken)
                          && isMaskToken.Data;
 
+            XmpMetadata metadata = null;
+            if (dictionary.TryGet(NameToken.Metadata, pdfScanner, out StreamToken metadataStreamToken))
+            {
+                metadata = new XmpMetadata(metadataStreamToken, filterProvider, pdfScanner);
+            }
+
             IPdfImage sMaskImage = null;
             if (dictionary.TryGet(NameToken.Smask, pdfScanner, out StreamToken sMaskStreamToken))
             {
@@ -113,12 +119,10 @@
             }
 
             var streamToken = new StreamToken(dictionary, xObject.Stream.Data);
-
             var decodedBytes = supportsFilters ? new Lazy<IReadOnlyList<byte>>(() => streamToken.Decode(filterProvider, pdfScanner))
                 : null;
 
             var decode = EmptyArray<decimal>.Instance;
-
             if (dictionary.TryGet(NameToken.Decode, pdfScanner, out ArrayToken decodeArrayToken))
             {
                 decode = decodeArrayToken.Data.OfType<NumericToken>()
@@ -129,7 +133,6 @@
             var colorSpace = default(ColorSpace?);
 
             ColorSpaceDetails details = null;
-
             if (!isImageMask)
             {
                 if (dictionary.TryGet(NameToken.ColorSpace, pdfScanner, out NameToken colorSpaceCheckNameToken))
@@ -152,41 +155,11 @@
                     colorSpace = xObject.DefaultColorSpace;
                     details = ColorSpaceDetailsParser.GetColorSpaceDetails(colorSpace, dictionary, pdfScanner, resourceStore, filterProvider);
                 }
-
-                /*
-                if (dictionary.TryGet(NameToken.ColorSpace, pdfScanner, out NameToken colorSpaceNameToken)
-                      && TryMapColorSpace(colorSpaceNameToken, resourceStore, out var colorSpaceResult))
-                {
-                    colorSpace = colorSpaceResult;
-                }
-                else if (dictionary.TryGet(NameToken.ColorSpace, pdfScanner, out ArrayToken colorSpaceArrayToken)
-                && colorSpaceArrayToken.Length > 0)
-                {
-                    var first = colorSpaceArrayToken.Data[0];
-
-                    if ((first is NameToken firstColorSpaceName) && TryMapColorSpace(firstColorSpaceName, resourceStore, out colorSpaceResult))
-                    {
-                        colorSpace = colorSpaceResult;
-                    }
-                }
-                else if (!isJpxDecode)
-                {
-                    colorSpace = xObject.DefaultColorSpace;
-                }
-                */
             }
             else
             {
                 details = ColorSpaceDetailsParser.GetColorSpaceDetails(colorSpace, dictionary, pdfScanner, resourceStore, filterProvider);
             }
-            /*
-            var details = ColorSpaceDetailsParser.GetColorSpaceDetails(colorSpace, dictionary, pdfScanner, resourceStore, filterProvider);
-
-            if (csCheck.Type != details.Type || csCheck.BaseType != details.BaseType)
-            {
-
-            }
-            */
 
             return new XObjectImage(
                 bounds,
@@ -203,7 +176,8 @@
                 xObject.Stream.Data,
                 decodedBytes,
                 details,
-                sMaskImage);
+                sMaskImage,
+                metadata);
         }
 
         private static bool TryMapColorSpace(NameToken name, IResourceStore resourceStore, out ColorSpace colorSpaceResult)

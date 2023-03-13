@@ -101,6 +101,11 @@
         ColorSpaceDetails ColorSpaceDetails { get; }
 
         /// <summary>
+        /// TODO
+        /// </summary>
+        XmpMetadata Metadata { get; }
+
+        /// <summary>
         /// Get the decoded bytes of the image if applicable. For JPEG images and some other types the
         /// <see cref="RawBytes"/> should be used directly.
         /// </summary>

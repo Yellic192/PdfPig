@@ -16,7 +16,6 @@
     using UglyToad.PdfPig.PdfFonts;
     using UglyToad.PdfPig.Rendering;
     using UglyToad.PdfPig.Tokens;
-    using static System.Net.Mime.MediaTypeNames;
     using static UglyToad.PdfPig.Core.PdfSubpath;
 
     public class SkiaSharpProcessor : BaseRenderStreamProcessor
@@ -668,24 +667,9 @@
             RenderImage(inlineImage);
         }
 
-        private static byte[] GetImageBytes(IPdfImage pdfImage)
-        {
-            if (pdfImage.TryGetPng(out byte[] bytes) && bytes?.Length > 0)
-            {
-                return bytes;
-            }
-
-            if (pdfImage.TryGetBytes(out var bytesL) && bytesL?.Count > 0)
-            {
-                return bytesL.ToArray();
-            }
-
-            return pdfImage.RawBytes.ToArray();
-        }
-
         private void RenderImage(IPdfImage image)
         {
-            // TODO - What about blend mode?
+            var currentState = GetCurrentState();
 
             // see issue_484Test, Pig production p15
             // need better handling for images where rotation is not 180
@@ -697,30 +681,18 @@
 
             try
             {
-                byte[] bytes = GetImageBytes(image);
-
                 try
                 {
-                    using (SKPaint paint = new SKPaint() { BlendMode = GetCurrentState().BlendMode.ToSKBlendMode() })
-                    using (var bitmap = SKBitmap.Decode(bytes))
+                    using (SKPaint paint = new SKPaint() { BlendMode = currentState.BlendMode.ToSKBlendMode() })
+                    using (var bitmap = image.GetSKBitmap())
                     {
-                        //if (image.IsImageMask)
-                        //{
-                        //    paint.MaskFilter = SKMaskFilter.CreateTable(bytes);
-                        //}
-
-                        //if (image.SMask != null)
-                        //{
-                        //    paint.MaskFilter = SKMaskFilter.CreateTable(GetImageBytes(image.SMask));
-                        //}
-
                         _canvas.DrawBitmap(bitmap, destRect, paint);
                     }
                 }
                 catch (Exception)
                 {
                     // Try with raw bytes
-                    using (SKPaint paint = new SKPaint() { BlendMode = GetCurrentState().BlendMode.ToSKBlendMode() })
+                    using (SKPaint paint = new SKPaint() { BlendMode = currentState.BlendMode.ToSKBlendMode() })
                     using (var bitmap = SKBitmap.Decode(image.RawBytes.ToArray()))
                     {
                         //if (image.IsImageMask)
@@ -735,14 +707,44 @@
             catch (Exception)
             {
 #if DEBUG
+                using (var bitmap = new SKBitmap((int)destRect.Width, (int)destRect.Height))
+                using (var canvas = new SKCanvas(bitmap))
                 using (var paint = new SKPaint
                 {
                     Style = SKPaintStyle.Fill,
-                    Color = new SKColor(SKColors.GreenYellow.Red, SKColors.GreenYellow.Green, SKColors.GreenYellow.Blue, 40)
+                    Color = new SKColor(SKColors.Aquamarine.Red, SKColors.Aquamarine.Green, SKColors.Aquamarine.Blue, 80)
+                })
+                {
+                    canvas.DrawRect(0, 0, destRect.Width, destRect.Height, paint);
+
+                    try
+                    {
+                        if (image.SMask != null)
+                        {
+                            using (var bitmapSMask = SKBitmap.Decode(image.SMask.GetImageBytes()))
+                            {
+                                bitmap.ApplySMask(bitmapSMask);
+                            }
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Ignore
+                    }
+
+                    _canvas.DrawBitmap(bitmap, destRect);
+                }
+
+                /*
+                using (var paint = new SKPaint
+                {
+                    Style = SKPaintStyle.Fill,
+                    Color = new SKColor(SKColors.Aquamarine.Red, SKColors.Aquamarine.Green, SKColors.Aquamarine.Blue, 80)
                 })
                 {
                     _canvas.DrawRect(destRect, paint);
                 }
+                */
 #endif
             }
             finally

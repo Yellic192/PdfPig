@@ -3,6 +3,8 @@
     using global::SkiaSharp;
     using System;
     using System.Collections.Generic;
+    using System.Linq;
+    using UglyToad.PdfPig.Content;
     using UglyToad.PdfPig.Core;
     using UglyToad.PdfPig.Graphics;
     using UglyToad.PdfPig.Graphics.Colors;
@@ -235,6 +237,70 @@
                 default:
                     throw new NotImplementedException($"Cannot convert blend mode '{blendMode}' to SKBlendMode.");
             }
+        }
+
+        public static SKBitmap GetSKBitmap(this IPdfImage image)
+        {
+            var bitmap = SKBitmap.Decode(image.GetImageBytes());
+
+            if (image.SMask != null)
+            {
+                byte[] bytesSMask = image.SMask.GetImageBytes();
+                using (var bitmapSMask = SKBitmap.Decode(bytesSMask))
+                {
+                    bitmap.ApplySMask(bitmapSMask);
+                    //SKMask mask = SKMask.Create(bitmapSMask.Bytes, bitmapSMask.Info.Rect, (uint)bitmapSMask.RowBytes, SKMaskFormat.A8);
+                    //if (!bitmap.InstallMaskPixels(mask))
+                    //{
+                    //    System.Diagnostics.Debug.WriteLine("Could not install mask pixels.");
+                    //}
+                }
+            }
+            return bitmap;
+        }
+
+        public static void ApplySMask(this SKBitmap image, SKBitmap smask)
+        {
+            // What about 'Alpha source' flag?
+            SKBitmap scaled;
+            if (!image.Info.Rect.Equals(smask.Info.Rect))
+            {
+                scaled = new SKBitmap(image.Info);
+                if (!smask.ScalePixels(scaled, SKFilterQuality.High))
+                {
+                    // log
+                }
+            }
+            else
+            {
+                scaled = smask;
+            }
+
+            for (int x = 0; x < image.Width; x++)
+            {
+                for (int y = 0; y < image.Height; y++)
+                {
+                    var pix = image.GetPixel(x, y);
+                    byte alpha = scaled.GetPixel(x, y).Red; // Gray CS (r = g = b)
+                    image.SetPixel(x, y, pix.WithAlpha(alpha));
+                }
+            }
+            scaled.Dispose();
+        }
+
+        public static byte[] GetImageBytes(this IPdfImage pdfImage)
+        {
+            if (pdfImage.TryGetPng(out byte[] bytes) && bytes?.Length > 0)
+            {
+                return bytes;
+            }
+
+            if (pdfImage.TryGetBytes(out var bytesL) && bytesL?.Count > 0)
+            {
+                return bytesL.ToArray();
+            }
+
+            return pdfImage.RawBytes.ToArray();
         }
     }
 }

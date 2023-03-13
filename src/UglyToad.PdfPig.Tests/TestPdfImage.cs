@@ -40,6 +40,8 @@
 
         public IPdfImage SMask => throw new System.NotImplementedException();
 
+        public XmpMetadata Metadata => throw new System.NotImplementedException();
+
         public bool TryGetBytes(out IReadOnlyList<byte> bytes)
         {
             bytes = DecodedBytes;

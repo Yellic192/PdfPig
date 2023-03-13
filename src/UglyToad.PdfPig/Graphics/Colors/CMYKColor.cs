@@ -55,14 +55,9 @@ namespace UglyToad.PdfPig.Graphics.Colors
         /// <inheritdoc/>
         public (decimal r, decimal g, decimal b) ToRGBValues()
         {
-            decimal r = 1m - Math.Min(1m, C + K);
-            decimal g = 1m - Math.Min(1m, M + K);
-            decimal b = 1m - Math.Min(1m, Y + K);
-            return (r, g, b);
-
-            //return ((1 - C) * (1 - K),
-            //    (1 - M) * (1 - K),
-            //    (1 - Y) * (1 - K));
+            return (1m - Math.Min(1m, C + K),
+                    1m - Math.Min(1m, M + K),
+                    1m - Math.Min(1m, Y + K));
         }
 
         /// <inheritdoc />

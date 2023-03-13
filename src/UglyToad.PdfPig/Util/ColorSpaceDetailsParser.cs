@@ -276,7 +276,7 @@
                         IReadOnlyList<byte> rawProfile = null;
                         if (streamToken.StreamDictionary.ContainsKey(NameToken.Filter))
                         {
-                            rawProfile = streamToken.Decode(filterProvider, scanner);
+                            rawProfile = streamToken.Decode(filterProvider, scanner);  
                         }
 
                         // Alternate is optional

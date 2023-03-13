@@ -62,6 +62,9 @@
         /// <inheritdoc />
         public IPdfImage SMask { get; }
 
+        /// <inheritdoc />
+        public XmpMetadata Metadata { get; }
+
         /// <summary>
         /// Create a new <see cref="InlineImage"/>.
         /// </summary>
