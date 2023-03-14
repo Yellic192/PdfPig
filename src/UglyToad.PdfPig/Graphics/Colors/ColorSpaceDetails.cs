@@ -6,6 +6,7 @@
     using Tokens;
     using UglyToad.PdfPig.Content;
     using UglyToad.PdfPig.Functions;
+    using UglyToad.PdfPig.Graphics.Colors.ICC;
     using UglyToad.PdfPig.Images;
     using UglyToad.PdfPig.Util;
     using UglyToad.PdfPig.Util.JetBrains.Annotations;
@@ -877,6 +878,12 @@
         public IReadOnlyList<byte> RawProfile { get; }
 
         /// <summary>
+        /// profile.
+        /// </summary>
+        [CanBeNull]
+        public IccProfile Profile { get; }
+
+        /// <summary>
         /// Create a new <see cref="ICCBasedColorSpaceDetails"/>.
         /// </summary>
         internal ICCBasedColorSpaceDetails(int numberOfColorComponents, [CanBeNull] ColorSpaceDetails alternateColorSpaceDetails,
@@ -895,7 +902,7 @@
 
             BaseType = AlternateColorSpaceDetails.BaseType;
             Range = range ??
-                Enumerable.Range(0, numberOfColorComponents).Select(x => new[] { 0.0m, 1.0m }).SelectMany(x => x).ToList();
+                Enumerable.Range(0, numberOfColorComponents).Select(_ => new[] { 0.0m, 1.0m }).SelectMany(x => x).ToList();
             if (Range.Count != 2 * numberOfColorComponents)
             {
                 throw new ArgumentOutOfRangeException(nameof(range), range,
@@ -903,6 +910,10 @@
             }
             Metadata = metadata;
             RawProfile = rawProfile;
+            if (RawProfile != null)
+            {
+                Profile = IccProfileParser.Create(RawProfile);
+            }
         }
 
         /// <inheritdoc/>

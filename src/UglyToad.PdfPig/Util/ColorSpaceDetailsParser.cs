@@ -1,12 +1,12 @@
 ﻿namespace UglyToad.PdfPig.Util
 {
-    using System.Collections.Generic;
-    using System.Linq;
     using Content;
     using Core;
     using Filters;
     using Graphics.Colors;
     using Parser.Parts;
+    using System.Collections.Generic;
+    using System.Linq;
     using Tokenization.Scanner;
     using Tokens;
     using UglyToad.PdfPig.Functions;
@@ -276,7 +276,7 @@
                         IReadOnlyList<byte> rawProfile = null;
                         if (streamToken.StreamDictionary.ContainsKey(NameToken.Filter))
                         {
-                            rawProfile = streamToken.Decode(filterProvider, scanner);  
+                            rawProfile = streamToken.Decode(filterProvider, scanner);
                         }
 
                         // Alternate is optional
