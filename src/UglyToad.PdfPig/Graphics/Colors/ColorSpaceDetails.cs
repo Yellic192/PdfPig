@@ -46,6 +46,11 @@
         /// Get the color that initialize the current stroking or nonstroking colour.
         /// </summary>
         public abstract IColor GetInitializeColor();
+
+        /// <summary>
+        /// Get the number of components for the color space.
+        /// </summary>
+        public abstract int GetNumberOfComponents();
     }
 
     /// <summary>
@@ -90,6 +95,12 @@
         public override IColor GetInitializeColor()
         {
             return GrayColor.Black;
+        }
+
+        /// <inheritdoc/>
+        public override int GetNumberOfComponents() // TODO Make that a property, not a function
+        {
+            return 1;
         }
     }
 
@@ -136,6 +147,12 @@
         {
             return RGBColor.Black;
         }
+
+        /// <inheritdoc/>
+        public override int GetNumberOfComponents()
+        {
+            return 3;
+        }
     }
 
     /// <summary>
@@ -180,6 +197,12 @@
         public override IColor GetInitializeColor()
         {
             return CMYKColor.Black;
+        }
+
+        /// <inheritdoc/>
+        public override int GetNumberOfComponents()
+        {
+            return 4;
         }
     }
 
@@ -251,6 +274,12 @@
             // Setting the current stroking or nonstroking colour space to an Indexed colour space shall
             // initialize the corresponding current colour to 0.
             return GetColor(new decimal[] { 0 });
+        }
+
+        /// <inheritdoc/>
+        public override int GetNumberOfComponents()
+        {
+            throw new NotImplementedException("Indexed color space: use base type.");
         }
     }
 
@@ -358,6 +387,12 @@
             // shall be given an initial value of 1.0. The SCN and scn operators respectively shall set the current
             // stroking and nonstroking colour.
             return GetColor(Enumerable.Repeat(1m, n).ToArray());
+        }
+
+        /// <inheritdoc/>
+        public override int GetNumberOfComponents()
+        {
+            return n; // TODO - not sure
         }
 
         /// <summary>
@@ -511,6 +546,12 @@
             // The initial value for both the stroking and nonstroking colour in the graphics state shall be 1.0.
             return GetColor(new decimal[] { 1 });
         }
+
+        /// <inheritdoc/>
+        public override int GetNumberOfComponents()
+        {
+            throw new NotImplementedException("Seperation color space: use sub type");
+        }
     }
 
     /// <summary>
@@ -605,6 +646,12 @@
             // values for a given component does not include 0.0, in which case the nearest valid value shall
             // be substituted.)
             return TransformToRGB(0);
+        }
+
+        /// <inheritdoc/>
+        public override int GetNumberOfComponents()
+        {
+            return 1;
         }
     }
 
@@ -714,6 +761,12 @@
             // be substituted.)
             return TransformToRGB((0, 0, 0));
         }
+
+        /// <inheritdoc/>
+        public override int GetNumberOfComponents()
+        {
+            return 3;
+        }
     }
 
     /// <summary>
@@ -822,6 +875,12 @@
             // be substituted.)
             return TransformToRGB((0, 0, 0));
         }
+
+        /// <inheritdoc/>
+        public override int GetNumberOfComponents()
+        {
+            return 3; // TODO - check
+        }
     }
 
     /// <summary>
@@ -912,7 +971,15 @@
             RawProfile = rawProfile;
             if (RawProfile != null)
             {
-                Profile = IccProfileParser.Create(RawProfile);
+                try
+                {
+                    Profile = IccProfileParser.Create(RawProfile);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"ERROR creating ICC profile: {ex}");
+                    //throw;
+                }
             }
         }
 
@@ -936,6 +1003,12 @@
             // be substituted.)
             decimal[] init = Enumerable.Repeat(0m, NumberOfColorComponents).ToArray();
             return GetColor(init);
+        }
+
+        /// <inheritdoc/>
+        public override int GetNumberOfComponents()
+        {
+            return NumberOfColorComponents;
         }
     }
 
@@ -982,6 +1055,13 @@
         {
             return null;
         }
+
+
+        /// <inheritdoc/>
+        public override int GetNumberOfComponents()
+        {
+            throw new InvalidOperationException("PatternColorSpaceDetails");
+        }
     }
 
     /// <summary>
@@ -1010,6 +1090,12 @@
         public override IColor GetInitializeColor()
         {
             return debugColor;
+        }
+
+        /// <inheritdoc/>
+        public override int GetNumberOfComponents()
+        {
+            throw new InvalidOperationException("UnsupportedColorSpaceDetails");
         }
     }
 }

@@ -12,12 +12,18 @@
 
             var hasValidDetails = image.ColorSpaceDetails != null &&
                                   !(image.ColorSpaceDetails is UnsupportedColorSpaceDetails);
-            var actualColorSpace = hasValidDetails ? image.ColorSpaceDetails.BaseType : image.ColorSpace;
+            //var actualColorSpace = hasValidDetails ? image.ColorSpaceDetails.BaseType : image.ColorSpace;
+            if (!hasValidDetails)
+            {
+                return false;
+            }
+
+            var actualColorSpace = image.ColorSpaceDetails;
 
             var isColorSpaceSupported =
-                actualColorSpace == ColorSpace.DeviceGray || actualColorSpace == ColorSpace.DeviceRGB
-                || actualColorSpace == ColorSpace.DeviceCMYK || actualColorSpace == ColorSpace.CalGray
-                || actualColorSpace == ColorSpace.CalRGB;
+                actualColorSpace.Type == ColorSpace.DeviceGray || actualColorSpace.Type == ColorSpace.DeviceRGB
+                || actualColorSpace.Type == ColorSpace.DeviceCMYK || actualColorSpace.Type == ColorSpace.CalGray
+                || actualColorSpace.Type == ColorSpace.CalRGB || actualColorSpace.Type == ColorSpace.DeviceN;
 
             if (!isColorSpaceSupported || !image.TryGetBytes(out var bytesPure))
             {
@@ -29,10 +35,10 @@
                 bytesPure = ColorSpaceDetailsByteConverter.Convert(image.ColorSpaceDetails, bytesPure,
                     image.BitsPerComponent, image.WidthInSamples, image.HeightInSamples);
 
-                var numberOfComponents =
-                    actualColorSpace == ColorSpace.DeviceCMYK ? 4 :
-                    actualColorSpace == ColorSpace.DeviceRGB ? 3 :
-                    actualColorSpace == ColorSpace.CalRGB ? 3 : 1;
+                var numberOfComponents = actualColorSpace.GetNumberOfComponents();
+                    //actualColorSpace.Type == ColorSpace.DeviceCMYK ? 4 :
+                    //actualColorSpace.Type == ColorSpace.DeviceRGB ? 3 :
+                    //actualColorSpace.Type == ColorSpace.CalRGB ? 3 : 1;
 
                 var is3Byte = numberOfComponents == 3;
 
@@ -61,34 +67,71 @@
                 {
                     for (var row = 0; row < image.WidthInSamples; row++)
                     {
-                        if (actualColorSpace == ColorSpace.DeviceCMYK)
+                        switch (numberOfComponents)
                         {
-                            /*
-                             * Where CMYK in 0..1
-                             * R = 255 × (1-C) × (1-K)
-                             * G = 255 × (1-M) × (1-K)
-                             * B = 255 × (1-Y) × (1-K)
-                             */
+                            case 4:
+                                var c = (bytesPure[i++] / 255d);
+                                var m = (bytesPure[i++] / 255d);
+                                var y = (bytesPure[i++] / 255d);
+                                var k = (bytesPure[i++] / 255d);
+                                var rgb = actualColorSpace.GetColor(new decimal[] { (decimal)c, (decimal)m, (decimal)y, (decimal)k }).ToRGBValues();
+                                builder.SetPixel((byte)(rgb.r * 255), (byte)(rgb.g * 255), (byte)(rgb.b * 255), row, col);
+                                break;
 
-                            var c = (bytesPure[i++]/255d);
-                            var m = (bytesPure[i++]/255d);
-                            var y = (bytesPure[i++]/255d);
-                            var k = (bytesPure[i++]/255d);
-                            var r = (byte)(255 * (1 - c) * (1 - k));
-                            var g = (byte)(255 * (1 - m) * (1 - k));
-                            var b = (byte)(255 * (1 - y) * (1 - k));
+                            case 3:
+                                var r = (bytesPure[i++] / 255d);
+                                var g = (bytesPure[i++] / 255d);
+                                var b = (bytesPure[i++] / 255d);
+                                var rgb3 = actualColorSpace.GetColor(new decimal[] { (decimal)r, (decimal)g, (decimal)b }).ToRGBValues();
+                                builder.SetPixel((byte)(rgb3.r * 255), (byte)(rgb3.g * 255), (byte)(rgb3.b * 255), row, col);
+                                break;
 
-                            builder.SetPixel(r, g, b, row, col);
+                            case 1:
+                                var g1 = (bytesPure[i++] / 255d);
+                                var rgb1 = actualColorSpace.GetColor(new decimal[] { (decimal)g1 }).ToRGBValues();
+                                builder.SetPixel((byte)(rgb1.r * 255), (byte)(rgb1.g * 255), (byte)(rgb1.b * 255), row, col);
+                                break;
+
+                            default:
+                                // case n
+                                decimal[] comps = new decimal[numberOfComponents];
+                                for (int k1 = 0; k1 < numberOfComponents; k1++)
+                                {
+                                    comps[k1] = (bytesPure[i++] / 255m);
+                                }
+                                var rgbN = actualColorSpace.GetColor(comps).ToRGBValues();
+                                builder.SetPixel((byte)(rgbN.r * 255), (byte)(rgbN.g * 255), (byte)(rgbN.b * 255), row, col);
+                                break;
                         }
-                        else if (is3Byte)
-                        {
-                            builder.SetPixel(bytesPure[i++], bytesPure[i++], bytesPure[i++], row, col);
-                        }
-                        else
-                        {
-                            var pixel = bytesPure[i++];
-                            builder.SetPixel(pixel, pixel, pixel, row, col);
-                        }
+
+                        //if (actualColorSpace == ColorSpace.DeviceCMYK)
+                        //{
+                            
+                        //     //Where CMYK in 0..1
+                        //     //R = 255 × (1-C) × (1-K)
+                        //     //G = 255 × (1-M) × (1-K)
+                        //     //B = 255 × (1-Y) × (1-K)
+                             
+
+                        //    var c = (bytesPure[i++]/255d);
+                        //    var m = (bytesPure[i++]/255d);
+                        //    var y = (bytesPure[i++]/255d);
+                        //    var k = (bytesPure[i++]/255d);
+                        //    var r = (byte)(255 * (1 - c) * (1 - k));
+                        //    var g = (byte)(255 * (1 - m) * (1 - k));
+                        //    var b = (byte)(255 * (1 - y) * (1 - k));
+
+                        //    builder.SetPixel(r, g, b, row, col);
+                        //}
+                        //else if (is3Byte)
+                        //{
+                        //    builder.SetPixel(bytesPure[i++], bytesPure[i++], bytesPure[i++], row, col);
+                        //}
+                        //else
+                        //{
+                        //    var pixel = bytesPure[i++];
+                        //    builder.SetPixel(pixel, pixel, pixel, row, col);
+                        //}
                     }
                 }
 

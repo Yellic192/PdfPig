@@ -52,13 +52,12 @@
                 // Use the base color space in potential further decoding
                 details = indexed.BaseColorSpaceDetails;
             }
-
+            
             if (details is CalRGBColorSpaceDetails calRgb)
             {
                 decoded = TransformToRGB(calRgb, decoded);
             }
-
-            if (details is CalGrayColorSpaceDetails calGray)
+            else if (details is CalGrayColorSpaceDetails calGray)
             {
                 decoded = TransformToRgbGrayScale(calGray, decoded);
             }
@@ -89,8 +88,13 @@
                     return GetBytesPerPixel(indexed.BaseColorSpaceDetails);
 
                 case ICCBasedColorSpaceDetails iccBased:
+                
                     // Currently PdfPig only supports the 'Alternate' color space of ICCBasedColorSpaceDetails
                     return GetBytesPerPixel(iccBased.AlternateColorSpaceDetails);
+
+                //case DeviceNColorSpaceDetails deviceN:
+                //    // Currently PdfPig only supports the 'Alternate' color space of DeviceNColorSpaceDetails
+                //    return GetBytesPerPixel(deviceN.AlternateColorSpaceDetails);
 
                 default:
                     return 1;
