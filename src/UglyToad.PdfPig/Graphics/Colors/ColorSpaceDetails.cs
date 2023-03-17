@@ -279,7 +279,7 @@
         /// <inheritdoc/>
         public override int GetNumberOfComponents()
         {
-            throw new NotImplementedException("Indexed color space: use base type.");
+            return 1; // TODO check
         }
     }
 
@@ -550,7 +550,7 @@
         /// <inheritdoc/>
         public override int GetNumberOfComponents()
         {
-            throw new NotImplementedException("Seperation color space: use sub type");
+            return 1; // TODO - check that
         }
     }
 

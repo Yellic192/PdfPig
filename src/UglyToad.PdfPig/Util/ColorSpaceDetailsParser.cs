@@ -81,7 +81,7 @@
             {
                 if (cannotRecurse)
                 {
-                    return UnsupportedColorSpaceDetails.Instance;
+                    return DeviceGrayColorSpaceDetails.Instance;
                 }
 
                 var colorSpaceDetails = GetColorSpaceDetails(colorSpace, imageDictionary.Without(NameToken.Filter).Without(NameToken.F), scanner, resourceStore, filterProvider, true);

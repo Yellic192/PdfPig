@@ -47,12 +47,12 @@
             // In case of indexed color space images, unwrap indices to actual pixel component values
             if (details is IndexedColorSpaceDetails indexed)
             {
-                decoded = UnwrapIndexedColorSpaceBytes(indexed, decoded);
+                //decoded = UnwrapIndexedColorSpaceBytes(indexed, decoded); // Issue here with indexed.GetCOlor()
 
                 // Use the base color space in potential further decoding
-                details = indexed.BaseColorSpaceDetails;
+                //details = indexed.BaseColorSpaceDetails;
             }
-            
+
             if (details is CalRGBColorSpaceDetails calRgb)
             {
                 decoded = TransformToRGB(calRgb, decoded);

@@ -23,7 +23,9 @@
             var isColorSpaceSupported =
                 actualColorSpace.Type == ColorSpace.DeviceGray || actualColorSpace.Type == ColorSpace.DeviceRGB
                 || actualColorSpace.Type == ColorSpace.DeviceCMYK || actualColorSpace.Type == ColorSpace.CalGray
-                || actualColorSpace.Type == ColorSpace.CalRGB || actualColorSpace.Type == ColorSpace.DeviceN;
+                || actualColorSpace.Type == ColorSpace.CalRGB || actualColorSpace.Type == ColorSpace.DeviceN
+                || actualColorSpace.Type == ColorSpace.Indexed || actualColorSpace.Type == ColorSpace.Separation
+                || actualColorSpace.Type == ColorSpace.ICCBased;
 
             if (!isColorSpaceSupported || !image.TryGetBytes(out var bytesPure))
             {
@@ -36,11 +38,8 @@
                     image.BitsPerComponent, image.WidthInSamples, image.HeightInSamples);
 
                 var numberOfComponents = actualColorSpace.GetNumberOfComponents();
-                    //actualColorSpace.Type == ColorSpace.DeviceCMYK ? 4 :
-                    //actualColorSpace.Type == ColorSpace.DeviceRGB ? 3 :
-                    //actualColorSpace.Type == ColorSpace.CalRGB ? 3 : 1;
 
-                var is3Byte = numberOfComponents == 3;
+                //var is3Byte = numberOfComponents == 3;
 
                 var builder = PngBuilder.Create(image.WidthInSamples, image.HeightInSamples, false);
 
@@ -63,6 +62,7 @@
                 }
 
                 var i = 0;
+                // The below shoud be in the respective color space (and optimised!)
                 for (var col = 0; col < image.HeightInSamples; col++)
                 {
                     for (var row = 0; row < image.WidthInSamples; row++)
@@ -87,8 +87,17 @@
                                 break;
 
                             case 1:
-                                var g1 = (bytesPure[i++] / 255d);
-                                var rgb1 = actualColorSpace.GetColor(new decimal[] { (decimal)g1 }).ToRGBValues();
+                                decimal g1 = 0;
+                                if (actualColorSpace is IndexedColorSpaceDetails indexed)
+                                {
+                                    g1 = bytesPure[i++]; // hack
+                                }
+                                else
+                                {
+                                    g1 = bytesPure[i++] / 255m;
+                                }
+
+                                var rgb1 = actualColorSpace.GetColor(new decimal[] { g1 }).ToRGBValues();
                                 builder.SetPixel((byte)(rgb1.r * 255), (byte)(rgb1.g * 255), (byte)(rgb1.b * 255), row, col);
                                 break;
 
