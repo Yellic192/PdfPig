@@ -1074,13 +1074,7 @@
         public XmpMetadata Metadata { get; }
 
         /// <summary>
-        /// Raw profile data.
-        /// </summary>
-        [CanBeNull]
-        public IReadOnlyList<byte> RawProfile { get; }
-
-        /// <summary>
-        /// profile.
+        /// ICC profile.
         /// </summary>
         [CanBeNull]
         public IccProfile Profile { get; }
@@ -1111,12 +1105,12 @@
                     $"Must consist of exactly {2 * numberOfColorComponents} (2 x NumberOfColorComponents), but was passed {range.Count}");
             }
             Metadata = metadata;
-            RawProfile = rawProfile;
-            if (RawProfile != null)
+
+            if (rawProfile != null)
             {
                 try
                 {
-                    Profile = IccProfileParser.Create(RawProfile);
+                    Profile = IccProfileParser.Create(rawProfile.ToArray());
                 }
                 catch (Exception ex)
                 {

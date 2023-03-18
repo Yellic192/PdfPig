@@ -29,5 +29,11 @@
             TagTable = tagTable;
             Data = data;
         }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return $"ICC Profile v{Header}";
+        }
     }
 }

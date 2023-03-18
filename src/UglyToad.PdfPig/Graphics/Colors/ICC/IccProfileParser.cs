@@ -1,8 +1,8 @@
 ﻿namespace UglyToad.PdfPig.Graphics.Colors.ICC
 {
     using System;
-    using System.Collections.Generic;
     using System.Linq;
+    using System.Security.Cryptography;
     using System.Text;
     using UglyToad.PdfPig.Graphics.Colors.ICC.Tags;
 
@@ -14,15 +14,15 @@
         /// <summary>
         /// Header - The profile header is 128 bytes in length and contains 18 fields.
         /// </summary>
-        private static IccProfileHeader ParseHeader(byte[] header)
+        private static IccProfileHeader ParseHeader(byte[] profile)
         {
             // Profile size
             // 0 to 3 - UInt32Number
-            uint profileSize = BitConverter.ToUInt32(header.Take(4).ToArray(), 0);
+            uint profileSize = BitConverter.ToUInt32(profile.Take(4).ToArray(), 0);
 
             // Preferred CMM type
             // 4 to 7
-            var preferredCmmType = Encoding.ASCII.GetString(header, 4, 4);
+            var preferredCmmType = Encoding.ASCII.GetString(profile, 4, 4);
 
             // Profile version number
             // 8 to 11
@@ -33,7 +33,7 @@
              * major and minor versions are set by the International Color Consortium. The profile version number consistent
              * with this ICC specification is “4.4.0.0” (encoded as 04400000h)
              */
-            var profileVersionNumber = header.Skip(8).Take(4).ToArray();
+            var profileVersionNumber = profile.Skip(8).Take(4).ToArray();
             int major = profileVersionNumber[0];
             int minor = (int)((uint)(profileVersionNumber[1] & 0xf0) >> 4);
             int bugFix = (int)((uint)(profileVersionNumber[1] & 0x0f));
@@ -42,63 +42,79 @@
 
             // Profile/Device class
             // 12 to 15
-            var profileDeviceClass = GetProfileClass(Encoding.ASCII.GetString(header, 12, 4));
+            var profileDeviceClass = GetProfileClass(Encoding.ASCII.GetString(profile, 12, 4));
 
             // Colour space of data (possibly a derived space)
             // 16 to 19
-            var colourSpaceOfData = Encoding.ASCII.GetString(header, 16, 4);
+            var colourSpaceOfData = Encoding.ASCII.GetString(profile, 16, 4);
 
             // PCS
             // 20 to 23
-            var pcs = Encoding.ASCII.GetString(header, 20, 4);
+            var pcs = Encoding.ASCII.GetString(profile, 20, 4);
 
             // Date and time this profile was first created
             // 24 to 35 - dateTimeNumber
-            var created = IccTagsHelper.ReadDateTimeType(header.Skip(24).Take(12).ToArray());
+            var created = IccTagsHelper.ReadDateTimeType(profile.Skip(24).Take(12).ToArray());
 
             // ‘acsp’ (61637370h) profile file signature
             // 36 to 39
             // The profile file signature field shall contain the value “acsp” (61637370h) as a profile file signature.
-            var profileFileSignature = Encoding.ASCII.GetString(header, 36, 4);
+            var profileFileSignature = Encoding.ASCII.GetString(profile, 36, 4);
 
             // Primary platform signature
             // 40 to 43
-            var primaryPlatformSignature = Encoding.ASCII.GetString(header, 40, 4);
+            var primaryPlatformSignature = Encoding.ASCII.GetString(profile, 40, 4);
 
             // Profile flags to indicate various options for the CMM such as distributed
             // processing and caching options
             // 44 to 47
-            var profileFlags = header.Skip(44).Take(4).ToArray();// TODO
+            var profileFlags = profile.Skip(44).Take(4).ToArray();// TODO
 
             // Device manufacturer of the device for which this profile is created
             // 48 to 51
-            var manufacturer = Encoding.ASCII.GetString(header, 48, 4);
+            var manufacturer = Encoding.ASCII.GetString(profile, 48, 4);
 
             // Device model of the device for which this profile is created
             // 52 to 55
-            var deviceModel = Encoding.ASCII.GetString(header, 52, 4);
+            var deviceModel = Encoding.ASCII.GetString(profile, 52, 4);
 
             // Device attributes unique to the particular device setup such as media type
             // 56 to 63
-            var deviceAttributes = header.Skip(56).Take(8).ToArray(); // TODO
+            var deviceAttributes = profile.Skip(56).Take(8).ToArray(); // TODO
 
             // Rendering Intent
             // 64 to 67
-            var renderingIntent = IccTagsHelper.ReadUInt32(header.Skip(64).Take(4).ToArray());
+            var renderingIntent = IccTagsHelper.ReadUInt32(profile.Skip(64).Take(4).ToArray());
 
             // The nCIEXYZ values of the illuminant of the PCS
             // 68 to 79 - XYZNumber
             // shall be X = 0,964 2, Y = 1,0 and Z = 0,824 9
             // These values are the nCIEXYZ values of CIE illuminant D50
-            var nCIEXYZ = IccXyzType.Parse(header.Skip(68).Take(12).ToArray());
+            var nCIEXYZ = IccXyzType.Parse(profile.Skip(68).Take(12).ToArray());
 
             // Profile creator signature
             // 80 to 83
-            var profileCreatorSignature = Encoding.ASCII.GetString(header, 80, 4);
+            var profileCreatorSignature = Encoding.ASCII.GetString(profile, 80, 4);
 
             // Profile ID
             // 84 to 99
-            var profileId = header.Skip(84).Take(16).ToArray();
+            byte[] profileId = profile.Skip(84).Take(16).ToArray();
+
+            if (profileId.All(b => b == 0))
+            {
+                // Compute profile id
+                // This field, if not zero (00h), shall hold the Profile ID. The Profile ID shall be calculated using the MD5
+                // fingerprinting method as defined in Internet RFC 1321.The entire profile, whose length is given by the size field
+                // in the header, with the profile flags field (bytes 44 to 47, see 7.2.11), rendering intent field (bytes 64 to 67, see
+                // 7.2.15), and profile ID field (bytes 84 to 99) in the profile header temporarily set to zeros (00h), shall be used to
+                // calculate the ID. A profile ID field value of zero (00h) shall indicate that a profile ID has not been calculated.
+                // Profile creators should compute and record a profile ID.
+
+                using (MD5 mD5 = MD5.Create())
+                {
+                    profileId = mD5.ComputeHash(profile);
+                }
+            }
 
             // Bytes reserved for future expansion and shall be set to zero (00h)
             // 100 to 127
@@ -168,15 +184,15 @@
         /// <summary>
         /// TODO
         /// </summary>
-        public static IccProfile Create(IReadOnlyList<byte> bytes)
+        public static IccProfile Create(byte[] bytes)
         {
-            var header = ParseHeader(bytes.Take(128).ToArray());
-            var tagTable = ParseTagTable(bytes.Skip(128).ToArray());
+            var header = ParseHeader(bytes);
+            var tagTable = ParseTagTable(bytes.Skip(128).ToArray()); // Should be lazy
 
-            foreach (var tag in tagTable)
-            {
-                ParseTag4400(bytes.ToArray(), tag);
-            }
+            //foreach (var tag in tagTable)
+            //{
+            //    ParseTag4400(bytes.ToArray(), tag);
+            //}
 
             return new IccProfile(header, tagTable, bytes.ToArray());
         }

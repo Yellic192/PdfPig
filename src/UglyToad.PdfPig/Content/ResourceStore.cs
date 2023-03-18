@@ -52,6 +52,9 @@
                     dictionary = new DictionaryToken(new Dictionary<NameToken, IToken>());
                 }
 
+                // TODO - We need to find a way to store profile that have an actual dictionnary, e.g. ICC profiles - without parsing them again
+
+
                 return ColorSpaceDetailsParser.GetColorSpaceDetails(colorspaceActual, dictionary, scanner, this, filterProvider);
             }
             else if (loadedNamedColorSpaceDetails.TryGetValue(name, out ColorSpaceDetails csdLoaded))

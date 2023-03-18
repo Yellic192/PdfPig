@@ -272,13 +272,6 @@
                             return UnsupportedColorSpaceDetails.Instance;
                         }
 
-                        // TODO - Some are encoded stream - What is it?
-                        IReadOnlyList<byte> rawProfile = null;
-                        if (streamToken.StreamDictionary.ContainsKey(NameToken.Filter))
-                        {
-                            rawProfile = streamToken.Decode(filterProvider, scanner);
-                        }
-
                         // Alternate is optional
                         ColorSpaceDetails alternateColorSpaceDetails = null;
                         if (streamToken.StreamDictionary.TryGet(NameToken.Alternate, out NameToken alternateColorSpaceNameToken) &&
@@ -302,7 +295,7 @@
                             metadata = new XmpMetadata(metadataStream, filterProvider, scanner);
                         }
 
-                        return new ICCBasedColorSpaceDetails(numeric.Int, alternateColorSpaceDetails, range, metadata, rawProfile);
+                        return new ICCBasedColorSpaceDetails(numeric.Int, alternateColorSpaceDetails, range, metadata, streamToken.Decode(filterProvider, scanner));
                     }
                 case ColorSpace.Indexed:
                     {
