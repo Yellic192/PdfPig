@@ -40,8 +40,8 @@
                 var numberOfComponents = actualColorSpace.GetNumberOfComponents();
 
                 //var is3Byte = numberOfComponents == 3;
-
-                var builder = PngBuilder.Create(image.WidthInSamples, image.HeightInSamples, false);
+                const bool hasAlphaChannel = true; // TODO - why should that ever be false??
+                var builder = PngBuilder.Create(image.WidthInSamples, image.HeightInSamples, hasAlphaChannel);
 
                 var requiredSize = (image.WidthInSamples * image.HeightInSamples * numberOfComponents);
 
