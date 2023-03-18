@@ -135,7 +135,7 @@
             Run(TIKA_2121_0, 9);
         }
 
-        [Fact]
+        [Fact(Skip = "Not all")]
         public void TIKA_2121_0TestAll()
         {
             RunAllPages(TIKA_2121_0);

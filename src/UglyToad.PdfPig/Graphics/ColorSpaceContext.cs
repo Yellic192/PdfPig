@@ -4,6 +4,7 @@
     using Content;
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using Tokens;
 
     internal class ColorSpaceContext : IColorSpaceContext
@@ -56,7 +57,7 @@
             }
             else
             {
-                currentStateFunc().CurrentStrokingColor = CurrentStrokingColorSpaceDetails.GetColor(operands);
+                currentStateFunc().CurrentStrokingColor = CurrentStrokingColorSpaceDetails.GetColor(operands.Select(v => (double)v).ToArray());
             }
         }
 
@@ -120,7 +121,7 @@
             }
             else
             {
-                currentStateFunc().CurrentNonStrokingColor = CurrentNonStrokingColorSpaceDetails.GetColor(operands);
+                currentStateFunc().CurrentNonStrokingColor = CurrentNonStrokingColorSpaceDetails.GetColor(operands.Select(v => (double)v).ToArray());
             }
         }
 

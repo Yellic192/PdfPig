@@ -148,7 +148,7 @@
         /// In many cases will be an array of a single value, but not always.</param>
         /// <returns>The of outputs the function returns based on those inputs.
         /// In many cases will be an array of a single value, but not always.</returns>
-        public abstract double[] Eval(double[] input);
+        public abstract double[] Eval(params double[] input);
 
         /// <summary>
         /// Returns all ranges for the output values as <see cref="ArrayToken"/>. Required for type 0 and type 4 functions.

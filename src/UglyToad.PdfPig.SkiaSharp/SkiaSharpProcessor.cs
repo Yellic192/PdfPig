@@ -848,8 +848,8 @@
             for (int t = 0; t <= factor; t++)
             {
                 double tx = t0 + (t / (double)factor) * t1;
-                double[] v = shading.Function.Eval(new double[] { tx });
-                IColor c = shading.ColorSpace.GetColor(v.Select(k => (decimal)k).ToArray());
+                double[] v = shading.Function.Eval(tx);
+                IColor c = shading.ColorSpace.GetColor(v);
                 colors.Add(c.ToSKColor(GetCurrentState().AlphaConstantNonStroking)); // TODO - is it non stroking??
             }
 
@@ -962,8 +962,8 @@
             for (int t = 0; t <= factor; t++)
             {
                 double tx = t0 + (t / (double)factor) * t1;
-                double[] v = shading.Function.Eval(new double[] { tx });
-                IColor c = shading.ColorSpace.GetColor(v.Select(k => (decimal)k).ToArray());
+                double[] v = shading.Function.Eval(tx);
+                IColor c = shading.ColorSpace.GetColor(v);
                 colors.Add(c.ToSKColor(GetCurrentState().AlphaConstantNonStroking)); // TODO - is it non stroking??
             }
 
@@ -1033,8 +1033,8 @@
             for (int t = 0; t <= factor; t++)
             {
                 double tx = t0 + (t / (double)factor) * t1;
-                double[] v = shading.Function.Eval(new double[] { tx });
-                IColor c = shading.ColorSpace.GetColor(v.Select(k => (decimal)k).ToArray());
+                double[] v = shading.Function.Eval(tx);
+                IColor c = shading.ColorSpace.GetColor(v);
                 colors.Add(c.ToSKColor(isStroke ? GetCurrentState().AlphaConstantStroking : GetCurrentState().AlphaConstantNonStroking));
             }
 

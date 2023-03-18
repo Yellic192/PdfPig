@@ -35,7 +35,7 @@
                 // TODO - why should that ever be false??
                 // the below works but makes test fail,
                 // we need to find a way to check for alpha channel
-                const bool hasAlphaChannel = true;
+                bool hasAlphaChannel = image.SMask != null; // TODO - a guess
 
                 var requiredSize = (image.WidthInSamples * image.HeightInSamples * actualColorSpace.NumberOfColorComponents);
 

@@ -44,7 +44,7 @@
             }
         }
 
-        public override double[] Eval(double[] input)
+        public override double[] Eval(params double[] input)
         {
             // This function is known as a "stitching" function. Based on the input, it decides which child function to call.
             // All functions in the array are 1-value-input functions
@@ -106,9 +106,9 @@
             {
                 throw new IOException("partition not found in type 3 function");
             }
-            double[] functionValues = new double[] { x };
+
             // calculate the output values using the chosen function
-            double[] functionResult = function.Eval(functionValues);
+            double[] functionResult = function.Eval(x);
             // clip to range if available
             return ClipToRange(functionResult);
         }

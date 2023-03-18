@@ -20,7 +20,7 @@
             }
         }
 
-        public override double[] Eval(double[] input)
+        public override double[] Eval(params double[] input)
         {
             return input;
         }

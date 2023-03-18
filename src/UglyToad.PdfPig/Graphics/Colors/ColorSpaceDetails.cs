@@ -43,7 +43,7 @@
         /// TODO
         /// </summary>
         /// <param name="values"></param>
-        public abstract IColor GetColor(IReadOnlyList<decimal> values);
+        public abstract IColor GetColor(params double[] values);
 
         /// <summary>
         /// TODO
@@ -86,14 +86,14 @@
         }
 
         /// <inheritdoc/>
-        public override IColor GetColor(IReadOnlyList<decimal> values)
+        public override IColor GetColor(params double[] values)
         {
-            if (values == null || values.Count != 1)
+            if (values == null || values.Length != 1)
             {
                 throw new ArgumentException(nameof(values));
             }
 
-            decimal gray = values[0];
+            double gray = values[0];
             if (gray == 0)
             {
                 return GrayColor.Black;
@@ -104,7 +104,7 @@
             }
             else
             {
-                return new GrayColor(gray);
+                return new GrayColor((decimal)gray);
             }
         }
 
@@ -150,16 +150,16 @@
         }
 
         /// <inheritdoc/>
-        public override IColor GetColor(IReadOnlyList<decimal> values)
+        public override IColor GetColor(params double[] values)
         {
-            if (values == null || values.Count != 3)
+            if (values == null || values.Length != 3)
             {
                 throw new ArgumentException(nameof(values));
             }
 
-            decimal r = values[0];
-            decimal g = values[1];
-            decimal b = values[2];
+            double r = values[0];
+            double g = values[1];
+            double b = values[2];
             if (r == 0 && g == 0 && b == 0)
             {
                 return RGBColor.Black;
@@ -169,7 +169,7 @@
                 return RGBColor.White;
             }
 
-            return new RGBColor(r, g, b);
+            return new RGBColor((decimal)r, (decimal)g, (decimal)b);
         }
 
         /// <inheritdoc/>
@@ -212,17 +212,17 @@
         }
 
         /// <inheritdoc/>
-        public override IColor GetColor(IReadOnlyList<decimal> values)
+        public override IColor GetColor(params double[] values)
         {
-            if (values == null || values.Count != 4)
+            if (values == null || values.Length != 4)
             {
                 throw new ArgumentException(nameof(values));
             }
 
-            decimal c = values[0];
-            decimal m = values[1];
-            decimal y = values[2];
-            decimal k = values[3];
+            double c = values[0];
+            double m = values[1];
+            double y = values[2];
+            double k = values[3];
             if (c == 0 && m == 0 && y == 0 && k == 1)
             {
                 return CMYKColor.Black;
@@ -232,7 +232,7 @@
                 return CMYKColor.White;
             }
 
-            return new CMYKColor(c, m, y, k);
+            return new CMYKColor((decimal)c, (decimal)m, (decimal)y, (decimal)k);
         }
 
         /// <inheritdoc/>
@@ -322,16 +322,16 @@
         }
 
         /// <inheritdoc/>
-        public override IColor GetColor(IReadOnlyList<decimal> values)
+        public override IColor GetColor(params double[] values)
         {
-            if (values.Count > 1)
+            if (values.Length > 1)
             {
                 // TODO - not the correct way
                 return BaseColorSpaceDetails.GetColor(values);
             }
 
             var csBytes = ColorSpaceDetailsByteConverter.UnwrapIndexedColorSpaceBytes(this, values.Select(d => (byte)d).ToArray());
-            return BaseColorSpaceDetails.GetColor(csBytes.Select(b => b / 255m).ToArray());
+            return BaseColorSpaceDetails.GetColor(csBytes.Select(b => b / 255.0).ToArray());
         }
 
         /// <inheritdoc/>
@@ -339,7 +339,7 @@
         {
             // Setting the current stroking or nonstroking colour space to an Indexed colour space shall
             // initialize the corresponding current colour to 0.
-            return GetColor(new decimal[] { 0 });
+            return GetColor(0);
         }
 
         /// <inheritdoc/>
@@ -351,7 +351,7 @@
             {
                 for (var row = 0; row < widthInSamples; row++)
                 {
-                    var (r, g, b) = GetColor(new decimal[] { bytesPure[i++] }).ToRGBValues();
+                    var (r, g, b) = GetColor(bytesPure[i++]).ToRGBValues();
                     builder.SetPixel(ConvertToByte(r), ConvertToByte(g), ConvertToByte(b), row, col);
                 }
             }
@@ -438,12 +438,12 @@
         }
 
         /// <inheritdoc/>
-        public override IColor GetColor(IReadOnlyList<decimal> values)
+        public override IColor GetColor(params double[] values)
         {
             // TODO - Named colors
 
             // TODO - caching
-            var evaled = func.Eval(values.Select(v => (double)v).ToArray()).Select(k => (decimal)k).ToArray();
+            var evaled = func.Eval(values);
             return AlternateColorSpaceDetails.GetColor(evaled);
         }
 
@@ -453,7 +453,7 @@
             // When this space is set to the current colour space (using the CS or cs operators), each component
             // shall be given an initial value of 1.0. The SCN and scn operators respectively shall set the current
             // stroking and nonstroking colour.
-            return GetColor(Enumerable.Repeat(1m, NumberOfColorComponents).ToArray());
+            return GetColor(Enumerable.Repeat(1.0, NumberOfColorComponents).ToArray());
         }
 
         /// <inheritdoc/>
@@ -465,10 +465,10 @@
             {
                 for (var row = 0; row < widthInSamples; row++)
                 {
-                    decimal[] comps = new decimal[NumberOfColorComponents];
+                    double[] comps = new double[NumberOfColorComponents];
                     for (int n = 0; n < NumberOfColorComponents; n++)
                     {
-                        comps[n] = bytesPure[i++] / 255m; // Do we want to divide by 255?
+                        comps[n] = bytesPure[i++] / 255.0; // Do we want to divide by 255?
                     }
                     var (r, g, b) = GetColor(comps).ToRGBValues();
                     builder.SetPixel(ConvertToByte(r), ConvertToByte(g), ConvertToByte(b), row, col);
@@ -616,7 +616,7 @@
         }
 
         /// <inheritdoc/>
-        public override IColor GetColor(IReadOnlyList<decimal> values)
+        public override IColor GetColor(params double[] values)
         {
             if (namedColor != null)
             {
@@ -624,7 +624,7 @@
             }
 
             // TODO - caching
-            var evaled = TintFunction.Eval(values.Select(v => (double)v).ToArray()).Select(k => (decimal)k).ToArray();
+            var evaled = TintFunction.Eval(values);
             return AlternateColorSpaceDetails.GetColor(evaled);
         }
 
@@ -632,7 +632,7 @@
         public override IColor GetInitializeColor()
         {
             // The initial value for both the stroking and nonstroking colour in the graphics state shall be 1.0.
-            return GetColor(new decimal[] { 1 });
+            return GetColor(1.0);
         }
 
         /// <inheritdoc/>
@@ -644,7 +644,7 @@
             {
                 for (var row = 0; row < widthInSamples; row++)
                 {
-                    var (r, g, b) = GetColor(new decimal[] { bytesPure[i++] / 255m }).ToRGBValues(); // Do we want to divide by 255?
+                    var (r, g, b) = GetColor(bytesPure[i++] / 255.0).ToRGBValues(); // Do we want to divide by 255?
                     builder.SetPixel(ConvertToByte(r), ConvertToByte(g), ConvertToByte(b), row, col);
                 }
             }
@@ -722,16 +722,16 @@
         /// <see cref="CalGrayColorSpaceDetails"/> in the transformation process.
         /// A represents the gray component of a calibrated gray space. The component must be in the range 0.0 to 1.0.
         /// </summary>
-        internal RGBColor TransformToRGB(decimal colorA)
+        internal RGBColor TransformToRGB(double colorA)
         {
-            var (R, G, B) = colorSpaceTransformer.TransformToRGB(((double)colorA, (double)colorA, (double)colorA));
+            var (R, G, B) = colorSpaceTransformer.TransformToRGB((colorA, colorA, colorA));
             return new RGBColor((decimal)R, (decimal)G, (decimal)B);
         }
 
         /// <inheritdoc/>
-        public override IColor GetColor(IReadOnlyList<decimal> values)
+        public override IColor GetColor(params double[] values)
         {
-            if (values == null || values.Count != 1)
+            if (values == null || values.Length != 1)
             {
                 throw new ArgumentException(nameof(values));
             }
@@ -758,7 +758,7 @@
             {
                 for (var row = 0; row < widthInSamples; row++)
                 {
-                    var (r, g, b) = GetColor(new decimal[] { bytesPure[i++] / 255m }).ToRGBValues();
+                    var (r, g, b) = GetColor(bytesPure[i++] / 255.0).ToRGBValues();
                     builder.SetPixel(ConvertToByte(r), ConvertToByte(g), ConvertToByte(b), row, col);
                 }
             }
@@ -854,14 +854,14 @@
         /// in the transformation process.
         /// A, B and C represent red, green and blue calibrated color values in the range 0.0 to 1.0. 
         /// </summary>
-        internal RGBColor TransformToRGB((decimal A, decimal B, decimal C) colorAbc)
+        internal RGBColor TransformToRGB((double A, double B, double C) colorAbc)
         {
-            var (R, G, B) = colorSpaceTransformer.TransformToRGB(((double)colorAbc.A, (double)colorAbc.B, (double)colorAbc.C));
+            var (R, G, B) = colorSpaceTransformer.TransformToRGB((colorAbc.A, colorAbc.B, colorAbc.C));
             return new RGBColor((decimal)R, (decimal)G, (decimal)B);
         }
 
         /// <inheritdoc/>
-        public override IColor GetColor(IReadOnlyList<decimal> values)
+        public override IColor GetColor(params double[] values)
         {
             return TransformToRGB((values[0], values[1], values[2]));
         }
@@ -885,7 +885,7 @@
             {
                 for (var row = 0; row < widthInSamples; row++)
                 {
-                    var (r, g, b) = GetColor(new decimal[] { bytesPure[i++] / 255m, bytesPure[i++] / 255m, bytesPure[i++] / 255m }).ToRGBValues();
+                    var (r, g, b) = GetColor(bytesPure[i++] / 255.0, bytesPure[i++] / 255.0, bytesPure[i++] / 255.0).ToRGBValues();
                     builder.SetPixel(ConvertToByte(r), ConvertToByte(g), ConvertToByte(b), row, col);
                 }
             }
@@ -960,7 +960,7 @@
         /// component shall be 0 to 100; the ranges of the second and third (a* and b*) components shall be defined by
         /// the Range entry in the colour space dictionary
         /// </summary>
-        internal RGBColor TransformToRGB((decimal A, decimal B, decimal C) colorAbc)
+        internal RGBColor TransformToRGB((double A, double B, double C) colorAbc)
         {
             // Component Ranges: L*: [0 100]; a* and b*: [−128 127]
             double b = PdfFunction.ClipToRange((double)colorAbc.B, (double)Matrix[0], (double)Matrix[1]);
@@ -988,7 +988,7 @@
         }
 
         /// <inheritdoc/>
-        public override IColor GetColor(IReadOnlyList<decimal> values)
+        public override IColor GetColor(params double[] values)
         {
             return TransformToRGB((values[0], values[1], values[2]));
         }
@@ -1012,7 +1012,7 @@
             {
                 for (var row = 0; row < widthInSamples; row++)
                 {
-                    var (r, g, b) = GetColor(new decimal[] { bytesPure[i++] / 255m, bytesPure[i++] / 255m, bytesPure[i++] / 255m }).ToRGBValues();
+                    var (r, g, b) = GetColor(bytesPure[i++] / 255.0, bytesPure[i++] / 255.0, bytesPure[i++] / 255.0).ToRGBValues();
                     builder.SetPixel(ConvertToByte(r), ConvertToByte(g), ConvertToByte(b), row, col);
                 }
             }
@@ -1127,9 +1127,9 @@
         }
 
         /// <inheritdoc/>
-        public override IColor GetColor(IReadOnlyList<decimal> values)
+        public override IColor GetColor(params double[] values)
         {
-            if (values == null || values.Count != NumberOfColorComponents)
+            if (values == null || values.Length != NumberOfColorComponents)
             {
                 throw new ArgumentException(nameof(values));
             }
@@ -1146,7 +1146,7 @@
             // initialize all components of the corresponding current colour to 0.0 (unless the range of valid
             // values for a given component does not include 0.0, in which case the nearest valid value shall
             // be substituted.)
-            decimal[] init = Enumerable.Repeat(0m, NumberOfColorComponents).ToArray();
+            double[] init = Enumerable.Repeat(0.0, NumberOfColorComponents).ToArray();
             return GetColor(init);
         }
 
@@ -1159,10 +1159,10 @@
             {
                 for (var row = 0; row < widthInSamples; row++)
                 {
-                    decimal[] comps = new decimal[NumberOfColorComponents];
+                    double[] comps = new double[NumberOfColorComponents];
                     for (int k1 = 0; k1 < NumberOfColorComponents; k1++)
                     {
-                        comps[k1] = bytesPure[i++] / 255m; // Do we want to divide by 255?
+                        comps[k1] = bytesPure[i++] / 255.0; // Do we want to divide by 255?
                     }
                     var (r, g, b) = GetColor(comps).ToRGBValues();
                     builder.SetPixel(ConvertToByte(r), ConvertToByte(g), ConvertToByte(b), row, col);
@@ -1205,7 +1205,7 @@
         /// Cannot be called for <see cref="PatternColorSpaceDetails"/>, will throw a <see cref="InvalidOperationException"/>.
         /// </para>
         /// </summary>
-        public override IColor GetColor(IReadOnlyList<decimal> values)
+        public override IColor GetColor(params double[] values)
         {
             throw new InvalidOperationException("PatternColorSpaceDetails");
         }
@@ -1253,7 +1253,7 @@
         }
 
         /// <inheritdoc/>
-        public override IColor GetColor(IReadOnlyList<decimal> values)
+        public override IColor GetColor(params double[] values)
         {
             return debugColor;
         }
