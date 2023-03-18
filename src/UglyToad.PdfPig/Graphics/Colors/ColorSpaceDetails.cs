@@ -8,8 +8,11 @@
     using UglyToad.PdfPig.Functions;
     using UglyToad.PdfPig.Graphics.Colors.ICC;
     using UglyToad.PdfPig.Images;
+    using UglyToad.PdfPig.Images.Png;
     using UglyToad.PdfPig.Util;
     using UglyToad.PdfPig.Util.JetBrains.Annotations;
+
+    // TODO - SHould not use PngBuilded??
 
     /// <summary>
     /// Contains more document-specific information about the <see cref="ColorSpace"/>.
@@ -43,6 +46,11 @@
         public abstract IColor GetColor(IReadOnlyList<decimal> values);
 
         /// <summary>
+        /// TODO
+        /// </summary>
+        public abstract byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel);
+
+        /// <summary>
         /// Get the color that initialize the current stroking or nonstroking colour.
         /// </summary>
         public abstract IColor GetInitializeColor();
@@ -51,6 +59,15 @@
         /// The number of components for the color space.
         /// </summary>
         public abstract int NumberOfColorComponents { get; }
+
+        /// <summary>
+        /// Convert to byte.
+        /// </summary>
+        protected static byte ConvertToByte(decimal componentValue)
+        {
+            var rounded = Math.Round(componentValue * 255, MidpointRounding.AwayFromZero);
+            return (byte)rounded;
+        }
     }
 
     /// <summary>
@@ -95,6 +112,22 @@
         public override IColor GetInitializeColor()
         {
             return GrayColor.Black;
+        }
+
+        /// <inheritdoc/>
+        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        {
+            var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
+            int i = 0; // To remove, use col and row to get index
+            for (var col = 0; col < heightInSamples; col++)
+            {
+                for (var row = 0; row < widthInSamples; row++)
+                {
+                    var pixel = bytesPure[i++];
+                    builder.SetPixel(pixel, pixel, pixel, row, col);
+                }
+            }
+            return builder.Save();
         }
 
         /// <inheritdoc/>
@@ -146,6 +179,21 @@
         }
 
         /// <inheritdoc/>
+        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        {
+            var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
+            int i = 0; // To remove, use col and row to get index
+            for (var col = 0; col < heightInSamples; col++)
+            {
+                for (var row = 0; row < widthInSamples; row++)
+                {
+                    builder.SetPixel(bytesPure[i++], bytesPure[i++], bytesPure[i++], row, col);
+                }
+            }
+            return builder.Save();
+        }
+
+        /// <inheritdoc/>
         public override int NumberOfColorComponents => 3;
     }
 
@@ -191,6 +239,35 @@
         public override IColor GetInitializeColor()
         {
             return CMYKColor.Black;
+        }
+
+        /// <inheritdoc/>
+        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        {
+            var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
+            int i = 0; // To remove, use col and row to get index
+            for (var col = 0; col < heightInSamples; col++)
+            {
+                for (var row = 0; row < widthInSamples; row++)
+                {
+                    // TODO: put conversion in CMYKColor as static
+                    // Where CMYK in 0..1
+                    // R = 255 × (1-C) × (1-K)
+                    // G = 255 × (1-M) × (1-K)
+                    // B = 255 × (1-Y) × (1-K)
+
+                    var c = bytesPure[i++] / 255d;
+                    var m = bytesPure[i++] / 255d;
+                    var y = bytesPure[i++] / 255d;
+                    var k = bytesPure[i++] / 255d;
+                    var r = ConvertToByte((decimal)((1 - c) * (1 - k)));
+                    var g = ConvertToByte((decimal)((1 - m) * (1 - k)));
+                    var b = ConvertToByte((decimal)((1 - y) * (1 - k)));
+
+                    builder.SetPixel(r, g, b, row, col);
+                }
+            }
+            return builder.Save();
         }
 
         /// <inheritdoc/>
@@ -250,8 +327,6 @@
             if (values.Count > 1)
             {
                 // TODO - not the correct way
-                //var csBytes2 = ColorSpaceDetailsByteConverter.UnwrapIndexedColorSpaceBytes(this, values.Select(d => (byte)d).ToArray());
-                //var test = BaseColorSpaceDetails.GetColor(csBytes.Select(b => b / 255m).ToArray());
                 return BaseColorSpaceDetails.GetColor(values);
             }
 
@@ -265,6 +340,22 @@
             // Setting the current stroking or nonstroking colour space to an Indexed colour space shall
             // initialize the corresponding current colour to 0.
             return GetColor(new decimal[] { 0 });
+        }
+
+        /// <inheritdoc/>
+        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        {
+            var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
+            int i = 0; // To remove, use col and row to get index
+            for (var col = 0; col < heightInSamples; col++)
+            {
+                for (var row = 0; row < widthInSamples; row++)
+                {
+                    var (r, g, b) = GetColor(new decimal[] { bytesPure[i++] }).ToRGBValues();
+                    builder.SetPixel(ConvertToByte(r), ConvertToByte(g), ConvertToByte(b), row, col);
+                }
+            }
+            return builder.Save();
         }
 
         /// <inheritdoc/>
@@ -312,8 +403,6 @@
         /// </summary>
         private readonly PdfFunction func;
 
-        private readonly int n;
-
         private readonly Dictionary<string, IColor> lookupTable = new Dictionary<string, IColor>()
         {
             // TODO - not always RGBColor type?
@@ -345,16 +434,6 @@
             NumberOfColorComponents = Names.Count; // TODO - To check
             AlternateColorSpaceDetails = alternateColorSpaceDetails;
             Attributes = attributes; // TODO - use attributes
-            /*
-            if (lookupTable.TryGetValue(name, out var lookup))
-            {
-                namedColor = lookup;
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"Unknown color name '{Names.Data}'");
-            }
-            */
             func = tintFunction;
         }
 
@@ -374,7 +453,28 @@
             // When this space is set to the current colour space (using the CS or cs operators), each component
             // shall be given an initial value of 1.0. The SCN and scn operators respectively shall set the current
             // stroking and nonstroking colour.
-            return GetColor(Enumerable.Repeat(1m, n).ToArray());
+            return GetColor(Enumerable.Repeat(1m, NumberOfColorComponents).ToArray());
+        }
+
+        /// <inheritdoc/>
+        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        {
+            var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
+            int i = 0; // To remove, use col and row to get index
+            for (var col = 0; col < heightInSamples; col++)
+            {
+                for (var row = 0; row < widthInSamples; row++)
+                {
+                    decimal[] comps = new decimal[NumberOfColorComponents];
+                    for (int n = 0; n < NumberOfColorComponents; n++)
+                    {
+                        comps[n] = bytesPure[i++] / 255m; // Do we want to divide by 255?
+                    }
+                    var (r, g, b) = GetColor(comps).ToRGBValues();
+                    builder.SetPixel(ConvertToByte(r), ConvertToByte(g), ConvertToByte(b), row, col);
+                }
+            }
+            return builder.Save();
         }
 
         /// <summary>
@@ -536,6 +636,22 @@
         }
 
         /// <inheritdoc/>
+        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        {
+            var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
+            int i = 0; // To remove, use col and row to get index
+            for (var col = 0; col < heightInSamples; col++)
+            {
+                for (var row = 0; row < widthInSamples; row++)
+                {
+                    var (r, g, b) = GetColor(new decimal[] { bytesPure[i++] / 255m }).ToRGBValues(); // Do we want to divide by 255?
+                    builder.SetPixel(ConvertToByte(r), ConvertToByte(g), ConvertToByte(b), row, col);
+                }
+            }
+            return builder.Save();
+        }
+
+        /// <inheritdoc/>
         public override int NumberOfColorComponents => 1; // TODO - To check
     }
 
@@ -608,8 +724,8 @@
         /// </summary>
         internal RGBColor TransformToRGB(decimal colorA)
         {
-            var colorRgb = colorSpaceTransformer.TransformToRGB(((double)colorA, (double)colorA, (double)colorA));
-            return new RGBColor((decimal)colorRgb.R, (decimal)colorRgb.G, (decimal)colorRgb.B);
+            var (R, G, B) = colorSpaceTransformer.TransformToRGB(((double)colorA, (double)colorA, (double)colorA));
+            return new RGBColor((decimal)R, (decimal)G, (decimal)B);
         }
 
         /// <inheritdoc/>
@@ -631,6 +747,22 @@
             // values for a given component does not include 0.0, in which case the nearest valid value shall
             // be substituted.)
             return TransformToRGB(0);
+        }
+
+        /// <inheritdoc/>
+        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        {
+            var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
+            int i = 0; // To remove, use col and row to get index
+            for (var col = 0; col < heightInSamples; col++)
+            {
+                for (var row = 0; row < widthInSamples; row++)
+                {
+                    var (r, g, b) = GetColor(new decimal[] { bytesPure[i++] / 255m }).ToRGBValues();
+                    builder.SetPixel(ConvertToByte(r), ConvertToByte(g), ConvertToByte(b), row, col);
+                }
+            }
+            return builder.Save();
         }
 
         /// <inheritdoc/>
@@ -745,6 +877,22 @@
         }
 
         /// <inheritdoc/>
+        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        {
+            var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
+            int i = 0; // To remove, use col and row to get index
+            for (var col = 0; col < heightInSamples; col++)
+            {
+                for (var row = 0; row < widthInSamples; row++)
+                {
+                    var (r, g, b) = GetColor(new decimal[] { bytesPure[i++] / 255m, bytesPure[i++] / 255m, bytesPure[i++] / 255m }).ToRGBValues();
+                    builder.SetPixel(ConvertToByte(r), ConvertToByte(g), ConvertToByte(b), row, col);
+                }
+            }
+            return builder.Save();
+        }
+
+        /// <inheritdoc/>
         public override int NumberOfColorComponents => 3;
     }
 
@@ -853,6 +1001,22 @@
             // values for a given component does not include 0.0, in which case the nearest valid value shall
             // be substituted.)
             return TransformToRGB((0, 0, 0));
+        }
+
+        /// <inheritdoc/>
+        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        {
+            var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
+            int i = 0; // To remove, use col and row to get index
+            for (var col = 0; col < heightInSamples; col++)
+            {
+                for (var row = 0; row < widthInSamples; row++)
+                {
+                    var (r, g, b) = GetColor(new decimal[] { bytesPure[i++] / 255m, bytesPure[i++] / 255m, bytesPure[i++] / 255m }).ToRGBValues();
+                    builder.SetPixel(ConvertToByte(r), ConvertToByte(g), ConvertToByte(b), row, col);
+                }
+            }
+            return builder.Save();
         }
 
         /// <inheritdoc/>
@@ -970,6 +1134,8 @@
                 throw new ArgumentException(nameof(values));
             }
 
+            // TODO - use ICC profile
+
             return AlternateColorSpaceDetails.GetColor(values);
         }
 
@@ -982,6 +1148,27 @@
             // be substituted.)
             decimal[] init = Enumerable.Repeat(0m, NumberOfColorComponents).ToArray();
             return GetColor(init);
+        }
+
+        /// <inheritdoc/>
+        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        {
+            var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
+            int i = 0; // To remove, use col and row to get index
+            for (var col = 0; col < heightInSamples; col++)
+            {
+                for (var row = 0; row < widthInSamples; row++)
+                {
+                    decimal[] comps = new decimal[NumberOfColorComponents];
+                    for (int k1 = 0; k1 < NumberOfColorComponents; k1++)
+                    {
+                        comps[k1] = bytesPure[i++] / 255m; // Do we want to divide by 255?
+                    }
+                    var (r, g, b) = GetColor(comps).ToRGBValues();
+                    builder.SetPixel(ConvertToByte(r), ConvertToByte(g), ConvertToByte(b), row, col);
+                }
+            }
+            return builder.Save();
         }
     }
 
@@ -1035,6 +1222,17 @@
         /// Cannot be called for <see cref="PatternColorSpaceDetails"/>, will throw a <see cref="InvalidOperationException"/>.
         /// </para>
         /// </summary>
+        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        {
+            throw new InvalidOperationException("PatternColorSpaceDetails");
+        }
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// <para>
+        /// Cannot be called for <see cref="PatternColorSpaceDetails"/>, will throw a <see cref="InvalidOperationException"/>.
+        /// </para>
+        /// </summary>
         public override int NumberOfColorComponents => throw new InvalidOperationException("PatternColorSpaceDetails");
     }
 
@@ -1066,7 +1264,23 @@
             return debugColor;
         }
 
+        /// <summary>
         /// <inheritdoc/>
-        public override int NumberOfColorComponents => throw new InvalidOperationException("PatternColorSpaceDetails");
+        /// <para>
+        /// Cannot be called for <see cref="UnsupportedColorSpaceDetails"/>, will throw a <see cref="InvalidOperationException"/>.
+        /// </para>
+        /// </summary>
+        public override int NumberOfColorComponents => throw new InvalidOperationException("UnsupportedColorSpaceDetails");
+
+        /// <summary>
+        /// <inheritdoc/>
+        /// <para>
+        /// Cannot be called for <see cref="UnsupportedColorSpaceDetails"/>, will throw a <see cref="InvalidOperationException"/>.
+        /// </para>
+        /// </summary>
+        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        {
+            throw new InvalidOperationException("UnsupportedColorSpaceDetails");
+        }
     }
 }
