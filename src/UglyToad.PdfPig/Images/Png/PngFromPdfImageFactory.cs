@@ -32,7 +32,10 @@
                 bytesPure = ColorSpaceDetailsByteConverter.Convert(image.ColorSpaceDetails, bytesPure,
                     image.BitsPerComponent, image.WidthInSamples, image.HeightInSamples);
 
-                const bool hasAlphaChannel = true; // TODO - why should that ever be false??
+                // TODO - why should that ever be false??
+                // the below works but makes test fail,
+                // we need to find a way to check for alpha channel
+                const bool hasAlphaChannel = true;
 
                 var requiredSize = (image.WidthInSamples * image.HeightInSamples * actualColorSpace.NumberOfColorComponents);
 

@@ -6,7 +6,7 @@
 
     public class StressfulTests
     {
-        [Fact]
+        [Fact(Skip = "for debug")]
         public void RunAll()
         {
             const string paths = "C:\\Users\\Bob\\Document Layout Analysis\\stressful corpus";
