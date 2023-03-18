@@ -48,9 +48,9 @@
         public abstract IColor GetInitializeColor();
 
         /// <summary>
-        /// Get the number of components for the color space.
+        /// The number of components for the color space.
         /// </summary>
-        public abstract int GetNumberOfComponents();
+        public abstract int NumberOfColorComponents { get; }
     }
 
     /// <summary>
@@ -98,10 +98,7 @@
         }
 
         /// <inheritdoc/>
-        public override int GetNumberOfComponents() // TODO Make that a property, not a function
-        {
-            return 1;
-        }
+        public override int NumberOfColorComponents => 1;
     }
 
     /// <summary>
@@ -149,10 +146,7 @@
         }
 
         /// <inheritdoc/>
-        public override int GetNumberOfComponents()
-        {
-            return 3;
-        }
+        public override int NumberOfColorComponents => 3;
     }
 
     /// <summary>
@@ -200,10 +194,7 @@
         }
 
         /// <inheritdoc/>
-        public override int GetNumberOfComponents()
-        {
-            return 4;
-        }
+        public override int NumberOfColorComponents => 4;
     }
 
     /// <summary>
@@ -277,10 +268,7 @@
         }
 
         /// <inheritdoc/>
-        public override int GetNumberOfComponents()
-        {
-            return 1; // TODO check
-        }
+        public override int NumberOfColorComponents => 1;
     }
 
     /// <summary>
@@ -324,7 +312,7 @@
         /// </summary>
         private readonly PdfFunction func;
 
-        private int n;
+        private readonly int n;
 
         private readonly Dictionary<string, IColor> lookupTable = new Dictionary<string, IColor>()
         {
@@ -354,7 +342,7 @@
             : base(ColorSpace.DeviceN)
         {
             Names = names;
-            n = Names.Count;
+            NumberOfColorComponents = Names.Count; // TODO - To check
             AlternateColorSpaceDetails = alternateColorSpaceDetails;
             Attributes = attributes; // TODO - use attributes
             /*
@@ -389,11 +377,11 @@
             return GetColor(Enumerable.Repeat(1m, n).ToArray());
         }
 
+        /// <summary>
         /// <inheritdoc/>
-        public override int GetNumberOfComponents()
-        {
-            return n; // TODO - not sure
-        }
+        /// <para>The 'N' in DeviceN.</para>
+        /// </summary>
+        public override int NumberOfColorComponents { get; }
 
         /// <summary>
         /// TODO
@@ -548,10 +536,7 @@
         }
 
         /// <inheritdoc/>
-        public override int GetNumberOfComponents()
-        {
-            return 1; // TODO - check that
-        }
+        public override int NumberOfColorComponents => 1; // TODO - To check
     }
 
     /// <summary>
@@ -649,10 +634,7 @@
         }
 
         /// <inheritdoc/>
-        public override int GetNumberOfComponents()
-        {
-            return 1;
-        }
+        public override int NumberOfColorComponents => 1;
     }
 
     /// <summary>
@@ -763,10 +745,7 @@
         }
 
         /// <inheritdoc/>
-        public override int GetNumberOfComponents()
-        {
-            return 3;
-        }
+        public override int NumberOfColorComponents => 3;
     }
 
     /// <summary>
@@ -877,10 +856,7 @@
         }
 
         /// <inheritdoc/>
-        public override int GetNumberOfComponents()
-        {
-            return 3; // TODO - check
-        }
+        public override int NumberOfColorComponents => 3; // TODO - To check
     }
 
     /// <summary>
@@ -899,19 +875,22 @@
         /// This numbers shall match the number of components actually in the ICC profile.
         /// Valid values are 1, 3 and 4.
         /// </summary>
-        public int NumberOfColorComponents { get; }
+        public override int NumberOfColorComponents { get; }
 
         /// <summary>
+        /// <para>
         /// An alternate color space that can be used in case the one specified in the stream data is not
         /// supported. Non-conforming readers may use this color space. The alternate color space may be any
         /// valid color space (except a Pattern color space). If this property isn't explicitly set during
         /// construction, it will assume one of the color spaces, DeviceGray, DeviceRGB or DeviceCMYK depending
         /// on whether the value of <see cref="NumberOfColorComponents"/> is 1, 3 or respectively.
-        ///
+        /// </para>
+        /// <para>
         /// Conversion of the source color values should not be performed when using the alternate color space.
         /// Color values within the range of the ICCBased color space might not be within the range of the
         /// alternate color space. In this case, the nearest values within the range of the alternate space
         /// must be substituted.
+        /// </para>
         /// </summary>
         [NotNull]
         public ColorSpaceDetails AlternateColorSpaceDetails { get; }
@@ -1004,12 +983,6 @@
             decimal[] init = Enumerable.Repeat(0m, NumberOfColorComponents).ToArray();
             return GetColor(init);
         }
-
-        /// <inheritdoc/>
-        public override int GetNumberOfComponents()
-        {
-            return NumberOfColorComponents;
-        }
     }
 
     /// <summary>
@@ -1027,24 +1000,24 @@
         /// </summary>
         public PatternColorSpaceDetails(IReadOnlyDictionary<NameToken, PatternColor> patterns) : base(ColorSpace.Pattern)
         {
-            if (patterns == null)
-            {
-                throw new ArgumentNullException(nameof(patterns));
-            }
-            Patterns = patterns;
+            Patterns = patterns ?? throw new ArgumentNullException(nameof(patterns));
         }
 
         /// <summary>
         /// TODO
         /// </summary>
         /// <param name="name"></param>
-        /// <returns></returns>
         public PatternColor GetPattern(NameToken name)
         {
             return Patterns[name];
         }
 
+        /// <summary>
         /// <inheritdoc/>
+        /// <para>
+        /// Cannot be called for <see cref="PatternColorSpaceDetails"/>, will throw a <see cref="InvalidOperationException"/>.
+        /// </para>
+        /// </summary>
         public override IColor GetColor(IReadOnlyList<decimal> values)
         {
             throw new InvalidOperationException("PatternColorSpaceDetails");
@@ -1056,12 +1029,13 @@
             return null;
         }
 
-
+        /// <summary>
         /// <inheritdoc/>
-        public override int GetNumberOfComponents()
-        {
-            throw new InvalidOperationException("PatternColorSpaceDetails");
-        }
+        /// <para>
+        /// Cannot be called for <see cref="PatternColorSpaceDetails"/>, will throw a <see cref="InvalidOperationException"/>.
+        /// </para>
+        /// </summary>
+        public override int NumberOfColorComponents => throw new InvalidOperationException("PatternColorSpaceDetails");
     }
 
     /// <summary>
@@ -1093,9 +1067,6 @@
         }
 
         /// <inheritdoc/>
-        public override int GetNumberOfComponents()
-        {
-            throw new InvalidOperationException("UnsupportedColorSpaceDetails");
-        }
+        public override int NumberOfColorComponents => throw new InvalidOperationException("PatternColorSpaceDetails");
     }
 }
