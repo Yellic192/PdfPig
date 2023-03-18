@@ -1,6 +1,7 @@
 ﻿namespace UglyToad.PdfPig.Graphics.Colors.ICC
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Security.Cryptography;
     using System.Text;
@@ -201,7 +202,7 @@
         /// The profile version number consistent with this ICC specification is “4.4.0.0”.
         /// <para>TODO - update with correct parsers.</para>
         /// </summary>
-        private static void ParseTag4400(byte[] profile, IccTagTableItem tag)
+        private static IIccTagType ParseTag4400(byte[] profile, IccTagTableItem tag)
         {
             byte[] data = profile.Skip((int)tag.Offset).Take((int)tag.Size).ToArray();
             switch (tag.Signature)
@@ -223,13 +224,11 @@
 
                 case "bXYZ": // 9.2.4 blueMatrixColumnTag
                     // Permitted tag type: XYZType
-                    var bXYZ = IccXyzType.Parse(data);
-                    break;
+                    return IccXyzType.Parse(data);
 
                 case "bTRC": // 9.2.5 blueTRCTag
                     // Permitted tag types: curveType or parametricCurveType
-                    var bTRC = BaseCurveType.Parse(data);
-                    break;
+                    return BaseCurveType.Parse(data);
 
                 case "B2A0": // 9.2.6 BToA0Tag
                     // Permitted tag types: lut8Type or lut16Type or lutBToAType
@@ -264,13 +263,11 @@
 
                 case "calt": // 9.2.13 calibrationDateTimeTag
                     // Permitted tag type: dateTimeType
-                    var dt = IccTagsHelper.ReadDateTimeType(data);
-                    break;
+                    return IccDateTimeType.Parse(data);
 
                 case "targ": // 9.2.14 charTargetTag
                     // Permitted tag type: textType
-                    var targ = IccTextType.Parse(data);
-                    break;
+                    return IccTextType.Parse(data);
 
                 case "chad": // 9.2.15 chromaticAdaptationTag
                     // Permitted tag type: s15Fixed16ArrayType
@@ -298,23 +295,13 @@
 
                 case "ciis": // 9.2.21 colorimetricIntentImageStateTag
                     // Permitted tag type: signatureType
-                    var ciis = IccSignatureType.Parse(data);
-                    break;
+                    return IccSignatureType.Parse(data);
 
                 case "cprt": // 9.2.22 copyrightTag
-                    // Permitted tag type: multiLocalizedUnicodeType
-                    var cprt = IccMultiLocalizedUnicodeType.Parse(data);
-                    break;
-
                 case "dmnd": // 9.2.23 deviceMfgDescTag
-                    // Permitted tag type: multiLocalizedUnicodeType
-                    var dmnd = IccMultiLocalizedUnicodeType.Parse(data);
-                    break;
-
                 case "dmdd": // 9.2.24 deviceModelDescTag
                     // Permitted tag type: multiLocalizedUnicodeType
-                    var dmdd = IccMultiLocalizedUnicodeType.Parse(data);
-                    break;
+                    return IccMultiLocalizedUnicodeType.Parse(data);
 
                 case "D2B0": // 9.2.25 DToB0Tag
                     // Allowed tag types: multiProcessElementsType
@@ -338,28 +325,17 @@
                     break;
 
                 case "kTRC": // 9.2.30 grayTRCTag
-                    // Permitted tag types: curveType or parametricCurveType
-                    var kTRC = BaseCurveType.Parse(data);
-                    break;
-
-                case "gXYZ": // 9.2.31 greenMatrixColumnTag
-                    // Permitted tag type: XYZType
-                    var gXYZ = IccXyzType.Parse(data);
-                    break;
-
                 case "gTRC": // 9.2.32 greenTRCTag
                     // Permitted tag types: curveType or parametricCurveType
-                    var gTRC = BaseCurveType.Parse(data);
-                    break;
+                    return BaseCurveType.Parse(data);
 
+                case "gXYZ": // 9.2.31 greenMatrixColumnTag
                 case "lumi": // 9.2.33 luminanceTag
                     // Permitted tag type: XYZType
-                    var lumi = IccXyzType.Parse(data);
-                    break;
+                    return IccXyzType.Parse(data);
 
                 case "meas": // 9.2.34 measurementTag
-                    var meas = IccMeasurementType.Parse(data);
-                    break;
+                    return IccMeasurementType.Parse(data);
 
                 case "meta": // 9.2.35 metadataTag
                     // Allowed tag types: dictType
@@ -367,8 +343,7 @@
 
                 case "wtpt": // 9.2.36 mediaWhitePointTag
                     // Permitted tag type: XYZType
-                    var wtpt = IccXyzType.Parse(data);
-                    break;
+                    return IccXyzType.Parse(data);
 
                 case "ncl2": // 9.2.37 namedColor2Tag
                     // Permitted tag type: namedColor2Type
@@ -380,8 +355,7 @@
 
                 case "rig0": // 9.2.39 perceptualRenderingIntentGamutTag
                     // Permitted tag type: signatureType
-                    var rig0 = IccSignatureType.Parse(data);
-                    break;
+                    return IccSignatureType.Parse(data);
 
                 case "pre0": // 9.2.40 preview0Tag
                     // Permitted tag types: lut8Type or lut16Type or lutAToBType or lutBToAType
@@ -400,8 +374,7 @@
 
                 case "desc": // 9.2.43 profileDescriptionTag
                     // Permitted tag type: multiLocalizedUnicodeType
-                    var desc = IccMultiLocalizedUnicodeType.Parse(data);
-                    break;
+                    return IccMultiLocalizedUnicodeType.Parse(data);
 
                 case "pseq": // 9.2.44 profileSequenceDescTag
                     // Permitted tag type: profileSequenceDescType
@@ -413,33 +386,27 @@
 
                 case "rXYZ": // 9.2.46 redMatrixColumnTag
                     // Permitted tag type: XYZType
-                    var rXYZ = IccXyzType.Parse(data);
-                    break;
+                    return IccXyzType.Parse(data);
 
                 case "rTRC": // 9.2.47 redTRCTag
                     // Permitted tag types: curveType or parametricCurveType
-                    var rTRC = BaseCurveType.Parse(data);
-                    break;
+                    return BaseCurveType.Parse(data);
 
                 case "rig2": // 9.2.48 saturationRenderingIntentGamutTag
                     // Permitted tag type: signatureType
-                    var rig2 = IccSignatureType.Parse(data);
-                    break;
+                    return IccSignatureType.Parse(data);
 
                 case "tech": // 9.2.49 technologyTag
                     // Permitted tag type: signatureType
-                    var tech = IccSignatureType.Parse(data);
-                    break;
+                    return IccSignatureType.Parse(data);
 
                 case "vued": // 9.2.50 viewingCondDescTag
                     // Permitted tag type: multiLocalizedUnicodeType
-                    var vued = IccMultiLocalizedUnicodeType.Parse(data);
-                    break;
+                    return IccMultiLocalizedUnicodeType.Parse(data);
 
                 case "view": // 9.2.51 viewingConditionsTag
                     // Permitted tag type: viewingConditionsType
-                    var view = IccViewingConditionsType.Parse(data);
-                    break;
+                    return IccViewingConditionsType.Parse(data);
 
                 default:
                     throw new InvalidOperationException($"Invalid tag signature '{tag.Signature}' for ICC v4 profile.");
