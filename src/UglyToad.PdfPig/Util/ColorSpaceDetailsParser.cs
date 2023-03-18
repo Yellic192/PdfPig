@@ -81,7 +81,7 @@
             {
                 if (cannotRecurse)
                 {
-                    return DeviceGrayColorSpaceDetails.Instance;
+                    return DeviceGrayColorSpaceDetails.Instance; // Not sure if always Gray, it's just a single color. So Separate Color space? WHo knows?
                 }
 
                 var colorSpaceDetails = GetColorSpaceDetails(colorSpace, imageDictionary.Without(NameToken.Filter).Without(NameToken.F), scanner, resourceStore, filterProvider, true);
