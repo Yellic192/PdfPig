@@ -73,6 +73,8 @@
 
         private const string DeviceN_CS_test = "DeviceN_CS_test.pdf";
 
+        private const string version4pdf = "version4pdf.pdf";
+
         private static string GetFilename(string name)
         {
             var documentFolder = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "Documents"));
@@ -86,11 +88,16 @@
         }
 
         [Fact]
+        public void version4pdfTest()
+        {
+            RunAllPages(version4pdf);
+        }
+
+        [Fact]
         public void DeviceN_CS_testTest()
         {
             RunAllPages(DeviceN_CS_test);
         }
-
 
         [Fact]
         public void MOZILLA_10448_0Test()

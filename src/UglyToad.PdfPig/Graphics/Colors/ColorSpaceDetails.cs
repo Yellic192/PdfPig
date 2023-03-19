@@ -6,7 +6,6 @@
     using Tokens;
     using UglyToad.PdfPig.Content;
     using UglyToad.PdfPig.Functions;
-    using UglyToad.PdfPig.Graphics.Colors.ICC;
     using UglyToad.PdfPig.Images;
     using UglyToad.PdfPig.Images.Png;
     using UglyToad.PdfPig.Util;
@@ -1077,7 +1076,7 @@
         /// ICC profile.
         /// </summary>
         [CanBeNull]
-        public IccProfile Profile { get; }
+        public IccProfile.IccProfile Profile { get; }
 
         /// <summary>
         /// Create a new <see cref="ICCBasedColorSpaceDetails"/>.
@@ -1110,11 +1109,16 @@
             {
                 try
                 {
-                    Profile = IccProfileParser.Create(rawProfile.ToArray());
+                    Profile = IccProfile.IccProfile.Create(rawProfile.ToArray());
+                    var tags = Profile.GetTags().ToArray();
                 }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"ERROR creating ICC profile: {ex}");
+
+                    System.IO.Directory.CreateDirectory("ICC_Profiles_errors");
+                    System.IO.File.WriteAllBytes($"ICC_Profiles_errors/ICC_{Guid.NewGuid().ToString().ToLower()}.icc",
+                        rawProfile.ToArray());
                     //throw;
                 }
             }

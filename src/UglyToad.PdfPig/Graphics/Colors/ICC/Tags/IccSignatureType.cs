@@ -1,9 +1,9 @@
-﻿namespace UglyToad.PdfPig.Graphics.Colors.ICC.Tags
-{
-    using System;
-    using System.Linq;
-    using System.Text;
+﻿using IccProfile.Parsers;
+using System;
+using System.Linq;
 
+namespace IccProfile.Tags
+{
     /// <summary>
     /// TODO
     /// </summary>
@@ -15,9 +15,9 @@
         /// <summary>
         /// TODO
         /// </summary>
-        public byte[] Signature { get; }
+        public string Signature { get; }
 
-        private IccSignatureType(byte[] signature, byte[] rawData)
+        private IccSignatureType(string signature, byte[] rawData)
         {
             Signature = signature;
             RawData = rawData;
@@ -28,7 +28,7 @@
         /// </summary>
         public static IccSignatureType Parse(byte[] bytes)
         {
-            string typeSignature = Encoding.ASCII.GetString(bytes, 0, 4); // sig 
+            string typeSignature = IccTagsHelper.GetString(bytes, 0, 4); // sig 
 
             if (typeSignature != "sig ")
             {
@@ -41,7 +41,9 @@
 
             // Encoded value for standard observer
             // 8 to 11
-            byte[] signature = bytes.Skip(8).Take(4).ToArray();
+            byte[] signatureBytes = bytes.Skip(8).Take(4).ToArray();
+
+            string signature = IccTagsHelper.GetString(signatureBytes);
 
             return new IccSignatureType(signature, bytes);
         }

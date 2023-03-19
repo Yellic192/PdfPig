@@ -1,7 +1,8 @@
-﻿namespace UglyToad.PdfPig.Graphics.Colors.ICC.Tags
-{
-    using System;
+﻿using IccProfile.Parsers;
+using System;
 
+namespace IccProfile.Tags
+{
     /// <summary>
     /// TODO
     /// </summary>
@@ -24,8 +25,6 @@
         /// <summary>
         /// TODO
         /// </summary>
-        /// <param name="bytes"></param>
-        /// <returns></returns>
         public static IccDateTimeType Parse(byte[] bytes)
         {
             var dt = IccTagsHelper.ReadDateTimeType(bytes);

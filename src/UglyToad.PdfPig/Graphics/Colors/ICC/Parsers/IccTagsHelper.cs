@@ -1,13 +1,47 @@
-﻿namespace UglyToad.PdfPig.Graphics.Colors.ICC.Tags
-{
-    using System;
-    using System.Linq;
+﻿using System;
+using System.Linq;
+using System.Text;
 
+namespace IccProfile.Parsers
+{
     internal static class IccTagsHelper
     {
-        internal static float Reads15Fixed16Number(byte[] bytes, int index)
+        internal static float Reads15Fixed16Number(byte[] bytes)
         {
-            return (BitConverter.ToInt32(bytes, index) - 0.5f) / 65536.0f;
+            if (BitConverter.IsLittleEndian)
+            {
+                bytes = bytes.Reverse().ToArray();
+            }
+
+            return (BitConverter.ToInt32(bytes, 0) - 0.5f) / 65536.0f;
+        }
+
+        internal static float[] Reads15Fixed16Array(byte[] bytes)
+        {
+            if (bytes.Length % 4 != 0)
+            {
+                throw new ArgumentException("Array should be of length that is a multiple of 4", nameof(bytes));
+            }
+
+            float[] values = new float[bytes.Length / 4];
+            for (int e = 0; e < values.Length; e++)
+            {
+                byte[] a = bytes.Skip(e * 4).Take(4).ToArray();
+                values[e] = Reads15Fixed16Number(a);
+            }
+
+            return values;
+        }
+
+        internal static string GetString(byte[] bytes, int index, int count)
+        {
+            string text = Encoding.ASCII.GetString(bytes, index, count);
+            return text.Replace("\0", "");
+        }
+
+        internal static string GetString(byte[] bytes)
+        {
+            return Encoding.ASCII.GetString(bytes).Replace("\0", "");
         }
 
         internal static DateTime ReadDateTimeType(byte[] bytes)
@@ -52,6 +86,11 @@
             }
 
             return BitConverter.ToUInt16(bytes, 0);
+        }
+
+        internal static byte ReadUInt8(byte[] bytes)
+        {
+            return bytes[0];
         }
     }
 }

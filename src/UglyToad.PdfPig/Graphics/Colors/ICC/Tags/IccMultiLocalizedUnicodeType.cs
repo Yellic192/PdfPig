@@ -1,9 +1,9 @@
-﻿namespace UglyToad.PdfPig.Graphics.Colors.ICC.Tags
-{
-    using System;
-    using System.Linq;
-    using System.Text;
+﻿using IccProfile.Parsers;
+using System;
+using System.Linq;
 
+namespace IccProfile.Tags
+{
     /// <summary>
     /// TODO
     /// </summary>
@@ -34,7 +34,7 @@
         /// </summary>
         public static IccMultiLocalizedUnicodeType Parse(byte[] bytes)
         {
-            string typeSignature = Encoding.ASCII.GetString(bytes, 0, 4); // mluc
+            string typeSignature = IccTagsHelper.GetString(bytes, 0, 4); // mluc
 
             if (typeSignature != "mluc")
             {
@@ -66,12 +66,12 @@
                 // First record language code: in accordance with the
                 // language code specified in ISO 639-1
                 // 16 to 17
-                string language = Encoding.ASCII.GetString(input.Skip(0).Take(2).ToArray());
+                string language = IccTagsHelper.GetString(input.Skip(0).Take(2).ToArray());
 
                 // First record country code: in accordance with the country
                 // code specified in ISO 3166-1
                 // 18 to 19
-                string country = Encoding.ASCII.GetString(input.Skip(2).Take(2).ToArray());
+                string country = IccTagsHelper.GetString(input.Skip(2).Take(2).ToArray());
 
                 // First record string length: the length in bytes of the string
                 // 20 to 23
@@ -82,7 +82,7 @@
                 // 24 to 27
                 uint offset = IccTagsHelper.ReadUInt32(input.Skip(8).Take(4).ToArray());
 
-                string text = Encoding.ASCII.GetString(bytes, (int)offset, (int)length).Replace("\0", "");
+                string text = IccTagsHelper.GetString(bytes, (int)offset, (int)length);
 
                 records[i] = new IccMultiLocalizedUnicodeRecord(language, country, text);
             }

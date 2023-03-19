@@ -1,8 +1,9 @@
-﻿namespace UglyToad.PdfPig.Graphics.Colors.ICC.Tags
-{
-    using System.Linq;
-    using System;
+﻿using IccProfile.Parsers;
+using System;
+using System.Linq;
 
+namespace IccProfile.Tags
+{
     /// <summary>
     /// XYZ type.
     /// </summary>
@@ -47,19 +48,18 @@
         /// </summary>
         public static IccXyzType Parse(byte[] bytes)
         {
-            if (BitConverter.IsLittleEndian)
+            // Length 12 is for header
+            if (bytes.Length == 20)
             {
-                bytes = bytes.Reverse().ToArray();
-                var zL = IccTagsHelper.Reads15Fixed16Number(bytes, 0);
-                var yL = IccTagsHelper.Reads15Fixed16Number(bytes, 4);
-                var xL = IccTagsHelper.Reads15Fixed16Number(bytes, 8);
-                return new IccXyzType(xL, yL, zL, bytes);
+                bytes = bytes.Skip(8).Take(12).ToArray();
+            }
+            else if (bytes.Length != 12)
+            {
+                throw new ArgumentException("Length is not correct", nameof(bytes));
             }
 
-            var x = IccTagsHelper.Reads15Fixed16Number(bytes, 0);
-            var y = IccTagsHelper.Reads15Fixed16Number(bytes, 4);
-            var z = IccTagsHelper.Reads15Fixed16Number(bytes, 8);
-            return new IccXyzType(x, y, z, bytes);
+            var xyz = IccTagsHelper.Reads15Fixed16Array(bytes);
+            return new IccXyzType(xyz[0], xyz[1], xyz[2], bytes);
         }
     }
 }

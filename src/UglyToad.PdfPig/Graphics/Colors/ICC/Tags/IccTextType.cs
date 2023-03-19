@@ -1,10 +1,9 @@
-﻿namespace UglyToad.PdfPig.Graphics.Colors.ICC.Tags
+﻿using IccProfile.Parsers;
+using System;
+using System.Linq;
+
+namespace IccProfile.Tags
 {
-    using System.Linq;
-
-    using System;
-    using System.Text;
-
     /// <summary>
     /// TODO
     /// </summary>
@@ -24,12 +23,18 @@
             RawData = rawData;
         }
 
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return Text;
+        }
+
         /// <summary>
         /// TODO
         /// </summary>
         public static IccTextType Parse(byte[] bytes)
         {
-            string typeSignature = Encoding.ASCII.GetString(bytes, 0, 4);
+            string typeSignature = IccTagsHelper.GetString(bytes, 0, 4);
 
             if (typeSignature != "text" && typeSignature != "desc")
             {
@@ -42,7 +47,7 @@
 
             // A string of (element size 8) 7-bit ASCII characters
             // Variable
-            string text = Encoding.ASCII.GetString(bytes.Skip(8).ToArray()).Replace("\0", "");
+            string text = IccTagsHelper.GetString(bytes.Skip(8).ToArray());
             return new IccTextType(text, bytes);
         }
     }

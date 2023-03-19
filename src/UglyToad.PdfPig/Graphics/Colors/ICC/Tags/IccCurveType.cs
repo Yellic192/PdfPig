@@ -1,24 +1,91 @@
-﻿namespace UglyToad.PdfPig.Graphics.Colors.ICC.Tags
-{
-    using System;
-    using System.Linq;
-    using System.Text;
+﻿using IccProfile.Parsers;
+using System;
+using System.Linq;
 
+namespace IccProfile.Tags
+{
     /// <summary>
     /// TODO
     /// </summary>
-    public sealed class IccCurveType : BaseCurveType
+    public sealed class IccCurveType : IccBaseCurveType
     {
+        /// <summary>
+        /// TODO
+        /// </summary>
+        public string CurveType { get; } // Should be enum
+
+        private readonly Func<double, double> _func;
+        private readonly float _gamma;
+
         private IccCurveType(float[] values, byte[] rawData, int bytesRead)
             : base("curv", values, rawData, bytesRead)
-        { }
+        {
+            switch (values.Length)
+            {
+                case 0:
+                    CurveType = "Identity";
+                    _func = new Func<double, double>(x => x);
+                    break;
+
+                case 1:
+                    CurveType = "Gamma";
+                    _gamma = Values[0];
+                    _func = new Func<double, double>(x => Math.Pow(x, _gamma));
+                    break;
+
+                default:
+                    CurveType = "LinearInterpolation";
+                    _func = new Func<double, double>(x =>
+                    {
+                        // Interpolate
+                        double index = (Values.Length - 1.0) * x;
+
+                        bool hasDecimal = Math.Abs(index % 1) > (double.Epsilon * 100);
+                        if (!hasDecimal)
+                        {
+                            return Values[(int)index];
+                        }
+
+                        int indexInt = (int)Math.Floor(index);
+                        double w = index - indexInt;
+                        double y1 = Values[indexInt];
+                        double y2 = Values[indexInt + 1];
+                        return y1 + w * (y2 - y1);
+                    });
+                    break;
+            }
+        }
+
+        /// <inheritdoc/>
+        public override double Compute(double values)
+        {
+            return _func(values);
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            switch (CurveType)
+            {
+                case "Identity":
+                    return CurveType;
+
+                default:
+                    if (Values.Length > 1)
+                    {
+                        return $"{CurveType} ({Values.Length} points)";
+                    }
+
+                    return $"{CurveType} ({Math.Round(Values[0], 4)})";
+            }
+        }
 
         /// <summary>
         /// TODO
         /// </summary>
         public new static IccCurveType Parse(byte[] bytes)
         {
-            string typeSignature = Encoding.ASCII.GetString(bytes, 0, 4);
+            string typeSignature = IccTagsHelper.GetString(bytes, 0, 4);
 
             if (typeSignature != "curv")
             {

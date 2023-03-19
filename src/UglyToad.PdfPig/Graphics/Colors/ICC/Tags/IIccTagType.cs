@@ -1,4 +1,4 @@
-﻿namespace UglyToad.PdfPig.Graphics.Colors.ICC.Tags
+﻿namespace IccProfile.Tags
 {
     /// <summary>
     /// Interface for ICC tage type.

@@ -1,9 +1,9 @@
-﻿namespace UglyToad.PdfPig.Graphics.Colors.ICC
+﻿namespace IccProfile
 {
     /// <summary>
     /// TODO
     /// </summary>
-    public struct IccTagTableItem
+    public readonly struct IccTagTableItem
     {
         /// <summary>
         /// Tag Signature.

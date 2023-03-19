@@ -1,4 +1,9 @@
-﻿namespace UglyToad.PdfPig.Graphics.Colors.ICC
+﻿using IccProfile.Parsers;
+using IccProfile.Tags;
+using System;
+using System.Collections.Generic;
+
+namespace IccProfile
 {
     /// <summary>
     /// ICC profile.
@@ -28,6 +33,48 @@
             Header = header;
             TagTable = tagTable;
             Data = data;
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        public IReadOnlyDictionary<string, IIccTagType> GetTags()
+        {
+            switch (this.Header.VersionMajor)
+            {
+                case 4:
+                    {
+                        var tags = new Dictionary<string, IIccTagType>();
+                        for (int t = 0; t < TagTable.Length; t++)
+                        {
+                            var tag = TagTable[t];
+                            tags.Add(tag.Signature, IccProfileV4TagParser.Parse(Data, TagTable[t]));
+                        }
+                        return tags;
+                    }
+
+                case 2:
+                    {
+                        var tags = new Dictionary<string, IIccTagType>();
+                        for (int t = 0; t < TagTable.Length; t++)
+                        {
+                            var tag = TagTable[t];
+                            tags.Add(tag.Signature, IccProfileV24TagParser.Parse(Data, TagTable[t]));
+                        }
+                        return tags;
+                    }
+
+                default:
+                    throw new NotImplementedException($"ICC Profile v{this.Header.VersionMajor}{this.Header.VersionMinor} is not supported.");
+            }
+        }
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        public static IccProfile Create(byte[] bytes)
+        {
+            return IccProfileParser.Create(bytes);
         }
 
         /// <inheritdoc/>

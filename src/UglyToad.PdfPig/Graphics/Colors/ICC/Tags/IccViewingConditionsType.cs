@@ -1,9 +1,10 @@
-﻿namespace UglyToad.PdfPig.Graphics.Colors.ICC.Tags
-{
-    using System;
-    using System.Linq;
-    using System.Text;
+﻿using System;
+using System.Linq;
+using System.Text;
+using IccProfile.Parsers;
 
+namespace IccProfile.Tags
+{
     /// <summary>
     /// TODO
     /// </summary>
@@ -39,7 +40,7 @@
         /// </summary>
         public static IccViewingConditionsType Parse(byte[] bytes)
         {
-            string typeSignature = Encoding.ASCII.GetString(bytes, 0, 4); // view
+            string typeSignature = IccTagsHelper.GetString(bytes, 0, 4); // view
 
             if (typeSignature != "view")
             {

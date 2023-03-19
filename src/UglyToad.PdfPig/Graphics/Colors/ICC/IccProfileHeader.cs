@@ -1,8 +1,8 @@
-﻿namespace UglyToad.PdfPig.Graphics.Colors.ICC
-{
-    using System;
-    using UglyToad.PdfPig.Graphics.Colors.ICC.Tags;
+﻿using IccProfile.Tags;
+using System;
 
+namespace IccProfile
+{
     /// <summary>
     /// ICC profile header.
     /// </summary>
@@ -31,7 +31,7 @@
         /// <summary>
         /// Preferred CMM type.
         /// </summary>
-        public object Cmm { get; internal set; }
+        public string Cmm { get; internal set; }
 
         /// <summary>
         /// Profile/Device class.
@@ -44,9 +44,9 @@
         public IccColourSpaceType ColourSpace { get; internal set; }
 
         /// <summary>
-        /// PCS.
+        /// Profile connection space. An abstract color space used to connect the source and destination profiles.
         /// </summary>
-        public object Pcs { get; internal set; }
+        public string Pcs { get; internal set; }
 
         /// <summary>
         /// Date and time this profile was first created.
@@ -72,7 +72,7 @@
         /// <summary>
         /// Device manufacturer of the device for which this profile is created.
         /// </summary>
-        public object DeviceManufacturer { get; internal set; }
+        public string DeviceManufacturer { get; internal set; }
 
         /// <summary>
         /// Device model of the device for which this profile is created.
@@ -85,7 +85,7 @@
         public object DeviceAttributes { get; internal set; }
 
         /// <summary>
-        /// Rendering Intent.
+        /// A particular gamut mapping style or method of converting colors in one gamut to colors in another gamut.
         /// </summary>
         public IccRenderingIntent RenderingIntent { get; internal set; }
 
@@ -97,12 +97,12 @@
         /// <summary>
         /// Profile creator signature.
         /// </summary>
-        public object ProfileCreatorSignature { get; internal set; }
+        public string ProfileCreatorSignature { get; internal set; }
 
         /// <summary>
         /// Profile ID.
         /// </summary>
-        public object ProfileId { get; internal set; }
+        public byte[] ProfileId { get; internal set; }
 
         /*
         /// <summary>

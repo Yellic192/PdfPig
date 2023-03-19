@@ -1,7 +1,6 @@
 ﻿namespace UglyToad.PdfPig.SkiaSharp.Tests
 {
     using System.IO;
-    using UglyToad.PdfPig.Graphics.Colors.ICC;
     using Xunit;
 
     public class IccTests
@@ -17,7 +16,7 @@
             using (var ms = new MemoryStream())
             {
                 fs.CopyTo(ms);
-                var profile = IccProfileParser.Create(ms.ToArray());
+                var profile = IccProfile.IccProfile.Create(ms.ToArray());
                 Assert.NotNull(profile);
                 Assert.Equal(4, profile.Header.VersionMajor);
             }

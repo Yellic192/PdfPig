@@ -1,12 +1,12 @@
-﻿namespace UglyToad.PdfPig.Graphics.Colors.ICC.Tags
-{
-    using System;
-    using System.Text;
+﻿using IccProfile.Parsers;
+using System;
 
+namespace IccProfile.Tags
+{
     /// <summary>
     /// TODO
     /// </summary>
-    public class BaseCurveType : IIccTagType
+    public abstract class IccBaseCurveType : IIccTagType
     {
         /// <summary>
         /// Curve type signature.
@@ -26,7 +26,7 @@
         /// <summary>
         /// TODO
         /// </summary>
-        protected BaseCurveType(string signature, float[] values, byte[] rawData, int bytesRead)
+        protected IccBaseCurveType(string signature, float[] values, byte[] rawData, int bytesRead)
         {
             Signature = signature;
             Values = values;
@@ -37,9 +37,14 @@
         /// <summary>
         /// TODO
         /// </summary>
-        public static BaseCurveType Parse(byte[] bytes)
+        public abstract double Compute(double values);
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        public static IccBaseCurveType Parse(byte[] bytes)
         {
-            string typeSignature = Encoding.ASCII.GetString(bytes, 0, 4);
+            string typeSignature = IccTagsHelper.GetString(bytes, 0, 4);
             switch (typeSignature)
             {
                 case "curv":
