@@ -48,7 +48,7 @@
         /// <summary>
         /// TODO
         /// </summary>
-        public abstract byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel);
+        public abstract byte[] GetPngImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel);
 
         /// <summary>
         /// Get the color that initialize the current stroking or nonstroking colour.
@@ -115,7 +115,7 @@
         }
 
         /// <inheritdoc/>
-        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        public override byte[] GetPngImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
         {
             var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
             int i = 0; // To remove, use col and row to get index
@@ -179,7 +179,7 @@
         }
 
         /// <inheritdoc/>
-        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        public override byte[] GetPngImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
         {
             var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
             int i = 0; // To remove, use col and row to get index
@@ -242,7 +242,7 @@
         }
 
         /// <inheritdoc/>
-        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        public override byte[] GetPngImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
         {
             var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
             int i = 0; // To remove, use col and row to get index
@@ -343,7 +343,7 @@
         }
 
         /// <inheritdoc/>
-        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        public override byte[] GetPngImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
         {
             var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
             int i = 0; // To remove, use col and row to get index
@@ -457,7 +457,7 @@
         }
 
         /// <inheritdoc/>
-        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        public override byte[] GetPngImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
         {
             var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
             int i = 0; // To remove, use col and row to get index
@@ -636,7 +636,7 @@
         }
 
         /// <inheritdoc/>
-        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        public override byte[] GetPngImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
         {
             var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
             int i = 0; // To remove, use col and row to get index
@@ -750,7 +750,7 @@
         }
 
         /// <inheritdoc/>
-        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        public override byte[] GetPngImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
         {
             var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
             int i = 0; // To remove, use col and row to get index
@@ -877,7 +877,7 @@
         }
 
         /// <inheritdoc/>
-        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        public override byte[] GetPngImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
         {
             var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
             int i = 0; // To remove, use col and row to get index
@@ -1004,7 +1004,7 @@
         }
 
         /// <inheritdoc/>
-        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        public override byte[] GetPngImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
         {
             var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
             int i = 0; // To remove, use col and row to get index
@@ -1138,14 +1138,8 @@
                 throw new ArgumentException(nameof(values));
             }
 
-            if (Profile != null)
+            if (Profile != null && Profile.TryProcess(values, out double[] test) && test.Length == 3)
             {
-                var test = Profile.Process(values);
-                if (test.Length != 3)
-                {
-                    throw new Exception();
-                }
-
                 return new RGBColor((decimal)test[0], (decimal)test[1], (decimal)test[2]);
             }
 
@@ -1166,7 +1160,7 @@
         }
 
         /// <inheritdoc/>
-        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        public override byte[] GetPngImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
         {
             var builder = PngBuilder.Create(widthInSamples, heightInSamples, hasAlphaChannel);
             int i = 0; // To remove, use col and row to get index
@@ -1237,7 +1231,7 @@
         /// Cannot be called for <see cref="PatternColorSpaceDetails"/>, will throw a <see cref="InvalidOperationException"/>.
         /// </para>
         /// </summary>
-        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        public override byte[] GetPngImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
         {
             throw new InvalidOperationException("PatternColorSpaceDetails");
         }
@@ -1293,7 +1287,7 @@
         /// Cannot be called for <see cref="UnsupportedColorSpaceDetails"/>, will throw a <see cref="InvalidOperationException"/>.
         /// </para>
         /// </summary>
-        public override byte[] GetImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
+        public override byte[] GetPngImage(IReadOnlyList<byte> bytesPure, int heightInSamples, int widthInSamples, bool hasAlphaChannel)
         {
             throw new InvalidOperationException("UnsupportedColorSpaceDetails");
         }

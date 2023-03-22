@@ -118,21 +118,27 @@ namespace IccProfileNet
         /// <summary>
         /// TODO
         /// </summary>
-        /// <param name="values"></param>
-        /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
-        public double[] Process(double[] values)
+        public bool TryProcess(double[] values, out double[] output)
         {
-            var key = IccLutABType.GetProfileTag(Header.ProfileClass, Header.RenderingIntent, IccLutABType.LutABType.AB);
-            if (Tags.TryGetValue(key, out var value) && value is IccLutABType lutAB)
+            try
             {
-                return lutAB.Process(values, Header);
+                var key = IccLutABType.GetProfileTag(Header.ProfileClass, Header.RenderingIntent, IccLutABType.LutABType.AB);
+                if (Tags.TryGetValue(key, out var value) && value is IccLutABType lutAB)
+                {
+                    output = lutAB.Process(values, Header);
+                    return true;
+                }
+
+                //Three-component matrix-based profiles
+
+                output = null;
+                return false;
             }
-
-            //Three-component matrix-based profiles
-
-
-            return values; // TODO other types
+            catch (Exception)
+            {
+                output = null;
+                return false;
+            }
         }
 
         /// <inheritdoc/>

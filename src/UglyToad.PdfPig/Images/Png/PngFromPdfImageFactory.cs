@@ -56,7 +56,8 @@
                 }
 
                 // The below should actually go into ColorSpaceDetailsByteConverter.Convert(..) ??
-                bytes = actualColorSpace.GetImage(bytesPure, image.HeightInSamples, image.WidthInSamples, hasAlphaChannel);
+                bytes = actualColorSpace.GetPngImage(bytesPure, image.HeightInSamples, image.WidthInSamples, hasAlphaChannel);
+
                 return true;
             }
             catch
