@@ -1,53 +1,32 @@
-﻿using IccProfile.Parsers;
-using System;
+﻿using System;
 using System.Linq;
 
-namespace IccProfile.Tags
+namespace IccProfileNet.Tags
 {
-    /// <summary>
-    /// TODO
-    /// </summary>
-    public class IccS15Fixed16ArrayType : IIccTagType
+    internal sealed class IccS15Fixed16ArrayType : IccTagTypeBase
     {
-        /// <inheritdoc/>
-        public byte[] RawData { get; }
+        public const int ArrayOffset = 8;
 
-        /// <summary>
-        /// TODO
-        /// </summary>
-        public float[] Values { get; }
+        private readonly Lazy<double[]> _values;
+        public double[] Values => _values.Value;
 
-        private IccS15Fixed16ArrayType(float[] values, byte[] rawData)
+        public IccS15Fixed16ArrayType(byte[] rawData)
         {
-            Values = values;
-            RawData = rawData;
-        }
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        /// <param name="bytes"></param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentException"></exception>
-        public static IccS15Fixed16ArrayType Parse(byte[] bytes)
-        {
-            string typeSignature = IccTagsHelper.GetString(bytes, 0, 4); // sig 
+            string typeSignature = IccHelper.GetString(rawData, TypeSignatureOffset, TypeSignatureLength);
 
             if (typeSignature != "sf32")
             {
                 throw new ArgumentException(nameof(typeSignature));
             }
 
-            // Reserved, shall be set to 0
-            // 4 to 7
-            //byte[] reserved = bytes.Skip(4).Take(4).ToArray();
+            RawData = rawData;
 
-            // An array of s15Fixed16Number values
-            // 8 to end
-            byte[] valuesBytes = bytes.Skip(8).ToArray();
-            float[] values = IccTagsHelper.Reads15Fixed16Array(valuesBytes);
-
-            return new IccS15Fixed16ArrayType(values, valuesBytes); // TODO - actual raw byte size
+            _values = new Lazy<double[]>(() =>
+            {
+                // An array of s15Fixed16Number values
+                // 8 to end
+                return IccHelper.Reads15Fixed16Array(RawData.Skip(ArrayOffset).ToArray());
+            });
         }
     }
 }

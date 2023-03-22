@@ -669,6 +669,52 @@
 
         private void RenderImage(IPdfImage image)
         {
+            // see issue_484Test, Pig production p15
+            // need better handling for images where rotation is not 180
+            float left = (float)(image.Bounds.Left * _mult);
+            float top = (float)(_height - image.Bounds.Top * _mult);
+            float right = left + (float)(image.Bounds.Width * _mult);
+            float bottom = top + (float)(image.Bounds.Height * _mult);
+            var destRect = new SKRect(left, top, right, bottom);
+
+            if (true)
+            {
+                RenderImageActual(image);
+            }
+            else
+            {
+                using (var bitmap = new SKBitmap((int)destRect.Width, (int)destRect.Height))
+                using (var canvas = new SKCanvas(bitmap))
+                using (var paint = new SKPaint
+                {
+                    Style = SKPaintStyle.Fill,
+                    Color = new SKColor(SKColors.Aquamarine.Red, SKColors.Aquamarine.Green, SKColors.Aquamarine.Blue, 80)
+                })
+                {
+                    canvas.DrawRect(0, 0, destRect.Width, destRect.Height, paint);
+
+                    try
+                    {
+                        if (image.SMask != null)
+                        {
+                            using (var bitmapSMask = SKBitmap.Decode(image.SMask.GetImageBytes()))
+                            {
+                                bitmap.ApplySMask(bitmapSMask);
+                            }
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Ignore
+                    }
+
+                    _canvas.DrawBitmap(bitmap, destRect);
+                }
+            }
+        }
+
+        private void RenderImageActual(IPdfImage image)
+        {
             var currentState = GetCurrentState();
 
             // see issue_484Test, Pig production p15
@@ -695,12 +741,8 @@
                     using (SKPaint paint = new SKPaint() { BlendMode = currentState.BlendMode.ToSKBlendMode() })
                     using (var bitmap = SKBitmap.Decode(image.RawBytes.ToArray()))
                     {
-                        //if (image.IsImageMask)
-                        //{
-                        //    paint.MaskFilter = SKMaskFilter.CreateTable(bytes);
-                        //}
-
-                        _canvas.DrawBitmap(bitmap, destRect, paint);
+                        //_canvas.DrawBitmap(bitmap, destRect, paint);
+                        
                     }
                 }
             }
@@ -734,22 +776,11 @@
 
                     _canvas.DrawBitmap(bitmap, destRect);
                 }
-
-                /*
-                using (var paint = new SKPaint
-                {
-                    Style = SKPaintStyle.Fill,
-                    Color = new SKColor(SKColors.Aquamarine.Red, SKColors.Aquamarine.Green, SKColors.Aquamarine.Blue, 80)
-                })
-                {
-                    _canvas.DrawRect(destRect, paint);
-                }
-                */
 #endif
             }
             finally
             {
-                _canvas.ResetMatrix();
+                //_canvas.ResetMatrix();
             }
         }
 

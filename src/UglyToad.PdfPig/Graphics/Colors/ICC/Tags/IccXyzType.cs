@@ -1,65 +1,46 @@
-﻿using IccProfile.Parsers;
-using System;
+﻿using System;
 using System.Linq;
 
-namespace IccProfile.Tags
+namespace IccProfileNet.Tags
 {
     /// <summary>
     /// XYZ type.
     /// </summary>
-    public sealed class IccXyzType : IIccTagType
+    internal sealed class IccXyzType : IccTagTypeBase
     {
+        public const int XyzOffset = 8;
+
         //public string Signature { get; internal set; }
 
-        /// <inheritdoc/>
-        public byte[] RawData { get; }
-
+        private readonly Lazy<IccXyz> _xyz;
         /// <summary>
-        /// X.
+        /// XYZ point.
         /// </summary>
-        public float X { get; }
+        public IccXyz Xyz => _xyz.Value;
 
-        /// <summary>
-        /// Y.
-        /// </summary>
-        public float Y { get; }
-
-        /// <summary>
-        /// Z.
-        /// </summary>
-        public float Z { get; }
-
-        private IccXyzType(float x, float y, float z, byte[] rawData)
+        public IccXyzType(byte[] rawData)
         {
-            X = x;
-            Y = y;
-            Z = z;
+            string typeSignature = IccHelper.GetString(rawData, TypeSignatureOffset, TypeSignatureLength);
+
+            if (typeSignature != "XYZ ")
+            {
+                throw new ArgumentException(nameof(typeSignature));
+            }
+
             RawData = rawData;
+
+            _xyz = new Lazy<IccXyz>(() =>
+            {
+                return IccHelper.ReadXyz(RawData
+                    .Skip(XyzOffset)
+                    .ToArray());
+            });
         }
 
         /// <inheritdoc/>
         public override string ToString()
         {
-            return $"{X}, {Y}, {Z}";
-        }
-
-        /// <summary>
-        /// Parse the bytes.
-        /// </summary>
-        public static IccXyzType Parse(byte[] bytes)
-        {
-            // Length 12 is for header
-            if (bytes.Length == 20)
-            {
-                bytes = bytes.Skip(8).Take(12).ToArray();
-            }
-            else if (bytes.Length != 12)
-            {
-                throw new ArgumentException("Length is not correct", nameof(bytes));
-            }
-
-            var xyz = IccTagsHelper.Reads15Fixed16Array(bytes);
-            return new IccXyzType(xyz[0], xyz[1], xyz[2], bytes);
+            return Xyz.ToString();
         }
     }
 }

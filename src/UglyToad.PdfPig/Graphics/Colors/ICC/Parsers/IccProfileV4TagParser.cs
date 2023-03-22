@@ -1,8 +1,8 @@
-﻿using IccProfile.Tags;
-using System;
+﻿using System;
 using System.Linq;
+using IccProfileNet.Tags;
 
-namespace IccProfile.Parsers
+namespace IccProfileNet.Parsers
 {
     internal static class IccProfileV4TagParser
     {
@@ -10,218 +10,127 @@ namespace IccProfile.Parsers
         /// The profile version number consistent with this ICC specification is “4.4.0.0”.
         /// <para>TODO - update with correct parsers.</para>
         /// </summary>
-        public static IIccTagType Parse(byte[] profile, IccTagTableItem tag)
+        public static IccTagTypeBase Parse(byte[] profile, IccTagTableItem tag)
         {
             byte[] data = profile.Skip((int)tag.Offset).Take((int)tag.Size).ToArray();
             switch (tag.Signature)
             {
-                case "A2B0": // 9.2.1 AToB0Tag
-                    // Permitted tag types: lut8Type or lut16Type or lutAToBType
-                    return Readlut8TypeOrlut16TypeOrlutAToBTypeOrlutBToAType(data);
+                case IccTags.AToB0Tag: // 9.2.1 AToB0Tag
+                case IccTags.AToB1Tag: // 9.2.2 AToB1Tag
+                case IccTags.AToB2Tag: // 9.2.3 AToB2Tag
+                case IccTags.BToA0Tag: // 9.2.6 BToA0Tag
+                case IccTags.BToA1Tag: // 9.2.7 BToA1Tag
+                case IccTags.BToA2Tag: // 9.2.8 BToA2Tag
+                case IccTags.Preview0Tag: // 9.2.40 preview0Tag
+                case IccTags.Preview1Tag: // 9.2.41 preview1Tag
+                case IccTags.Preview2Tag: // 9.2.42 preview2Tag
+                    return ReadlutTypeOrlutABType(data); // Permitted tag types: lut8Type or lut16Type or lutBToAType
 
-                case "A2B1": // 9.2.2 AToB1Tag
-                    // Permitted tag types: lut8Type or lut16Type or lutAToBType
-                    return Readlut8TypeOrlut16TypeOrlutAToBTypeOrlutBToAType(data);
+                case IccTags.GreenMatrixColumnTag: // 9.2.31 greenMatrixColumnTag
+                case IccTags.LuminanceTag: // 9.2.33 luminanceTag
+                case IccTags.MediaWhitePointTag: // 9.2.36 mediaWhitePointTag
+                case IccTags.BlueMatrixColumnTag: // 9.2.4 blueMatrixColumnTag
+                case IccTags.RedMatrixColumnTag: // 9.2.46 redMatrixColumnTag
+                    return new IccXyzType(data); // Permitted tag type: XYZType
 
-                case "A2B2": // 9.2.3 AToB2Tag
-                    // Permitted tag types: lut8Type or lut16Type or lutAToBType
-                    return Readlut8TypeOrlut16TypeOrlutAToBTypeOrlutBToAType(data);
+                case IccTags.GrayTRCTag: // 9.2.30 grayTRCTag
+                case IccTags.GreenTRCTag: // 9.2.32 greenTRCTag
+                case IccTags.RedTRCTag: // 9.2.47 redTRCTag
+                case IccTags.BlueTRCTag: // 9.2.5 blueTRCTag
+                    return IccBaseCurveType.Parse(data); // Permitted tag types: curveType or parametricCurveType
 
-                case "bXYZ": // 9.2.4 blueMatrixColumnTag
-                    // Permitted tag type: XYZType
-                    return IccXyzType.Parse(data);
-
-                case "bTRC": // 9.2.5 blueTRCTag
-                    // Permitted tag types: curveType or parametricCurveType
-                    return IccBaseCurveType.Parse(data);
-
-                case "B2A0": // 9.2.6 BToA0Tag
-                             // Permitted tag types: lut8Type or lut16Type or lutBToAType
-                    return Readlut8TypeOrlut16TypeOrlutAToBTypeOrlutBToAType(data);
-
-                case "B2A1": // 9.2.7 BToA1Tag
-                    // Permitted tag types: lut8Type or lut16Type or lutBToAType
-                    return Readlut8TypeOrlut16TypeOrlutAToBTypeOrlutBToAType(data); ;
-
-                case "B2A2": // 9.2.8 BToA2Tag
-                    // Permitted tag types: lut8Type or lut16Type or lutBToAType
-                    return Readlut8TypeOrlut16TypeOrlutAToBTypeOrlutBToAType(data);
-
-                case "B2D0": // 9.2.9 BToD0Tag
+                case IccTags.BToD0Tag: // 9.2.9 BToD0Tag
+                case IccTags.BToD1Tag: // 9.2.10 BToD1Tag
+                case IccTags.BToD2Tag: // 9.2.11 BToD2Tag
+                case IccTags.BToD3Tag: // 9.2.12 BToD3Tag
                     // Allowed tag types: multiProcessElementsType
                     break;
 
-                case "B2D1": // 9.2.10 BToD1Tag
-                    // Allowed tag types: multiProcessElementsType
-                    break;
+                case IccTags.CalibrationDateTimeTag: // 9.2.13 calibrationDateTimeTag
+                    return new IccDateTimeType(data); // Permitted tag type: dateTimeType
 
-                case "B2D2": // 9.2.11 BToD2Tag
-                    // Allowed tag types: multiProcessElementsType
-                    break;
+                case IccTags.CharTargetTag: // 9.2.14 charTargetTag
+                    return new IccTextType(data); // Permitted tag type: textType
 
-                case "B2D3": // 9.2.12 BToD3Tag
-                    // Allowed tag types: multiProcessElementsType
-                    break;
+                case IccTags.ChromaticAdaptationTag: // 9.2.15 chromaticAdaptationTag
+                    return new IccS15Fixed16ArrayType(data); // Permitted tag type: s15Fixed16ArrayType
 
-                case "calt": // 9.2.13 calibrationDateTimeTag
-                    // Permitted tag type: dateTimeType
-                    return IccDateTimeType.Parse(data);
-
-                case "targ": // 9.2.14 charTargetTag
-                    // Permitted tag type: textType
-                    return IccTextType.Parse(data);
-
-                case "chad": // 9.2.15 chromaticAdaptationTag
-                    // Permitted tag type: s15Fixed16ArrayType
-                    return IccS15Fixed16ArrayType.Parse(data);
-
-                case "chrm": // 9.2.16 chromaticityTag
+                case IccTags.ChromaticityTag: // 9.2.16 chromaticityTag
                     // Permitted tag type: chromaticityType
                     break;
 
-                case "cicp": // 9.2.17 cicpTag
+                case IccTags.CicpTag: // 9.2.17 cicpTag
                     // Permitted tag type: cicpType
                     break;
 
-                case "clro": // 9.2.18 colorantOrderTag
+                case IccTags.ColorantOrderTag: // 9.2.18 colorantOrderTag
                     // Permitted tag type: colorantOrderType
                     break;
 
-                case "clrt": // 9.2.19 colorantTableTag
+                case IccTags.ColorantTableTag: // 9.2.19 colorantTableTag
+                case IccTags.ColorantTableOutTag: // 9.2.20 colorantTableOutTag
                     // Permitted tag type: colorantTableType
                     break;
 
-                case "clot": // 9.2.20 colorantTableOutTag
-                    // Permitted tag type: colorantTableType
-                    break;
+                case IccTags.ColorimetricIntentImageStateTag: // 9.2.21 colorimetricIntentImageStateTag
+                case IccTags.PerceptualRenderingIntentGamutTag: // 9.2.39 perceptualRenderingIntentGamutTag
+                case IccTags.SaturationRenderingIntentGamutTag: // 9.2.48 saturationRenderingIntentGamutTag
+                case IccTags.TechnologyTag: // 9.2.49 technologyTag
+                    return new IccSignatureType(data); // Permitted tag type: signatureType
 
-                case "ciis": // 9.2.21 colorimetricIntentImageStateTag
-                    // Permitted tag type: signatureType
-                    return IccSignatureType.Parse(data);
+                case IccTags.CopyrightTag: // 9.2.22 copyrightTag
+                case IccTags.DeviceMfgDescTag: // 9.2.23 deviceMfgDescTag
+                case IccTags.DeviceModelDescTag: // 9.2.24 deviceModelDescTag
+                case IccTags.ProfileDescriptionTag: // 9.2.43 profileDescriptionTag
+                case IccTags.ViewingCondDescTag: // 9.2.50 viewingCondDescTag
+                    return new IccMultiLocalizedUnicodeType(data); // Permitted tag type: multiLocalizedUnicodeType
 
-                case "cprt": // 9.2.22 copyrightTag
-                case "dmnd": // 9.2.23 deviceMfgDescTag
-                case "dmdd": // 9.2.24 deviceModelDescTag
-                    // Permitted tag type: multiLocalizedUnicodeType
-                    return IccMultiLocalizedUnicodeType.Parse(data);
-
-                case "D2B0": // 9.2.25 DToB0Tag
+                case IccTags.DToB0Tag: // 9.2.25 DToB0Tag
+                case IccTags.DToB1Tag: // 9.2.26 DToB1Tag
+                case IccTags.DToB2Tag: // 9.2.27 DToB2Tag
+                case IccTags.DToB3Tag: // 9.2.28 DToB3Tag
                     // Allowed tag types: multiProcessElementsType
                     break;
 
-                case "D2B1": // 9.2.26 DToB1Tag
-                    // Allowed tag types: multiProcessElementsType
-                    break;
+                case IccTags.GamutTag: // 9.2.29 gamutTag
+                    return ReadlutTypeOrlutABType(data); // Permitted tag types: lut8Type or lut16Type or lutBToAType
 
-                case "D2B2": // 9.2.27 DToB2Tag
-                    // Allowed tag types: multiProcessElementsType
-                    break;
+                case IccTags.MeasurementTag: // 9.2.34 measurementTag
+                    return new IccMeasurementType(data);
 
-                case "D2B3": // 9.2.28 DToB3Tag
-                    // Allowed tag types: multiProcessElementsType
-                    break;
-
-                case "gamt": // 9.2.29 gamutTag
-                    // Permitted tag types: lut8Type or lut16Type or lutBToAType
-                    return Readlut8TypeOrlut16TypeOrlutAToBTypeOrlutBToAType(data);
-
-                case "kTRC": // 9.2.30 grayTRCTag
-                case "gTRC": // 9.2.32 greenTRCTag
-                    // Permitted tag types: curveType or parametricCurveType
-                    return IccBaseCurveType.Parse(data);
-
-                case "gXYZ": // 9.2.31 greenMatrixColumnTag
-                case "lumi": // 9.2.33 luminanceTag
-                    // Permitted tag type: XYZType
-                    return IccXyzType.Parse(data);
-
-                case "meas": // 9.2.34 measurementTag
-                    return IccMeasurementType.Parse(data);
-
-                case "meta": // 9.2.35 metadataTag
+                case IccTags.MetadataTag: // 9.2.35 metadataTag
                     // Allowed tag types: dictType
                     break;
 
-                case "wtpt": // 9.2.36 mediaWhitePointTag
-                    // Permitted tag type: XYZType
-                    return IccXyzType.Parse(data);
-
-                case "ncl2": // 9.2.37 namedColor2Tag
+                case IccTags.NamedColor2Tag: // 9.2.37 namedColor2Tag
                     // Permitted tag type: namedColor2Type
                     break;
 
-                case "resp": // 9.2.38 outputResponseTag
+                case IccTags.OutputResponseTag: // 9.2.38 outputResponseTag
                     // Permitted tag type: responseCurveSet16Type
                     break;
 
-                case "rig0": // 9.2.39 perceptualRenderingIntentGamutTag
-                    // Permitted tag type: signatureType
-                    return IccSignatureType.Parse(data);
-
-                case "pre0": // 9.2.40 preview0Tag
-                             // Permitted tag types: lut8Type or lut16Type or lutAToBType or lutBToAType
-                    return Readlut8TypeOrlut16TypeOrlutAToBTypeOrlutBToAType(data);
-
-                case "pre1": // 9.2.41 preview1Tag
-                    // Permitted tag types: lut8Type or lut16Type or lutBToAType
-                    return Readlut8TypeOrlut16TypeOrlutAToBTypeOrlutBToAType(data);
-
-                case "pre2": // 9.2.42 preview2Tag
-                             // Permitted tag types: lut8Type or lut16Type or lutBToAType
-                    return Readlut8TypeOrlut16TypeOrlutAToBTypeOrlutBToAType(data);
-
-                case "desc": // 9.2.43 profileDescriptionTag
-                    // Permitted tag type: multiLocalizedUnicodeType
-                    return IccMultiLocalizedUnicodeType.Parse(data);
-
-                case "pseq": // 9.2.44 profileSequenceDescTag
+                case IccTags.ProfileSequenceDescTag: // 9.2.44 profileSequenceDescTag
                     // Permitted tag type: profileSequenceDescType
                     break;
 
-                case "psid": // 9.2.45 profileSequenceIdentifierTag
+                case IccTags.ProfileSequenceIdentifierTag: // 9.2.45 profileSequenceIdentifierTag
                     // Permitted tag type: profileSequenceIdentifierType
                     break;
 
-                case "rXYZ": // 9.2.46 redMatrixColumnTag
-                    // Permitted tag type: XYZType
-                    return IccXyzType.Parse(data);
-
-                case "rTRC": // 9.2.47 redTRCTag
-                    // Permitted tag types: curveType or parametricCurveType
-                    return IccBaseCurveType.Parse(data);
-
-                case "rig2": // 9.2.48 saturationRenderingIntentGamutTag
-                    // Permitted tag type: signatureType
-                    return IccSignatureType.Parse(data);
-
-                case "tech": // 9.2.49 technologyTag
-                    // Permitted tag type: signatureType
-                    return IccSignatureType.Parse(data);
-
-                case "vued": // 9.2.50 viewingCondDescTag
-                    // Permitted tag type: multiLocalizedUnicodeType
-                    return IccMultiLocalizedUnicodeType.Parse(data);
-
-                case "view": // 9.2.51 viewingConditionsTag
-                    // Permitted tag type: viewingConditionsType
-                    return IccViewingConditionsType.Parse(data);
-
-
-                // bkpt should not be there according to specs
-                case "bkpt": // 9.2.36 mediaWhitePointTag
-                    // Permitted tag type: XYZType
-                    return IccXyzType.Parse(data);
+                case IccTags.ViewingConditionsTag: // 9.2.51 viewingConditionsTag
+                    return new IccViewingConditionsType(data); // Permitted tag type: viewingConditionsType
 
                 default:
-                    throw new InvalidOperationException($"Invalid tag signature '{tag.Signature}' for ICC v4 profile.");
+                    return IccUnknownTagType.Parse(data);
             }
 
             throw new NotImplementedException($"Tag signature '{tag.Signature}' for ICC v4 profile.");
         }
 
-        private static IIccTagType Readlut8TypeOrlut16TypeOrlutAToBTypeOrlutBToAType(byte[] bytes)
+        private static IccTagTypeBase ReadlutTypeOrlutABType(byte[] bytes)
         {
-            string typeSignature = IccTagsHelper.GetString(bytes, 0, 4);
+            string typeSignature = IccHelper.GetString(bytes, 0, 4);
             switch (typeSignature)
             {
                 case "mft1":
@@ -230,7 +139,7 @@ namespace IccProfile.Parsers
 
                 case "mAB ":
                 case "mBA ":
-                    return IccLutABType.Parse(bytes);
+                    return new IccLutABType(bytes);
 
                 default:
                     throw new InvalidOperationException($"{typeSignature}");

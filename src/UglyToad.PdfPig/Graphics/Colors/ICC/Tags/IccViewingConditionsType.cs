@@ -1,70 +1,81 @@
 ﻿using System;
 using System.Linq;
-using System.Text;
-using IccProfile.Parsers;
 
-namespace IccProfile.Tags
+namespace IccProfileNet.Tags
 {
     /// <summary>
     /// TODO
     /// </summary>
-    public class IccViewingConditionsType : IIccTagType
+    internal sealed class IccViewingConditionsType : IccTagTypeBase
     {
-        /// <inheritdoc/>
-        public byte[] RawData { get; }
+        public const int IlluminantOffset = 8;
+        public const int IlluminantLength = 12;
 
+        public const int SurroundOffset = 20;
+        public const int SurroundLength = 12;
+
+        public const int IlluminantTypeOffset = 32;
+        public const int IlluminantTypeLength = 4;
+
+        private readonly Lazy<IccXyz> _illuminant;
         /// <summary>
         /// Un-normalized CIEXYZ values for illuminant (in which Y is in cd/m2).
         /// </summary>
-        public IccXyzType Illuminant { get; }
+        public IccXyz Illuminant => _illuminant.Value;
 
+        private readonly Lazy<IccXyz> _surround;
         /// <summary>
         /// Un-normalized CIEXYZ values for surround (in which Y is in cd/m2).
         /// </summary>
-        public IccXyzType Surround { get; }
+        public IccXyz Surround => _surround.Value;
 
+        private readonly Lazy<byte[]> _illuminantType;
         /// <summary>
         /// Illuminant type.
         /// </summary>
-        public byte[] IlluminantType { get; }
+        public byte[] IlluminantType => _illuminantType.Value;
 
-        private IccViewingConditionsType(IccXyzType illuminant, IccXyzType surround, byte[] illuminantType)
+        public IccViewingConditionsType(byte[] rawData)
         {
-            Illuminant = illuminant;
-            Surround = surround;
-            IlluminantType = illuminantType;
-        }
+            string typeSignature = IccHelper.GetString(rawData, TypeSignatureOffset, TypeSignatureLength);
 
-        /// <summary>
-        /// TODO
-        /// </summary>
-        public static IccViewingConditionsType Parse(byte[] bytes)
-        {
-            string typeSignature = IccTagsHelper.GetString(bytes, 0, 4); // view
-
-            if (typeSignature != "view")
+            if (typeSignature != IccTags.ViewingConditionsTag)
             {
                 throw new ArgumentException(nameof(typeSignature));
             }
 
-            // Reserved, shall be set to 0
-            // 4 to 7
-            //byte[] reserved = bytes.Skip(4).Take(4).ToArray();
+            RawData = rawData;
 
-            // Un-normalized CIEXYZ values for illuminant (in which Y is in cd/m2)
-            // 8 to 19
-            var illuminant = IccXyzType.Parse(bytes.Skip(8).Take(12).ToArray());
+            _illuminant = new Lazy<IccXyz>(() =>
+            {
+                // Un-normalized CIEXYZ values for illuminant (in which Y is in cd/m2)
+                // 8 to 19
+                return IccHelper.ReadXyz(RawData
+                    .Skip(IlluminantOffset)
+                    .Take(IlluminantLength)
+                    .ToArray());
+            });
 
-            // Un-normalized CIEXYZ values for surround (in which Y is in cd/m2)
-            // 20 to 31
-            var surround = IccXyzType.Parse(bytes.Skip(20).Take(12).ToArray());
+            _surround = new Lazy<IccXyz>(() =>
+            {
+                // Un-normalized CIEXYZ values for surround (in which Y is in cd/m2)
+                // 20 to 31
+                return IccHelper.ReadXyz(RawData
+                    .Skip(SurroundOffset)
+                    .Take(SurroundLength)
+                    .ToArray());
+            });
 
-            // Illuminant type
-            // 32 to 35
-            // As described in measurementType
-            var illuminantType = bytes.Skip(32).Take(4).ToArray(); // TODO
-
-            return new IccViewingConditionsType(illuminant, surround, illuminantType);
+            _illuminantType = new Lazy<byte[]>(() =>
+            {
+                // Illuminant type
+                // 32 to 35
+                // As described in measurementType
+                return RawData
+                    .Skip(IlluminantTypeOffset)
+                    .Take(IlluminantTypeLength)
+                    .ToArray(); // TODO
+            });
         }
     }
 }

@@ -1,54 +1,38 @@
-﻿using IccProfile.Parsers;
-using System;
+﻿using System;
 using System.Linq;
 
-namespace IccProfile.Tags
+namespace IccProfileNet.Tags
 {
     /// <summary>
     /// TODO
     /// </summary>
-    public class IccTextType : IIccTagType
+    internal sealed class IccTextType : IccTagTypeBase
     {
-        /// <inheritdoc/>
-        public byte[] RawData { get; }
+        public const int TextOffset = 8;
 
+        private readonly Lazy<string> _text;
         /// <summary>
         /// TODO
         /// </summary>
-        public string Text { get; }
+        public string Text => _text.Value;
 
-        private IccTextType(string text, byte[] rawData)
+        public IccTextType(byte[] rawData)
         {
-            Text = text;
-            RawData = rawData;
-        }
+            string typeSignature = IccHelper.GetString(rawData, TypeSignatureOffset, TypeSignatureLength);
 
-        /// <inheritdoc/>
-        public override string ToString()
-        {
-            return Text;
-        }
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        public static IccTextType Parse(byte[] bytes)
-        {
-            string typeSignature = IccTagsHelper.GetString(bytes, 0, 4);
-
-            if (typeSignature != "text" && typeSignature != "desc")
+            if (typeSignature != "text" && typeSignature != IccTags.ProfileDescriptionTag)
             {
                 throw new ArgumentException(nameof(typeSignature));
             }
 
-            // Reserved, shall be set to 0
-            // 4 to 7
-            //byte[] reserved = bytes.Skip(4).Take(4).ToArray();
+            RawData = rawData;
 
-            // A string of (element size 8) 7-bit ASCII characters
-            // Variable
-            string text = IccTagsHelper.GetString(bytes.Skip(8).ToArray());
-            return new IccTextType(text, bytes);
+            _text = new Lazy<string>(() => IccHelper.GetString(RawData.Skip(TextOffset).ToArray()));
+        }
+
+        public override string ToString()
+        {
+            return Text;
         }
     }
 }

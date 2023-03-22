@@ -1,5 +1,6 @@
 ﻿namespace UglyToad.PdfPig.Graphics.Colors
 {
+    using IccProfileNet;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -1072,11 +1073,13 @@
         [CanBeNull]
         public XmpMetadata Metadata { get; }
 
+        
         /// <summary>
         /// ICC profile.
         /// </summary>
         [CanBeNull]
-        public IccProfile.IccProfile Profile { get; }
+        public IccProfile Profile { get; }
+        
 
         /// <summary>
         /// Create a new <see cref="ICCBasedColorSpaceDetails"/>.
@@ -1107,10 +1110,13 @@
 
             if (rawProfile != null)
             {
+                System.IO.Directory.CreateDirectory("ICC_Profiles_errors");
+                System.IO.File.WriteAllBytes($"ICC_Profiles_errors/ICC_{Guid.NewGuid().ToString().ToLower()}.icc",
+                    rawProfile.ToArray());
+
                 try
                 {
-                    Profile = IccProfile.IccProfile.Create(rawProfile.ToArray());
-                    var tags = Profile.GetTags().ToArray();
+                    Profile = new IccProfile(rawProfile.ToArray());
                 }
                 catch (Exception ex)
                 {
@@ -1130,6 +1136,17 @@
             if (values == null || values.Length != NumberOfColorComponents)
             {
                 throw new ArgumentException(nameof(values));
+            }
+
+            if (Profile != null)
+            {
+                var test = Profile.Process(values);
+                if (test.Length != 3)
+                {
+                    throw new Exception();
+                }
+
+                return new RGBColor((decimal)test[0], (decimal)test[1], (decimal)test[2]);
             }
 
             // TODO - use ICC profile

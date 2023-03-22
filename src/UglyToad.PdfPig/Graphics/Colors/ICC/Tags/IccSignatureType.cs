@@ -1,51 +1,36 @@
-﻿using IccProfile.Parsers;
-using System;
+﻿using System;
 using System.Linq;
 
-namespace IccProfile.Tags
+namespace IccProfileNet.Tags
 {
-    /// <summary>
-    /// TODO
-    /// </summary>
-    public sealed class IccSignatureType : IIccTagType
+    internal sealed class IccSignatureType : IccTagTypeBase
     {
-        /// <inheritdoc/>
-        public byte[] RawData { get; }
+        public const int SignatureOffset = 8;
+        public const int SignatureLength = 4;
 
+        private readonly Lazy<string> _signature;
         /// <summary>
         /// TODO
         /// </summary>
-        public string Signature { get; }
+        public string Signature => _signature.Value;
 
-        private IccSignatureType(string signature, byte[] rawData)
+        public IccSignatureType(byte[] rawData)
         {
-            Signature = signature;
+            // TODO - check signature
+
             RawData = rawData;
-        }
 
-        /// <summary>
-        /// TODO
-        /// </summary>
-        public static IccSignatureType Parse(byte[] bytes)
-        {
-            string typeSignature = IccTagsHelper.GetString(bytes, 0, 4); // sig 
-
-            if (typeSignature != "sig ")
+            _signature = new Lazy<string>(() =>
             {
-                throw new ArgumentException(nameof(typeSignature));
-            }
+                // Encoded value for standard observer
+                // 8 to 11
+                byte[] signatureBytes = RawData
+                    .Skip(SignatureOffset)
+                    .Take(SignatureLength)
+                    .ToArray();
 
-            // Reserved, shall be set to 0
-            // 4 to 7
-            //byte[] reserved = bytes.Skip(4).Take(4).ToArray();
-
-            // Encoded value for standard observer
-            // 8 to 11
-            byte[] signatureBytes = bytes.Skip(8).Take(4).ToArray();
-
-            string signature = IccTagsHelper.GetString(signatureBytes);
-
-            return new IccSignatureType(signature, bytes);
+                return IccHelper.GetString(signatureBytes);
+            });
         }
     }
 }

@@ -1,57 +1,37 @@
-﻿using IccProfile.Parsers;
-using System;
+﻿using System;
 
-namespace IccProfile.Tags
+namespace IccProfileNet.Tags
 {
-    /// <summary>
-    /// TODO
-    /// </summary>
-    public abstract class IccBaseCurveType : IIccTagType
+    internal abstract class IccBaseCurveType : IccTagTypeBase
     {
         /// <summary>
         /// Curve type signature.
         /// </summary>
-        public string Signature { get; }
+        public string Signature { get; protected set; }
 
-        /// <inheritdoc/>
-        public byte[] RawData { get; }
-
+        protected Lazy<double[]> _parameters;
         /// <summary>
         /// TODO
         /// </summary>
-        public float[] Values { get; }
+        public double[] Parameters => _parameters.Value;
 
-        internal int BytesRead { get; }
+        public int BytesRead { get; protected set; }
 
-        /// <summary>
-        /// TODO
-        /// </summary>
-        protected IccBaseCurveType(string signature, float[] values, byte[] rawData, int bytesRead)
-        {
-            Signature = signature;
-            Values = values;
-            RawData = rawData;
-            BytesRead = bytesRead;
-        }
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        public abstract double Compute(double values);
+        public abstract double Process(double values);
 
         /// <summary>
         /// TODO
         /// </summary>
         public static IccBaseCurveType Parse(byte[] bytes)
         {
-            string typeSignature = IccTagsHelper.GetString(bytes, 0, 4);
+            string typeSignature = IccHelper.GetString(bytes, TypeSignatureOffset, TypeSignatureLength);
             switch (typeSignature)
             {
                 case "curv":
-                    return IccCurveType.Parse(bytes);
+                    return new IccCurveType(bytes);
 
                 case "para":
-                    return IccParametricCurveType.Parse(bytes);
+                    return new IccParametricCurveType(bytes);
 
                 default:
                     throw new InvalidOperationException(typeSignature);

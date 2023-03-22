@@ -1,193 +1,178 @@
-﻿using IccProfile.Parsers;
-using System;
+﻿using System;
 using System.Linq;
 
-namespace IccProfile.Tags
+namespace IccProfileNet.Tags
 {
-    /// <summary>
-    /// TODO
-    /// </summary>
-    public sealed class IccParametricCurveType : IccBaseCurveType
+    internal sealed class IccParametricCurveType : IccBaseCurveType
     {
-        /// <summary>
-        /// TODO
-        /// </summary>
+        public const int FunctionTypeOffset = 8;
+        public const int FunctionTypeLength = 2;
+        public const int ParametersOffset = 12;
+
         public ushort FunctionType { get; }
 
         private readonly Func<double, double> _func;
-        private readonly double _g;
-        private readonly double _a;
-        private readonly double _b;
-        private readonly double _c;
-        private readonly double _d;
-        private readonly double _e;
-        private readonly double _f;
+        private readonly Lazy<double> _g;
+        private readonly Lazy<double> _a;
+        private readonly Lazy<double> _b;
+        private readonly Lazy<double> _c;
+        private readonly Lazy<double> _d;
+        private readonly Lazy<double> _e;
+        private readonly Lazy<double> _f;
 
-        private IccParametricCurveType(ushort functionType, float[] values,
-            byte[] rawData, int readBytes)
-            : base("para", values, rawData, readBytes)
+        public IccParametricCurveType(byte[] rawData)
         {
-            FunctionType = functionType;
-
-            switch (FunctionType)
-            {
-                case 0:
-                    _g = Values[0];
-                    _func = new Func<double, double>(x => Math.Pow(x, _g));
-                    break;
-
-                case 1:
-                    _g = Values[0];
-                    _a = Values[1];
-                    _b = Values[2];
-                    _func = new Func<double, double>(x =>
-                    {
-                        if (x >= -_b / _a)
-                        {
-                            return Math.Pow(_a * x + _b, _g);
-                        }
-                        return 0.0;
-                    });
-                    break;
-
-                case 2:
-                    _g = Values[0];
-                    _a = Values[1];
-                    _b = Values[2];
-                    _c = Values[3];
-                    _func = new Func<double, double>(x =>
-                    {
-                        if (x >= -_b / _a)
-                        {
-                            return Math.Pow(_a * x + _b, _g) + _c;
-                        }
-                        return _c;
-                    });
-                    break;
-
-                case 3:
-                    _g = Values[0];
-                    _a = Values[1];
-                    _b = Values[2];
-                    _c = Values[3];
-                    _d = Values[4];
-                    _func = new Func<double, double>(x =>
-                    {
-                        if (x >= _d)
-                        {
-                            return Math.Pow(_a * x + _b, _g);
-                        }
-                        return _c * x;
-                    });
-                    break;
-
-                case 4:
-                    _g = Values[0];
-                    _a = Values[1];
-                    _b = Values[2];
-                    _c = Values[3];
-                    _d = Values[4];
-                    _e = Values[5];
-                    _f = Values[6];
-                    _func = new Func<double, double>(x =>
-                    {
-                        if (x >= _d)
-                        {
-                            return Math.Pow(_a * x + _b, _g) + _e;
-                        }
-                        return _c * x + _f;
-                    });
-                    break;
-
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
-
-        /// <inheritdoc/>
-        public override double Compute(double values)
-        {
-            return _func(values);
-        }
-
-        /// <inheritdoc/>
-        public override string ToString()
-        {
-            string[] names = new string[] { "g", "a", "b", "c", "d", "e", "f" };
-            string str = "(";
-
-            int i = 0;
-            for (i = 0; i < Values.Length - 1; i++)
-            {
-                str += $"{names[i]}={Math.Round(Values[i], 4)},";
-            }
-
-            str += $"{names[i]}={Math.Round(Values[i], 4)}";
-
-            return str + ")";
-        }
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        public new static IccParametricCurveType Parse(byte[] bytes)
-        {
-            string typeSignature = IccTagsHelper.GetString(bytes, 0, 4);
+            string typeSignature = IccHelper.GetString(rawData, TypeSignatureOffset, TypeSignatureLength);
 
             if (typeSignature != "para")
             {
                 throw new ArgumentException(nameof(typeSignature));
             }
 
-            // Reserved, shall be set to 0
-            // 4 to 7
-            //byte[] reserved = bytes.Skip(4).Take(4).ToArray();
+            RawData = rawData;
+            Signature = "para";
 
             // Encoded value of the function type
             // 8 to 9
-            ushort functionType = IccTagsHelper.ReadUInt16(bytes.Skip(8).Take(2).ToArray());
+            FunctionType = IccHelper.ReadUInt16(RawData
+                .Skip(FunctionTypeOffset)
+                .Take(FunctionTypeLength)
+                .ToArray());
 
-            // Reserved, shall be set to 0
-            // 10 to 11
-            //var reserved2 = bytes.Skip(10).Take(2).ToArray();
+            int parametersCount = GetParametersCount(FunctionType);
 
+            int fieldLength = parametersCount * 4;
+            BytesRead = ParametersOffset + fieldLength;
+
+            _parameters = new Lazy<double[]>(() =>
+            {
+                // One or more parameters (see Table 67)
+                // 12 to end
+                return IccHelper.Reads15Fixed16Array(RawData
+                    .Skip(ParametersOffset)
+                    .Take(fieldLength)
+                    .ToArray());
+            });
+
+            switch (FunctionType)
+            {
+                case 0:
+                    _g = new Lazy<double>(() => Parameters[0]);
+                    _func = new Func<double, double>(x => Math.Pow(x, _g.Value));
+                    break;
+
+                case 1:
+                    _g = new Lazy<double>(() => Parameters[0]);
+                    _a = new Lazy<double>(() => Parameters[1]);
+                    _b = new Lazy<double>(() => Parameters[2]);
+                    _func = new Func<double, double>(x =>
+                    {
+                        if (x >= -_b.Value / _a.Value)
+                        {
+                            return Math.Pow(_a.Value * x + _b.Value, _g.Value);
+                        }
+                        return 0.0;
+                    });
+                    break;
+
+                case 2:
+                    _g = new Lazy<double>(() => Parameters[0]);
+                    _a = new Lazy<double>(() => Parameters[1]);
+                    _b = new Lazy<double>(() => Parameters[2]);
+                    _c = new Lazy<double>(() => Parameters[3]);
+                    _func = new Func<double, double>(x =>
+                    {
+                        if (x >= -_b.Value / _a.Value)
+                        {
+                            return Math.Pow(_a.Value * x + _b.Value, _g.Value) + _c.Value;
+                        }
+                        return _c.Value;
+                    });
+                    break;
+
+                case 3:
+                    _g = new Lazy<double>(() => Parameters[0]);
+                    _a = new Lazy<double>(() => Parameters[1]);
+                    _b = new Lazy<double>(() => Parameters[2]);
+                    _c = new Lazy<double>(() => Parameters[3]);
+                    _d = new Lazy<double>(() => Parameters[4]);
+                    _func = new Func<double, double>(x =>
+                    {
+                        if (x >= _d.Value)
+                        {
+                            return Math.Pow(_a.Value * x + _b.Value, _g.Value);
+                        }
+                        return _c.Value * x;
+                    });
+                    break;
+
+                case 4:
+                    _g = new Lazy<double>(() => Parameters[0]);
+                    _a = new Lazy<double>(() => Parameters[1]);
+                    _b = new Lazy<double>(() => Parameters[2]);
+                    _c = new Lazy<double>(() => Parameters[3]);
+                    _d = new Lazy<double>(() => Parameters[4]);
+                    _e = new Lazy<double>(() => Parameters[5]);
+                    _f = new Lazy<double>(() => Parameters[6]);
+                    _func = new Func<double, double>(x =>
+                    {
+                        if (x >= _d.Value)
+                        {
+                            return Math.Pow(_a.Value * x + _b.Value, _g.Value) + _e.Value;
+                        }
+                        return _c.Value * x + _f.Value;
+                    });
+                    break;
+
+                default:
+                    throw new InvalidOperationException($"Unknown Parametric Curve function type '{FunctionType}'. Allowed values are 1, 2, 3, 4.");
+            }
+        }
+
+        private static int GetParametersCount(int functionType)
+        {
             // Table 68 — parametricCurveType function type encoding
-            int paramCount;
             switch (functionType)
             {
                 case 0:
-                    paramCount = 1;
-                    break;
+                    return 1;
 
                 case 1:
                 case 2:
                 case 3:
-                    paramCount = functionType + 2;
-                    break;
+                    return functionType + 2;
 
                 case 4:
-                    paramCount = 7;
-                    break;
+                    return 7;
 
                 default:
                     throw new InvalidOperationException($"{functionType}");
             }
+        }
 
-            int fieldLength = paramCount * 4;
+        public override double Process(double values)
+        {
+            return _func(values);
+        }
 
-            // One or more parameters (see Table 67)
-            // 12 to end
-            byte[] parametersBytes = bytes.Skip(12).Take(fieldLength).ToArray();
-            float[] parameters = IccTagsHelper.Reads15Fixed16Array(parametersBytes);
-            //float[] parameters = new float[paramCount];
-            //for (int p = 0; p < paramCount; p++)
-            //{
-            //    byte[] localBytes = parametersBytes.Skip(p * 4).Take(4).ToArray();
-            //    parameters[p] = IccTagsHelper.Reads15Fixed16Number(localBytes);
-            //}
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            string[] names = new string[] { "g", "a", "b", "c", "d", "e", "f" };
+            string str = "(";
 
-            int readBytes = 12 + fieldLength;
-            return new IccParametricCurveType(functionType, parameters, bytes.Take(readBytes).ToArray(), readBytes);
+            int i = 0;
+            for (i = 0; i < Parameters.Length - 1; i++)
+            {
+                str += $"{names[i]}={Math.Round(Parameters[i], 4)},";
+            }
+
+            str += $"{names[i]}={Math.Round(Parameters[i], 4)}";
+
+            return str + ")";
         }
     }
 }

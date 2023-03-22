@@ -1,34 +1,39 @@
-﻿using IccProfile.Parsers;
-using System;
+﻿using System;
+using System.Linq;
 
-namespace IccProfile.Tags
+namespace IccProfileNet.Tags
 {
-    /// <summary>
-    /// TODO
-    /// </summary>
-    public class IccDateTimeType : IIccTagType
+    internal sealed class IccDateTimeType : IccTagTypeBase
     {
-        /// <inheritdoc/>
-        public byte[] RawData { get; }
+        public const int DateAndTimeOffset = 8;
+        public const int DateAndTimeLength = 12;
 
+        private readonly Lazy<DateTime> _dateTime;
         /// <summary>
         /// Value.
         /// </summary>
-        public DateTime DateTime { get; }
+        public DateTime DateTime => _dateTime.Value;
 
-        private IccDateTimeType(DateTime dateTime, byte[] rawData)
+        public IccDateTimeType(byte[] data)
         {
-            DateTime = dateTime;
-            RawData = rawData;
-        }
+            string typeSignature = IccHelper.GetString(data, TypeSignatureOffset, TypeSignatureLength);
 
-        /// <summary>
-        /// TODO
-        /// </summary>
-        public static IccDateTimeType Parse(byte[] bytes)
-        {
-            var dt = IccTagsHelper.ReadDateTimeType(bytes);
-            return new IccDateTimeType(dt, bytes);
+            if (typeSignature != "dtim")
+            {
+                throw new ArgumentException(nameof(typeSignature));
+            }
+
+            RawData = data;
+            _dateTime = new Lazy<DateTime>(() =>
+            {
+                var dt = IccHelper.ReadDateTime(RawData.Skip(DateAndTimeOffset).Take(DateAndTimeLength).ToArray());
+                if (!dt.HasValue)
+                {
+                    throw new ArgumentNullException(nameof(RawData), "Could not get date value.");
+                }
+
+                return dt.Value;
+            });
         }
     }
 }

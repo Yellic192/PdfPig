@@ -1,99 +1,134 @@
-﻿using IccProfile.Parsers;
-using System;
+﻿using System;
 using System.Linq;
 
-namespace IccProfile.Tags
+namespace IccProfileNet.Tags
 {
-    /// <summary>
-    /// TODO
-    /// </summary>
-    public class IccMultiLocalizedUnicodeType : IIccTagType
+    internal sealed class IccMultiLocalizedUnicodeType : IccTagTypeBase
     {
-        /// <inheritdoc/>
-        public byte[] RawData { get; }
+        public const int NumberOfRecordOffset = 8;
+        public const int NumberOfRecordLength = 4;
+        public const int RecordSizeOffset = 12;
+        public const int RecordSizeLength = 4;
 
+        public const int FirstRecordLanguageOffset = 16;
+        public const int RecordLanguageLength = 2;
+        public const int FirstRecordCountryOffset = 18;
+        public const int RecordCountryLength = 2;
+        public const int FirstRecordLengthOffset = 20;
+        public const int RecordLengthLength = 4;
+
+        public const int FirstRecordOffsetOffset = 24;
+        public const int RecordOffsetLength = 4;
+
+        private readonly Lazy<int> _numberOfRecords;
         /// <summary>
         /// Number of records (n).
         /// </summary>
-        public int NumberOfRecord { get; }
+        public int NumberOfRecords => _numberOfRecords.Value;
 
+        private readonly Lazy<int> _recordSize;
+        public int RecordSize => _recordSize.Value;
+
+        private readonly Lazy<IccMultiLocalizedUnicodeRecord[]> _records;
         /// <summary>
         /// TODO
         /// </summary>
-        public IccMultiLocalizedUnicodeRecord[] Records { get; }
+        public IccMultiLocalizedUnicodeRecord[] Records => _records.Value;
 
-        private IccMultiLocalizedUnicodeType(IccMultiLocalizedUnicodeRecord[] records, int numberOfRecord, byte[] rawData)
+        public IccMultiLocalizedUnicodeType(byte[] rawData)
         {
-            NumberOfRecord = numberOfRecord;
-            Records = records;
-            RawData = rawData;
-        }
-
-        /// <summary>
-        /// TODO
-        /// </summary>
-        public static IccMultiLocalizedUnicodeType Parse(byte[] bytes)
-        {
-            string typeSignature = IccTagsHelper.GetString(bytes, 0, 4); // mluc
+            string typeSignature = IccHelper.GetString(rawData, TypeSignatureOffset, TypeSignatureLength);
 
             if (typeSignature != "mluc")
             {
                 throw new ArgumentException(nameof(typeSignature));
             }
 
-            // Reserved, shall be set to 0
-            // 4 to 7
-            //byte[] reserved = bytes.Skip(4).Take(4).ToArray();
+            RawData = rawData;
 
-            // Number of records (n)
-            // 8 to 11
-            uint numberOfRecord = IccTagsHelper.ReadUInt32(bytes.Skip(8).Take(4).ToArray());
-
-            // Record size: the length in bytes of every record. The value is 12.
-            // 12 to 15
-            uint recordSize = IccTagsHelper.ReadUInt32(bytes.Skip(12).Take(4).ToArray());
-
-            if (recordSize != 12)
+            _numberOfRecords = new Lazy<int>(() =>
             {
-                throw new ArgumentException(nameof(recordSize));
-            }
+                // Number of records (n)
+                // 8 to 11
+                return (int)IccHelper.ReadUInt32(RawData
+                    .Skip(NumberOfRecordOffset)
+                    .Take(NumberOfRecordLength)
+                    .ToArray());
+            });
 
-            IccMultiLocalizedUnicodeRecord[] records = new IccMultiLocalizedUnicodeRecord[numberOfRecord];
-            for (var i = 0; i < numberOfRecord; ++i)
+            _recordSize = new Lazy<int>(() =>
             {
-                byte[] input = bytes.Skip(12 + 4 + i * 12).Take(12).ToArray();
+                // Record size: the length in bytes of every record. The value is 12.
+                // 12 to 15
+                int recordSize = (int)IccHelper.ReadUInt32(RawData
+                    .Skip(RecordSizeOffset)
+                    .Take(RecordSizeLength)
+                    .ToArray());
 
-                // First record language code: in accordance with the
-                // language code specified in ISO 639-1
-                // 16 to 17
-                string language = IccTagsHelper.GetString(input.Skip(0).Take(2).ToArray());
+                if (recordSize != 12)
+                {
+                    throw new ArgumentException(nameof(recordSize));
+                }
+                return recordSize;
+            });
 
-                // First record country code: in accordance with the country
-                // code specified in ISO 3166-1
-                // 18 to 19
-                string country = IccTagsHelper.GetString(input.Skip(2).Take(2).ToArray());
+            _records = new Lazy<IccMultiLocalizedUnicodeRecord[]>(() =>
+            {
+                IccMultiLocalizedUnicodeRecord[] records = new IccMultiLocalizedUnicodeRecord[NumberOfRecords];
 
-                // First record string length: the length in bytes of the string
-                // 20 to 23
-                uint length = IccTagsHelper.ReadUInt32(input.Skip(4).Take(4).ToArray());
+                const int recordsStartOffset = RecordSizeOffset + RecordSizeLength;
+                const int recordLanguageOffset = FirstRecordLanguageOffset - recordsStartOffset;
+                const int recordCountryOffset = FirstRecordCountryOffset - recordsStartOffset;
+                const int recordLengthOffset = FirstRecordLengthOffset - recordsStartOffset;
+                const int recordOffsetOffset = FirstRecordOffsetOffset - recordsStartOffset;
 
-                // First record string offset: the offset from the start of the tag
-                // to the start of the string, in bytes.
-                // 24 to 27
-                uint offset = IccTagsHelper.ReadUInt32(input.Skip(8).Take(4).ToArray());
+                for (var i = 0; i < NumberOfRecords; ++i)
+                {
+                    int currentOffset = recordsStartOffset + (i * RecordSize);
 
-                string text = IccTagsHelper.GetString(bytes, (int)offset, (int)length);
+                    // First record language code: in accordance with the
+                    // language code specified in ISO 639-1
+                    // 16 to 17
+                    string language = IccHelper.GetString(RawData
+                        .Skip(currentOffset + recordLanguageOffset)
+                        .Take(RecordLanguageLength)
+                        .ToArray());
 
-                records[i] = new IccMultiLocalizedUnicodeRecord(language, country, text);
-            }
+                    // First record country code: in accordance with the country
+                    // code specified in ISO 3166-1
+                    // 18 to 19
+                    string country = IccHelper.GetString(RawData
+                        .Skip(currentOffset + recordCountryOffset)
+                        .Take(RecordCountryLength)
+                        .ToArray());
 
-            return new IccMultiLocalizedUnicodeType(records, (int)numberOfRecord, bytes); // TODO bytes actual lenght
+                    // First record string length: the length in bytes of the string
+                    // 20 to 23
+                    uint length = IccHelper.ReadUInt32(RawData
+                        .Skip(currentOffset + recordLengthOffset)
+                        .Take(RecordLengthLength)
+                        .ToArray());
+
+                    // First record string offset: the offset from the start of the tag
+                    // to the start of the string, in bytes.
+                    // 24 to 27
+                    uint offset = IccHelper.ReadUInt32(RawData
+                        .Skip(currentOffset + recordOffsetOffset)
+                        .Take(RecordOffsetLength)
+                        .ToArray());
+
+                    string text = IccHelper.GetString(RawData, (int)offset, (int)length);
+
+                    records[i] = new IccMultiLocalizedUnicodeRecord(language, country, text);
+                }
+                return records;
+            });
         }
 
         /// <summary>
         /// TODO
         /// </summary>
-        public struct IccMultiLocalizedUnicodeRecord
+        public readonly struct IccMultiLocalizedUnicodeRecord
         {
             /// <summary>
             /// Language code specified in ISO 639-1.

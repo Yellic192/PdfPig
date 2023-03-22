@@ -1,9 +1,10 @@
-﻿using IccProfile.Parsers;
-using IccProfile.Tags;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using IccProfileNet.Parsers;
+using IccProfileNet.Tags;
 
-namespace IccProfile
+namespace IccProfileNet
 {
     /// <summary>
     /// ICC profile.
@@ -15,10 +16,18 @@ namespace IccProfile
         /// </summary>
         public IccProfileHeader Header { get; }
 
+        private readonly Lazy<IccTagTableItem[]> _tagTable;
         /// <summary>
         /// The tag table acts as a table of contents for the tags and an index into the tag data element in the profiles.
         /// </summary>
-        public IccTagTableItem[] TagTable { get; }
+        public IccTagTableItem[] TagTable => _tagTable.Value;
+
+        private readonly Lazy<IReadOnlyDictionary<string, IccTagTypeBase>> _tags;
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        public IReadOnlyDictionary<string, IccTagTypeBase> Tags => _tags.Value;
 
         /// <summary>
         /// TODO
@@ -28,53 +37,102 @@ namespace IccProfile
         /// <summary>
         /// ICC profile v4.
         /// </summary>
-        public IccProfile(IccProfileHeader header, IccTagTableItem[] tagTable, byte[] data)
+        public IccProfile(byte[] data)
         {
-            Header = header;
-            TagTable = tagTable;
             Data = data;
+            Header = new IccProfileHeader(data);
+            _tagTable = new Lazy<IccTagTableItem[]>(() => ParseTagTable(data.Skip(128).ToArray()));
+            _tags = new Lazy<IReadOnlyDictionary<string, IccTagTypeBase>>(() => GetTags());
         }
 
-        /// <summary>
-        /// TODO
-        /// </summary>
-        public IReadOnlyDictionary<string, IIccTagType> GetTags()
+        private static IccTagTableItem[] ParseTagTable(byte[] bytes)
         {
-            switch (this.Header.VersionMajor)
+            // Tag count (n)
+            // 0 to 3
+            uint tagCount = IccHelper.ReadUInt32(bytes
+                .Skip(IccTagTableItem.TagCountOffset)
+                .Take(IccTagTableItem.TagCountLength).ToArray());
+
+            IccTagTableItem[] tagTableItems = new IccTagTableItem[tagCount];
+
+            for (var i = 0; i < tagCount; ++i)
+            {
+                int currentOffset = i * (IccTagTableItem.TagSignatureLength +
+                                         IccTagTableItem.TagOffsetLength +
+                                         IccTagTableItem.TagSizeLength);
+
+                // Tag Signature
+                // 4 to 7
+                string signature = IccHelper.GetString(bytes,
+                    currentOffset + IccTagTableItem.TagSignatureOffset, IccTagTableItem.TagSignatureLength);
+
+                // Offset to beginning of tag data element
+                // 8 to 11
+                uint offset = IccHelper.ReadUInt32(bytes
+                    .Skip(currentOffset + IccTagTableItem.TagOffsetOffset)
+                    .Take(IccTagTableItem.TagOffsetLength).ToArray());
+
+                // Size of tag data element
+                // 12 to 15
+                uint size = IccHelper.ReadUInt32(bytes
+                    .Skip(currentOffset + IccTagTableItem.TagSizeOffset)
+                    .Take(IccTagTableItem.TagSizeLength).ToArray());
+
+                tagTableItems[i] = new IccTagTableItem(signature, offset, size);
+            }
+
+            return tagTableItems;
+        }
+
+        private IReadOnlyDictionary<string, IccTagTypeBase> GetTags()
+        {
+            switch (Header.VersionMajor)
             {
                 case 4:
                     {
-                        var tags = new Dictionary<string, IIccTagType>();
+                        var tags = new Dictionary<string, IccTagTypeBase>();
                         for (int t = 0; t < TagTable.Length; t++)
                         {
-                            var tag = TagTable[t];
-                            tags.Add(tag.Signature, IccProfileV4TagParser.Parse(Data, TagTable[t]));
+                            IccTagTableItem tag = TagTable[t];
+                            tags.Add(tag.Signature, IccProfileV4TagParser.Parse(Data, tag));
                         }
                         return tags;
                     }
 
                 case 2:
                     {
-                        var tags = new Dictionary<string, IIccTagType>();
+                        var tags = new Dictionary<string, IccTagTypeBase>();
                         for (int t = 0; t < TagTable.Length; t++)
                         {
-                            var tag = TagTable[t];
-                            tags.Add(tag.Signature, IccProfileV24TagParser.Parse(Data, TagTable[t]));
+                            IccTagTableItem tag = TagTable[t];
+                            tags.Add(tag.Signature, IccProfileV2TagParser.Parse(Data, tag));
                         }
                         return tags;
                     }
 
                 default:
-                    throw new NotImplementedException($"ICC Profile v{this.Header.VersionMajor}{this.Header.VersionMinor} is not supported.");
+                    throw new NotImplementedException($"ICC Profile v{Header.VersionMajor}.{Header.VersionMinor} is not supported.");
             }
         }
 
         /// <summary>
         /// TODO
         /// </summary>
-        public static IccProfile Create(byte[] bytes)
+        /// <param name="values"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public double[] Process(double[] values)
         {
-            return IccProfileParser.Create(bytes);
+            var key = IccLutABType.GetProfileTag(Header.ProfileClass, Header.RenderingIntent, IccLutABType.LutABType.AB);
+            if (Tags.TryGetValue(key, out var value) && value is IccLutABType lutAB)
+            {
+                return lutAB.Process(values, Header);
+            }
+
+            //Three-component matrix-based profiles
+
+
+            return values; // TODO other types
         }
 
         /// <inheritdoc/>
