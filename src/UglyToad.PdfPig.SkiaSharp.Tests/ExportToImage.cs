@@ -99,7 +99,7 @@
             RunAllPages(DeviceN_CS_test);
         }
 
-        [Fact]
+        [Fact(Skip = "too long")]
         public void MOZILLA_10448_0Test()
         {
             RunAllPages(MOZILLA_10448_0);

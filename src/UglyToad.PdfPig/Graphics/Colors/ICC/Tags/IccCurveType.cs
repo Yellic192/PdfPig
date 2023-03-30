@@ -59,9 +59,9 @@ namespace IccProfileNet.Tags
                     // When n is equal to 1, then the curve value shall be interpreted as a gamma value, encoded as
                     // u8Fixed8Number. Gamma shall be interpreted as the exponent in the equation y = x^g and not as an inverse.
                     // * If n = 1, the field length is 2 bytes and the value is encoded as a u8Fixed8Number
-
-                    // TODO
-                    throw new NotImplementedException("Count = 1");
+                    values[0] = IccHelper.ReadU8Fixed8Number(RawData
+                        .Skip(CountOffset + CountLength)
+                        .Take(IccHelper.UInt16Length).ToArray());
                 }
                 else
                 {
@@ -75,9 +75,9 @@ namespace IccProfileNet.Tags
                     {
                         values[c] = IccHelper.ReadUInt16(RawData.Skip(CountOffset + CountLength + (2 * c)).Take(2).ToArray()) / (double)ushort.MaxValue;
                     }
-
-                    return values;
                 }
+
+                return values;
             });
 
             _gamma = new Lazy<double>(() =>

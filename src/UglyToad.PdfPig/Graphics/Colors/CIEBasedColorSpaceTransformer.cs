@@ -92,6 +92,20 @@
             return (Clamp(gammaCorrectedR), Clamp(gammaCorrectedG), Clamp(gammaCorrectedB));
         }
 
+        public (double R, double G, double B) XYZToRGB((double A, double B, double C) xyz)
+        {
+            //var xyz = TransformToXYZ(color);
+
+            var adaptedColor = chromaticAdaptation.Transform(xyz);
+            var rgb = transformationMatrix.Multiply(adaptedColor);
+
+            var gammaCorrectedR = destinationWorkingSpace.GammaCorrection(rgb.Item1);
+            var gammaCorrectedG = destinationWorkingSpace.GammaCorrection(rgb.Item2);
+            var gammaCorrectedB = destinationWorkingSpace.GammaCorrection(rgb.Item3);
+
+            return (Clamp(gammaCorrectedR), Clamp(gammaCorrectedG), Clamp(gammaCorrectedB));
+        }
+
         private (double X, double Y, double Z) TransformToXYZ((double A, double B, double C) color)
         {
             var decodedABC = DecoderABC(color);

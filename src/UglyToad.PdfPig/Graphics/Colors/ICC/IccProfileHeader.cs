@@ -6,160 +6,165 @@ namespace IccProfileNet
     /// <summary>
     /// ICC profile header.
     /// </summary>
-    public struct IccProfileHeader
+    internal struct IccProfileHeader
     {
         #region ICC Profile header constants
-        internal const int ProfileSizeOffset = 0;
-        internal const int ProfileSizeLength = 4;
-        internal const int CmmOffset = 4;
-        internal const int CmmLength = 4;
-        internal const int VersionOffset = 8;
-        internal const int VersionLength = 4;
-        internal const int ProfileClassOffset = 12;
-        internal const int ProfileClassLength = 4;
-        internal const int ColourSpaceOffset = 16;
-        internal const int ColourSpaceLength = 4;
-        internal const int PcsByteOffset = 20;
-        internal const int PcsByteLength = 4;
-        internal const int CreatedOffset = 24;
-        internal const int CreatedLength = 12;
-        internal const int ProfileSignatureOffset = 36;
-        internal const int ProfileSignatureLength = 4;
-        internal const int PrimaryPlatformSignatureOffset = 40;
-        internal const int PrimaryPlatformSignatureLength = 4;
-        internal const int ProfileFlagsOffset = 44;
-        internal const int ProfileFlagsLength = 4;
-        internal const int DeviceManufacturerOffset = 48;
-        internal const int DeviceManufacturerLength = 4;
-        internal const int DeviceModelOffset = 52;
-        internal const int DeviceModelLength = 4;
-        internal const int DeviceAttributesOffset = 56;
-        internal const int DeviceAttributesLength = 8;
-        internal const int RenderingIntentOffset = 64;
-        internal const int RenderingIntentLength = 4;
-        internal const int nCIEXYZOffset = 68;
-        internal const int nCIEXYZLength = 12;
-        internal const int ProfileCreatorSignatureOffset = 80;
-        internal const int ProfileCreatorSignatureLength = 4;
-        internal const int ProfileIdOffset = 84;
-        internal const int ProfileIdLength = 16;
+        public const int ProfileSizeOffset = 0;
+        public const int ProfileSizeLength = 4;
+        public const int CmmOffset = 4;
+        public const int CmmLength = 4;
+        public const int VersionOffset = 8;
+        public const int VersionLength = 4;
+        public const int ProfileClassOffset = 12;
+        public const int ProfileClassLength = 4;
+        public const int ColourSpaceOffset = 16;
+        public const int ColourSpaceLength = 4;
+        public const int PcsByteOffset = 20;
+        public const int PcsByteLength = 4;
+        public const int CreatedOffset = 24;
+        public const int CreatedLength = 12;
+        public const int ProfileSignatureOffset = 36;
+        public const int ProfileSignatureLength = 4;
+        public const int PrimaryPlatformSignatureOffset = 40;
+        public const int PrimaryPlatformSignatureLength = 4;
+        public const int ProfileFlagsOffset = 44;
+        public const int ProfileFlagsLength = 4;
+        public const int DeviceManufacturerOffset = 48;
+        public const int DeviceManufacturerLength = 4;
+        public const int DeviceModelOffset = 52;
+        public const int DeviceModelLength = 4;
+        public const int DeviceAttributesOffset = 56;
+        public const int DeviceAttributesLength = 8;
+        public const int RenderingIntentOffset = 64;
+        public const int RenderingIntentLength = 4;
+        public const int nCIEXYZOffset = 68;
+        public const int nCIEXYZLength = 12;
+        public const int ProfileCreatorSignatureOffset = 80;
+        public const int ProfileCreatorSignatureLength = 4;
+        public const int ProfileIdOffset = 84;
+        public const int ProfileIdLength = 16;
         #endregion
 
         private readonly Lazy<uint> _profileSize;
         /// <summary>
         /// Profile size.
         /// </summary>
-        internal uint ProfileSize => _profileSize.Value;
+        public uint ProfileSize => _profileSize.Value;
 
         /// <summary>
         /// Profile major version.
         /// </summary>
-        internal int VersionMajor { get; }
+        public int VersionMajor { get; }
 
         /// <summary>
         /// Profile minor version.
         /// </summary>
-        internal int VersionMinor { get; }
+        public int VersionMinor { get; }
 
         /// <summary>
         /// Profile bug fix version.
         /// </summary>
-        internal int VersionBugFix { get; }
+        public int VersionBugFix { get; }
 
         private readonly Lazy<string> _cmm;
         /// <summary>
         /// Preferred CMM type.
         /// </summary>
-        internal string Cmm => _cmm.Value;
+        public string Cmm => _cmm.Value;
 
         private readonly Lazy<IccProfileClass> _profileClass;
         /// <summary>
         /// Profile/Device class.
         /// </summary>
-        internal IccProfileClass ProfileClass => _profileClass.Value;
+        public IccProfileClass ProfileClass => _profileClass.Value;
 
         private readonly Lazy<IccColourSpaceType> _colourSpace;
         /// <summary>
         /// Colour space of data (possibly a derived space).
         /// </summary>
-        internal IccColourSpaceType ColourSpace => _colourSpace.Value;
+        public IccColourSpaceType ColourSpace => _colourSpace.Value;
 
         private readonly Lazy<IccProfileConnectionSpace> _pcs;
         /// <summary>
         /// Profile connection space. An abstract color space used to connect the source and destination profiles.
         /// </summary>
-        internal IccProfileConnectionSpace Pcs => _pcs.Value;
+        public IccProfileConnectionSpace Pcs => _pcs.Value;
 
         private readonly Lazy<DateTime?> _created;
         /// <summary>
         /// Date and time this profile was first created.
         /// </summary>
-        internal DateTime? Created => _created.Value;
+        public DateTime? Created => _created.Value;
 
         private readonly Lazy<string> _profileSignature;
         /// <summary>
         /// profile file signature.
         /// </summary>
-        internal string ProfileSignature => _profileSignature.Value;
+        public string ProfileSignature => _profileSignature.Value;
 
         private readonly Lazy<IccPrimaryPlatforms> _primaryPlatformSignature;
         /// <summary>
         /// Primary platform signature.
         /// </summary>
-        internal IccPrimaryPlatforms PrimaryPlatformSignature => _primaryPlatformSignature.Value;
+        public IccPrimaryPlatforms PrimaryPlatformSignature => _primaryPlatformSignature.Value;
 
         private readonly Lazy<byte[]> _profileFlags;
         /// <summary>
         /// Profile flags to indicate various options for the CMM such as distributed
         /// processing and caching options.
         /// </summary>
-        internal byte[] ProfileFlags => _profileFlags.Value;
+        public byte[] ProfileFlags => _profileFlags.Value;
 
         private readonly Lazy<string> _deviceManufacturer;
         /// <summary>
         /// Device manufacturer of the device for which this profile is created.
         /// </summary>
-        internal string DeviceManufacturer => _deviceManufacturer.Value;
+        public string DeviceManufacturer => _deviceManufacturer.Value;
 
         private readonly Lazy<string> _deviceModel;
         /// <summary>
         /// Device model of the device for which this profile is created.
         /// </summary>
-        internal string DeviceModel => _deviceModel.Value;
+        public string DeviceModel => _deviceModel.Value;
 
         private readonly Lazy<byte[]> _deviceAttributes;
         /// <summary>
         /// Device attributes unique to the particular device setup such as media type.
         /// </summary>
-        internal byte[] DeviceAttributes => _deviceAttributes.Value;
+        public byte[] DeviceAttributes => _deviceAttributes.Value;
 
         private readonly Lazy<IccRenderingIntent> _renderingIntent;
         /// <summary>
         /// A particular gamut mapping style or method of converting colors in one gamut to colors in another gamut.
         /// </summary>
-        internal IccRenderingIntent RenderingIntent => _renderingIntent.Value;
+        public IccRenderingIntent RenderingIntent => _renderingIntent.Value;
 
         private readonly Lazy<IccXyz> _nciexyz;
         /// <summary>
         /// The nCIEXYZ values of the illuminant of the PCS.
         /// </summary>
 #pragma warning disable IDE1006 // Naming Styles
-        internal IccXyz nCIEXYZ => _nciexyz.Value;
+        public IccXyz nCIEXYZ => _nciexyz.Value;
 #pragma warning restore IDE1006 // Naming Styles
 
         private readonly Lazy<string> _profileCreatorSignature;
         /// <summary>
         /// Profile creator signature.
         /// </summary>
-        internal string ProfileCreatorSignature => _profileCreatorSignature.Value;
+        public string ProfileCreatorSignature => _profileCreatorSignature.Value;
 
         private readonly Lazy<byte[]> _profileId;
         /// <summary>
         /// Profile ID.
         /// </summary>
-        internal byte[] ProfileId => _profileId.Value;
+        public byte[] ProfileId => _profileId.Value;
 
-        internal IccProfileHeader(byte[] profile)
+        public bool IsProfileIdComputed()
+        {
+            return !ProfileId.All(v => v == 0);
+        }
+
+        public IccProfileHeader(byte[] profile)
         {
             // Profile version number
             // 8 to 11
@@ -299,21 +304,7 @@ namespace IccProfileNet
             {
                 // Profile ID
                 // 84 to 99
-                byte[] profileId = profile.Skip(ProfileIdOffset).Take(ProfileIdLength).ToArray();
-
-                if (profileId.All(b => b == 0))
-                {
-                    // Compute profile id
-                    // This field, if not zero (00h), shall hold the Profile ID. The Profile ID shall be calculated using the MD5
-                    // fingerprinting method as defined in Internet RFC 1321.The entire profile, whose length is given by the size field
-                    // in the header, with the profile flags field (bytes 44 to 47, see 7.2.11), rendering intent field (bytes 64 to 67, see
-                    // 7.2.15), and profile ID field (bytes 84 to 99) in the profile header temporarily set to zeros (00h), shall be used to
-                    // calculate the ID. A profile ID field value of zero (00h) shall indicate that a profile ID has not been calculated.
-                    // Profile creators should compute and record a profile ID.
-
-                    //profileId = System.Security.Cryptography.MD5.HashData(profile);
-                }
-                return profileId;
+                return profile.Skip(ProfileIdOffset).Take(ProfileIdLength).ToArray();
             });
         }
 
@@ -337,7 +328,7 @@ namespace IccProfileNet
     /// which may use these types to store calculated transforms.These four additional profile classes are DeviceLink,
     /// ColorSpace, Abstract and NamedColor.
     /// </summary>
-    internal enum IccProfileClass
+    public enum IccProfileClass
     {
         /// <summary>
         /// Input device profile (‘scnr’).
@@ -380,7 +371,7 @@ namespace IccProfileNet
     /// transforms. The names and signatures of the permitted data colour spaces are shown in Table 19. Signatures
     /// are left justified.
     /// </summary>
-    internal enum IccColourSpaceType
+    public enum IccColourSpaceType
     {
         /// <summary>
         /// nCIEXYZ or PCSXYZ.
@@ -516,7 +507,7 @@ namespace IccProfileNet
     /// time. Therefore, this flag may not have any meaning until the profile is used in some context, e.g. in a DeviceLink
     /// or an embedded source profile
     /// </summary>
-    internal enum IccRenderingIntent : uint
+    public enum IccRenderingIntent : uint
     {
         /// <summary>
         /// Perceptual.
@@ -542,7 +533,7 @@ namespace IccProfileNet
     /// <summary>
     /// Identify the primary platform/operating system framework for which the profile was created.
     /// </summary>
-    internal enum IccPrimaryPlatforms
+    public enum IccPrimaryPlatforms
     {
         /// <summary>
         /// f there is no primary platform identified, this field shall be set to zero (00000000h)

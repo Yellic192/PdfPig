@@ -1,8 +1,10 @@
 ﻿namespace UglyToad.PdfPig.Graphics.Colors
 {
     using IccProfileNet;
+    using IccProfileNet.Tags;
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using Tokens;
     using UglyToad.PdfPig.Content;
@@ -1078,8 +1080,7 @@
         /// ICC profile.
         /// </summary>
         [CanBeNull]
-        public IccProfile Profile { get; }
-        
+        internal IccProfile Profile { get; }        
 
         /// <summary>
         /// Create a new <see cref="ICCBasedColorSpaceDetails"/>.
@@ -1111,21 +1112,38 @@
             if (rawProfile != null)
             {
                 System.IO.Directory.CreateDirectory("ICC_Profiles_errors");
-                System.IO.File.WriteAllBytes($"ICC_Profiles_errors/ICC_{Guid.NewGuid().ToString().ToLower()}.icc",
-                    rawProfile.ToArray());
+
+                string iccProfileName = Guid.NewGuid().ToString().ToLower();
 
                 try
                 {
                     Profile = new IccProfile(rawProfile.ToArray());
+
+                    if (Profile.Tags.TryGetValue(IccTags.ProfileDescriptionTag, out var desc))
+                    {
+                        if (desc is IccMultiLocalizedUnicodeType localised)
+                        {
+
+                            iccProfileName = $"[{Profile.Header}] {localised.Records[0].Text.Trim()}";
+                        }
+                        else
+                        {
+                            iccProfileName = $"[{Profile.Header}] {desc.ToString().Trim()}";
+                        }
+                    }
+
+                    iccProfileName = string.Join("-", iccProfileName.Split(Path.GetInvalidFileNameChars()));
+
+                    File.WriteAllBytes($"ICC_Profiles_errors/{iccProfileName}.icc",
+                        rawProfile.ToArray());
                 }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"ERROR creating ICC profile: {ex}");
 
-                    System.IO.Directory.CreateDirectory("ICC_Profiles_errors");
-                    System.IO.File.WriteAllBytes($"ICC_Profiles_errors/ICC_{Guid.NewGuid().ToString().ToLower()}.icc",
+                    Directory.CreateDirectory("ICC_Profiles_errors");
+                    File.WriteAllBytes($"ICC_Profiles_errors/error_{iccProfileName}.icc",
                         rawProfile.ToArray());
-                    //throw;
                 }
             }
         }
@@ -1142,8 +1160,6 @@
             {
                 return new RGBColor((decimal)test[0], (decimal)test[1], (decimal)test[2]);
             }
-
-            // TODO - use ICC profile
 
             return AlternateColorSpaceDetails.GetColor(values);
         }
