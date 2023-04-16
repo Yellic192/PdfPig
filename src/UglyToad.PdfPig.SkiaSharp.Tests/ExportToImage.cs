@@ -75,6 +75,7 @@
 
         private const string version4pdf = "version4pdf.pdf";
 
+        private const string d_22060_A1_01_Plans_1 = "22060_A1_01_Plans-1.pdf"; // https://github.com/mozilla/pdf.js/issues/3136
         private static string GetFilename(string name)
         {
             var documentFolder = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "Documents"));
@@ -103,6 +104,12 @@
         public void MOZILLA_10448_0Test()
         {
             RunAllPages(MOZILLA_10448_0);
+        }
+
+        [Fact]
+        public void d_22060_A1_01_Plans_1Test()
+        {
+            Run(d_22060_A1_01_Plans_1, 0);
         }
 
         [Fact]
