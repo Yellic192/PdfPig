@@ -109,7 +109,7 @@
         [Fact]
         public void d_22060_A1_01_Plans_1Test()
         {
-            Run(d_22060_A1_01_Plans_1, 0);
+            Run(d_22060_A1_01_Plans_1, 1);
         }
 
         [Fact]
