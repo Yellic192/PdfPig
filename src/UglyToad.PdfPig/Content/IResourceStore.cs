@@ -2,6 +2,7 @@
 {
     using Graphics.Colors;
     using PdfFonts;
+    using System.Collections.Generic;
     using Tokens;
 
     /// <summary>
@@ -54,5 +55,9 @@
         /// TODO
         /// </summary>
         DictionaryToken GetMarkedContentPropertiesDictionary(NameToken name);
+
+        IReadOnlyDictionary<NameToken, PatternColor> GetPatterns();
+
+        Shading GetShading(NameToken name);
     }
 }
