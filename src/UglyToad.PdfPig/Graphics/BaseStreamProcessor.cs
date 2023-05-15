@@ -1,91 +1,122 @@
 ﻿namespace UglyToad.PdfPig.Graphics
 {
-    using Colors;
-    using Content;
-    using Core;
-    using Filters;
-    using Geometry;
-    using Logging;
-    using Operations;
-    using Parser;
-    using PdfFonts;
-    using PdfPig.Core;
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
-    using Tokenization.Scanner;
-    using Tokens;
-    using Operations.TextPositioning;
-    using Util;
-    using XObjects;
-    using static PdfPig.Core.PdfSubpath;
+    using UglyToad.PdfPig.Content;
+    using UglyToad.PdfPig.Core;
+    using UglyToad.PdfPig.Filters;
+    using UglyToad.PdfPig.Geometry;
+    using UglyToad.PdfPig.Graphics.Colors;
+    using UglyToad.PdfPig.Graphics.Core;
+    using UglyToad.PdfPig.Graphics.Operations;
+    using UglyToad.PdfPig.Graphics.Operations.TextPositioning;
+    using UglyToad.PdfPig.Parser;
+    using UglyToad.PdfPig.PdfFonts;
+    using UglyToad.PdfPig.Tokenization.Scanner;
+    using UglyToad.PdfPig.Tokens;
+    using UglyToad.PdfPig.XObjects;
 
-    internal class ContentStreamProcessor : IOperationContext
+    /// <summary>
+    /// TODO
+    /// </summary>
+    public abstract class BaseStreamProcessor<T> : IOperationContext
     {
         /// <summary>
-        /// Stores each letter as it is encountered in the content stream.
+        /// TODO
         /// </summary>
-        private readonly List<Letter> letters = new List<Letter>();
+        protected readonly IResourceStore resourceStore;
 
         /// <summary>
-        /// Stores each path as it is encountered in the content stream.
+        /// TODO
         /// </summary>
-        private readonly List<PdfPath> paths = new List<PdfPath>();
+        protected readonly UserSpaceUnit userSpaceUnit;
 
         /// <summary>
-        /// Stores a link to each image (either inline or XObject) as it is encountered in the content stream.
+        /// TODO
         /// </summary>
-        private readonly List<Union<XObjectContentRecord, InlineImage>> images = new List<Union<XObjectContentRecord, InlineImage>>();
+        protected readonly PageRotationDegrees rotation;
 
         /// <summary>
-        /// Stores each marked content as it is encountered in the content stream.
+        /// TODO
         /// </summary>
-        private readonly List<MarkedContentElement> markedContents = new List<MarkedContentElement>();
+        protected readonly IPdfTokenScanner pdfScanner;
 
-        private readonly IResourceStore resourceStore;
-        private readonly UserSpaceUnit userSpaceUnit;
-        private readonly PageRotationDegrees rotation;
-        private readonly IPdfTokenScanner pdfScanner;
-        private readonly IPageContentParser pageContentParser;
-        private readonly ILookupFilterProvider filterProvider;
-        private readonly InternalParsingOptions parsingOptions;
-        private readonly MarkedContentStack markedContentStack = new MarkedContentStack();
+        /// <summary>
+        /// TODO
+        /// </summary>
+        protected readonly IPageContentParser pageContentParser;
 
-        private Stack<CurrentGraphicsState> graphicsStack = new Stack<CurrentGraphicsState>();
-        private IFont activeExtendedGraphicsStateFont;
-        private InlineImageBuilder inlineImageBuilder;
-        private int pageNumber;
+        /// <summary>
+        /// TODO
+        /// </summary>
+        protected readonly ILookupFilterProvider filterProvider;
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        protected readonly InternalParsingOptions parsingOptions;
+
+        internal Stack<CurrentGraphicsState> graphicsStack = new Stack<CurrentGraphicsState>();
+        internal IFont activeExtendedGraphicsStateFont;
+        internal InlineImageBuilder inlineImageBuilder;
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        protected int pageNumber;
 
         /// <summary>
         /// A counter to track individual calls to <see cref="ShowText"/> operations used to determine if letters are likely to be
         /// in the same word/group. This exposes internal grouping of letters used by the PDF creator which may correspond to the
         /// intended grouping of letters into words.
         /// </summary>
-        private int textSequence;
+        protected int TextSequence;
 
+        /// <summary>
+        /// TODO
+        /// </summary>
         public TextMatrices TextMatrices { get; } = new TextMatrices();
 
+        /// <summary>
+        /// TODO
+        /// </summary>
         public TransformationMatrix CurrentTransformationMatrix => GetCurrentState().CurrentTransformationMatrix;
 
-        public PdfSubpath CurrentSubpath { get; private set; }
-
-        public PdfPath CurrentPath { get; private set; }
-
+        /// <summary>
+        /// TODO
+        /// </summary>
         public PdfPoint CurrentPosition { get; set; }
 
+        /// <summary>
+        /// TODO
+        /// </summary>
         public int StackSize => graphicsStack.Count;
 
-        private readonly Dictionary<XObjectType, List<XObjectContentRecord>> xObjects = new Dictionary<XObjectType, List<XObjectContentRecord>>
+        internal readonly Dictionary<XObjectType, List<XObjectContentRecord>> xObjects = new Dictionary<XObjectType, List<XObjectContentRecord>>
         {
             {XObjectType.Image, new List<XObjectContentRecord>()},
             {XObjectType.PostScript, new List<XObjectContentRecord>()}
         };
 
-        public ContentStreamProcessor(IResourceStore resourceStore,
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="resourceStore"></param>
+        /// <param name="userSpaceUnit"></param>
+        /// <param name="cropBox"></param>
+        /// <param name="mediaBox"></param>
+        /// <param name="rotation"></param>
+        /// <param name="pdfScanner"></param>
+        /// <param name="pageContentParser"></param>
+        /// <param name="filterProvider"></param>
+        /// <param name="parsingOptions"></param>
+        /// <exception cref="ArgumentNullException"></exception>
+        protected BaseStreamProcessor(IResourceStore resourceStore,
             UserSpaceUnit userSpaceUnit,
-            MediaBox mediaBox,
-            CropBox cropBox,
+            PdfRectangle cropBox,
+            PdfRectangle mediaBox,
             PageRotationDegrees rotation,
             IPdfTokenScanner pdfScanner,
             IPageContentParser pageContentParser,
@@ -102,31 +133,36 @@
 
             // initiate CurrentClippingPath to cropBox
             var clippingSubpath = new PdfSubpath();
-            clippingSubpath.Rectangle(cropBox.Bounds.BottomLeft.X, cropBox.Bounds.BottomLeft.Y, cropBox.Bounds.Width, cropBox.Bounds.Height);
+            clippingSubpath.Rectangle(cropBox.BottomLeft.X, cropBox.BottomLeft.Y, cropBox.Width, cropBox.Height);
             var clippingPath = new PdfPath() { clippingSubpath };
             clippingPath.SetClipping(FillingRule.EvenOdd);
 
             graphicsStack.Push(new CurrentGraphicsState()
             {
-                CurrentTransformationMatrix = GetInitialMatrix(userSpaceUnit, mediaBox, cropBox, rotation, parsingOptions.Logger),
-                CurrentClippingPath = clippingPath,
-                ColorSpaceContext = new ColorSpaceContext(GetCurrentState, resourceStore)
+                CurrentTransformationMatrix = GetInitialMatrix(userSpaceUnit, mediaBox, cropBox, rotation),
+                CurrentClippingPath = clippingPath
             });
+
+            GetCurrentState().ColorSpaceContext = new ColorSpaceContext(GetCurrentState, resourceStore);
         }
 
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
         [System.Diagnostics.Contracts.Pure]
         internal static TransformationMatrix GetInitialMatrix(UserSpaceUnit userSpaceUnit,
-            MediaBox mediaBox,
-            CropBox cropBox,
-            PageRotationDegrees rotation,
-            ILog log)
+            PdfRectangle mediaBox,
+            PdfRectangle cropBox,
+            PageRotationDegrees rotation)
         {
             // Cater for scenario where the cropbox is larger than the mediabox.
             // If there is no intersection (method returns null), fall back to the cropbox.
-            var viewBox = mediaBox.Bounds.Intersect(cropBox.Bounds) ?? cropBox.Bounds;
+            var viewBox = mediaBox.Intersect(cropBox) ?? cropBox;
 
             if (rotation.Value == 0
-                && viewBox.Left == 0 
+                && viewBox.Left == 0
                 && viewBox.Bottom == 0
                 && userSpaceUnit.PointMultiples == 1)
             {
@@ -136,23 +172,26 @@
             // Move points so that (0,0) is equal to the viewbox bottom left corner.
             var t1 = TransformationMatrix.GetTranslationMatrix(-viewBox.Left, -viewBox.Bottom);
 
+            // Not implemented yet: userSpaceUnit
             if (userSpaceUnit.PointMultiples != 1)
             {
-                log.Warn("User space unit other than 1 is not implemented");
+                var scale = TransformationMatrix.GetScaleMatrix(userSpaceUnit.PointMultiples,
+                    userSpaceUnit.PointMultiples);
+                //t1 = t1.Multiply(scale); // TODO - does not seem to work
             }
 
             // After rotating around the origin, our points will have negative x/y coordinates.
             // Fix this by translating them by a certain dx/dy after rotation based on the viewbox.
-            double dx, dy;
+            double dx = 0;
+            double dy = 0;
             switch (rotation.Value)
             {
                 case 0:
                     // No need to rotate / translate after rotation, just return the initial
                     // translation matrix.
-                    return t1;
+                    break;
                 case 90:
                     // Move rotated points up by our (unrotated) viewbox width
-                    dx = 0;
                     dy = viewBox.Width;
                     break;
                 case 180:
@@ -163,7 +202,6 @@
                 case 270:
                     // Move rotated points right using the (unrotated) viewbox height
                     dx = viewBox.Height;
-                    dy = 0;
                     break;
                 default:
                     throw new InvalidOperationException($"Invalid value for page rotation: {rotation.Value}.");
@@ -180,17 +218,18 @@
             return t1.Multiply(r.Multiply(t2));
         }
 
-        public PageContent Process(int pageNumberCurrent, IReadOnlyList<IGraphicsStateOperation> operations)
-        {
-            pageNumber = pageNumberCurrent;
-            CloneAllStates();
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="pageNumberCurrent"></param>
+        /// <param name="operations"></param>
+        /// <returns></returns>
+        public abstract T Process(int pageNumberCurrent, IReadOnlyList<IGraphicsStateOperation> operations);
 
-            ProcessOperations(operations);
-
-            return new PageContent(operations, letters, paths, images, markedContents, pdfScanner, pageContentParser, filterProvider, resourceStore, userSpaceUnit, parsingOptions);
-        }
-
-        private void ProcessOperations(IReadOnlyList<IGraphicsStateOperation> operations)
+        /// <summary>
+        /// TODO
+        /// </summary>
+        protected void ProcessOperations(IReadOnlyList<IGraphicsStateOperation> operations)
         {
             foreach (var stateOperation in operations)
             {
@@ -198,7 +237,10 @@
             }
         }
 
-        private Stack<CurrentGraphicsState> CloneAllStates()
+        /// <summary>
+        /// TODO
+        /// </summary>
+        protected Stack<CurrentGraphicsState> CloneAllStates()
         {
             var saved = graphicsStack;
             graphicsStack = new Stack<CurrentGraphicsState>();
@@ -206,23 +248,29 @@
             return saved;
         }
 
+        /// <summary>
+        /// TODO
+        /// </summary>
         [DebuggerStepThrough]
         public CurrentGraphicsState GetCurrentState()
         {
             return graphicsStack.Peek();
         }
 
-        public void PopState()
+        /// <inheritdoc/>
+        public virtual void PopState()
         {
             graphicsStack.Pop();
             activeExtendedGraphicsStateFont = null;
         }
 
-        public void PushState()
+        /// <inheritdoc/>
+        public virtual void PushState()
         {
             graphicsStack.Push(graphicsStack.Peek().DeepClone());
         }
 
+        /// <inheritdoc/>
         public void ShowText(IInputBytes bytes)
         {
             var currentState = GetCurrentState();
@@ -291,61 +339,15 @@
 
                 var boundingBox = font.GetBoundingBox(code);
 
-                var transformedGlyphBounds = PerformantRectangleTransformer
-                      .Transform(renderingMatrix, textMatrix, transformationMatrix, boundingBox.GlyphBounds);
+                // If the text rendering mode calls for filling, the current nonstroking color in the graphics state is used; 
+                // if it calls for stroking, the current stroking color is used.
+                // In modes that perform both filling and stroking, the effect is as if each glyph outline were filled and then stroked in separate operations.
+                // TODO: expose color as something more advanced
+                var color = currentState.FontState.TextRenderingMode != TextRenderingMode.Stroke
+                    ? currentState.CurrentNonStrokingColor
+                    : currentState.CurrentStrokingColor;
 
-                var transformedPdfBounds = PerformantRectangleTransformer
-                    .Transform(renderingMatrix, textMatrix, transformationMatrix, new PdfRectangle(0, 0, boundingBox.Width, 0));
-
-                      
-                Letter letter = null;
-                if (Diacritics.IsInCombiningDiacriticRange(unicode) && bytes.CurrentOffset > 0 && letters.Count > 0)
-                {
-                    var attachTo = letters[letters.Count - 1];
-
-                    if (attachTo.TextSequence == textSequence
-                        && Diacritics.TryCombineDiacriticWithPreviousLetter(unicode, attachTo.Value, out var newLetter))
-                    {
-                        // TODO: union of bounding boxes.
-                        letters.Remove(attachTo);
-
-                        letter = new Letter(
-                            newLetter,
-                            attachTo.GlyphRectangle,
-                            attachTo.StartBaseLine,
-                            attachTo.EndBaseLine,
-                            attachTo.Width,
-                            attachTo.FontSize,
-                            attachTo.Font,
-                            attachTo.RenderingMode,
-                            attachTo.StrokeColor,
-                            attachTo.FillColor,
-                            attachTo.PointSize,
-                            attachTo.TextSequence);
-                    }
-                }
-
-                // If we did not create a letter for a combined diacritic, create one here.
-                if (letter == null)
-                {
-                    letter = new Letter(
-                        unicode,
-                        transformedGlyphBounds,
-                        transformedPdfBounds.BottomLeft,
-                        transformedPdfBounds.BottomRight,
-                        transformedPdfBounds.Width,
-                        fontSize,
-                        font.Details,
-                        currentState.FontState.TextRenderingMode,
-                        currentState.CurrentStrokingColor,
-                        currentState.CurrentNonStrokingColor,
-                        pointSize,
-                        textSequence);
-                }
-
-                letters.Add(letter);
-
-                markedContentStack.AddLetter(letter);
+                RenderGlyph(font, color, fontSize, pointSize, code, unicode, bytes.CurrentOffset, renderingMatrix, textMatrix, transformationMatrix, boundingBox);
 
                 double tx, ty;
                 if (font.IsVertical)
@@ -365,9 +367,16 @@
             }
         }
 
+        /// <summary>
+        /// TODO
+        /// </summary>
+        public abstract void RenderGlyph(IFont font, IColor color, double fontSize, double pointSize, int code, string unicode, long currentOffset,
+            TransformationMatrix renderingMatrix, TransformationMatrix textMatrix, TransformationMatrix transformationMatrix, CharacterBoundingBox characterBoundingBox);
+
+        /// <inheritdoc/>
         public void ShowPositionedText(IReadOnlyList<IToken> tokens)
         {
-            textSequence++;
+            TextSequence++;
 
             var currentState = GetCurrentState();
 
@@ -416,6 +425,7 @@
             }
         }
 
+        /// <inheritdoc/>
         public void ApplyXObject(NameToken xObjectName)
         {
             var xObjectStream = resourceStore.GetXObject(xObjectName);
@@ -431,7 +441,7 @@
             if (subType.Equals(NameToken.Ps))
             {
                 var contentRecord = new XObjectContentRecord(XObjectType.PostScript, xObjectStream, matrix, state.RenderingIntent,
-                    state.ColorSpaceContext?.CurrentStrokingColorSpace ?? DeviceRgbColorSpaceDetails.Instance);
+                    state.ColorSpaceContext.CurrentStrokingColorSpace ?? DeviceRgbColorSpaceDetails.Instance);
 
                 xObjects[XObjectType.PostScript].Add(contentRecord);
             }
@@ -440,9 +450,7 @@
                 var contentRecord = new XObjectContentRecord(XObjectType.Image, xObjectStream, matrix, state.RenderingIntent,
                     state.ColorSpaceContext?.CurrentStrokingColorSpace ?? DeviceRgbColorSpaceDetails.Instance);
 
-                images.Add(Union<XObjectContentRecord, InlineImage>.One(contentRecord));
-
-                markedContentStack.AddXObject(contentRecord, pdfScanner, filterProvider, resourceStore);
+                RenderXObjectImage(contentRecord);
             }
             else if (subType.Equals(NameToken.Form))
             {
@@ -454,7 +462,16 @@
             }
         }
 
-        private void ProcessFormXObject(StreamToken formStream)
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="xObjectContentRecord"></param>
+        public abstract void RenderXObjectImage(XObjectContentRecord xObjectContentRecord);
+
+        /// <summary>
+        /// TODO
+        /// </summary>
+        protected void ProcessFormXObject(StreamToken formStream)
         {
             /*
              * When a form XObject is invoked the following should happen:
@@ -477,47 +494,48 @@
 
             var startState = GetCurrentState();
 
-            // Transparency Group XObjects
             if (formStream.StreamDictionary.TryGet(NameToken.Group, pdfScanner, out DictionaryToken formGroupToken))
             {
+                // Transparency Group XObjects
                 if (!formGroupToken.TryGet<NameToken>(NameToken.S, pdfScanner, out var sToken) || sToken != NameToken.Transparency)
                 {
-                    throw new InvalidOperationException($"Invalid Transparency Group XObject, '{NameToken.S}' token is not set or not equal to '{NameToken.Transparency}'.");
+                    throw new InvalidOperationException("Transparency Group XObjects");
                 }
 
-                /* blend mode
+                /*
                  * A conforming reader shall implicitly reset this parameter to its initial value at the beginning of execution of a
                  * transparency group XObject (see 11.6.6, "Transparency Group XObjects"). Initial value: Normal.
                  */
                 //startState.BlendMode = BlendMode.Normal;
 
-                /* soft mask
+                /*
                  * A conforming reader shall implicitly reset this parameter implicitly reset to its initial value at the beginning
                  * of execution of a transparency group XObject (see 11.6.6, "Transparency Group XObjects"). Initial value: None.
                  */
                 // TODO
 
-                /* alpha constant
+                /*
                  * A conforming reader shall implicitly reset this parameter to its initial value at the beginning of execution of a
                  * transparency group XObject (see 11.6.6, "Transparency Group XObjects"). Initial value: 1.0.
                  */
                 startState.AlphaConstantNonStroking = 1.0m;
                 startState.AlphaConstantStroking = 1.0m;
 
-                if (formGroupToken.TryGet(NameToken.Cs, pdfScanner, out NameToken csNameToken))
+                if (formGroupToken.TryGet<NameToken>(NameToken.Cs, pdfScanner, out NameToken csNameToken))
                 {
-                    startState.ColorSpaceContext.SetNonStrokingColorspace(csNameToken);
+                    startState.ColorSpaceContext.CurrentNonStrokingColorSpace = resourceStore.GetColorSpaceDetails(csNameToken, null);
                 }
                 else if (formGroupToken.TryGet(NameToken.Cs, pdfScanner, out ArrayToken csArrayToken)
                     && csArrayToken.Length > 0)
                 {
-                    if (csArrayToken.Data[0] is NameToken firstColorSpaceName)
+                    var first = csArrayToken.Data[0];
+                    if (first is NameToken firstColorSpaceName)
                     {
-                        startState.ColorSpaceContext.SetNonStrokingColorspace(firstColorSpaceName, formGroupToken);
+                        startState.ColorSpaceContext.CurrentNonStrokingColorSpace = resourceStore.GetColorSpaceDetails(firstColorSpaceName, formGroupToken);
                     }
                     else
                     {
-                        throw new InvalidOperationException("Invalid color space in Transparency Group XObjects.");
+                        throw new ArgumentNullException("");
                     }
                 }
 
@@ -525,7 +543,7 @@
                 if (formGroupToken.TryGet(NameToken.I, pdfScanner, out BooleanToken isolatedToken))
                 {
                     /*
-                     * (Optional) A flag specifying whether the transparency group is isolated (see “Isolated Groups”).
+                     * Optional) A flag specifying whether the transparency group is isolated (see “Isolated Groups”).
                      * If this flag is true, objects within the group shall be composited against a fully transparent
                      * initial backdrop; if false, they shall be composited against the group’s backdrop.
                      * Default value: false.
@@ -548,7 +566,7 @@
             }
 
             var formMatrix = TransformationMatrix.Identity;
-            if (formStream.StreamDictionary.TryGet<ArrayToken>(NameToken.Matrix, pdfScanner, out var formMatrixToken))
+            if (formStream.StreamDictionary.TryGet(NameToken.Matrix, pdfScanner, out ArrayToken formMatrixToken))
             {
                 formMatrix = TransformationMatrix.FromArray(formMatrixToken.Data.OfType<NumericToken>().Select(x => x.Double).ToArray());
             }
@@ -574,258 +592,46 @@
             }
         }
 
-        public void BeginSubpath()
-        {
-            if (CurrentPath == null)
-            {
-                CurrentPath = new PdfPath();
-            }
+        /// <inheritdoc/>
+        public abstract void BeginSubpath();
 
-            AddCurrentSubpath();
-            CurrentSubpath = new PdfSubpath();
-        }
+        /// <inheritdoc/>
+        public abstract PdfPoint? CloseSubpath();
 
-        public PdfPoint? CloseSubpath()
-        {
-            if (CurrentSubpath == null)
-            {
-                return null;
-            }
+        /// <inheritdoc/>
+        public abstract void StrokePath(bool close);
 
-            PdfPoint point;
-            if (CurrentSubpath.Commands[0] is Move move)
-            {
-                point = move.Location;
-            }
-            else
-            {
-                throw new ArgumentException("CloseSubpath(): first command not Move.");
-            }
+        /// <inheritdoc/>
+        public abstract void FillPath(FillingRule fillingRule, bool close);
 
-            CurrentSubpath.CloseSubpath();
-            AddCurrentSubpath();
-            return point;
-        }
+        /// <inheritdoc/>
+        public abstract void FillStrokePath(FillingRule fillingRule, bool close);
 
-        public void AddCurrentSubpath()
-        {
-            if (CurrentSubpath == null)
-            {
-                return;
-            }
+        /// <inheritdoc/>
+        public abstract void MoveTo(double x, double y);
 
-            CurrentPath.Add(CurrentSubpath);
-            CurrentSubpath = null;
-        }
+        /// <inheritdoc/>
+        public abstract void BezierCurveTo(double x2, double y2, double x3, double y3);
 
-        public void StrokePath(bool close)
-        {
-            if (CurrentPath == null)
-            {
-                return;
-            }
+        /// <inheritdoc/>
+        public abstract void BezierCurveTo(double x1, double y1, double x2, double y2, double x3, double y3);
 
-            CurrentPath.SetStroked();
+        /// <inheritdoc/>
+        public abstract void LineTo(double x, double y);
 
-            if (close)
-            {
-                CurrentSubpath?.CloseSubpath();
-            }
+        /// <inheritdoc/>
+        public abstract void Rectangle(double x, double y, double width, double height);
 
-            ClosePath();
-        }
+        /// <inheritdoc/>
+        public abstract void EndPath();
 
-        public void FillPath(FillingRule fillingRule, bool close)
-        {
-            if (CurrentPath == null)
-            {
-                return;
-            }
+        /// <inheritdoc/>
+        public abstract void ClosePath();
 
-            CurrentPath.SetFilled(fillingRule);
+        /// <inheritdoc/>
+        public abstract void ModifyClippingIntersect(FillingRule clippingRule);
 
-            if (close)
-            {
-                CurrentSubpath?.CloseSubpath();
-            }
-
-            ClosePath();
-        }
-
-        public void FillStrokePath(FillingRule fillingRule, bool close)
-        {
-            if (CurrentPath == null)
-            {
-                return;
-            }
-
-            CurrentPath.SetFilled(fillingRule);
-            CurrentPath.SetStroked();
-
-            if (close)
-            {
-                CurrentSubpath?.CloseSubpath();
-            }
-
-            ClosePath();
-        }
-
-        public void MoveTo(double x, double y)
-        {
-            BeginSubpath();
-            var point = CurrentTransformationMatrix.Transform(new PdfPoint(x, y));
-            CurrentPosition = point;
-            CurrentSubpath.MoveTo(point.X, point.Y);
-        }
-
-        public void BezierCurveTo(double x2, double y2, double x3, double y3)
-        {
-            if (CurrentSubpath == null)
-            {
-                return;
-            }
-
-            var controlPoint = CurrentTransformationMatrix.Transform(new PdfPoint(x2, y2));
-            var end = CurrentTransformationMatrix.Transform(new PdfPoint(x3, y3));
-
-            CurrentSubpath.BezierCurveTo(controlPoint.X, controlPoint.Y, end.X, end.Y);
-            CurrentPosition = end;
-        }
-
-        public void BezierCurveTo(double x1, double y1, double x2, double y2, double x3, double y3)
-        {
-            if (CurrentSubpath == null)
-            {
-                return;
-            }
-
-            var controlPoint1 = CurrentTransformationMatrix.Transform(new PdfPoint(x1, y1));
-            var controlPoint2 = CurrentTransformationMatrix.Transform(new PdfPoint(x2, y2));
-            var end = CurrentTransformationMatrix.Transform(new PdfPoint(x3, y3));
-
-            CurrentSubpath.BezierCurveTo(controlPoint1.X, controlPoint1.Y, controlPoint2.X, controlPoint2.Y, end.X, end.Y);
-            CurrentPosition = end;
-        }
-
-        public void LineTo(double x, double y)
-        {
-            if (CurrentSubpath == null)
-            {
-                return;
-            }
-
-            var endPoint = CurrentTransformationMatrix.Transform(new PdfPoint(x, y));
-
-            CurrentSubpath.LineTo(endPoint.X, endPoint.Y);
-            CurrentPosition = endPoint;
-        }
-
-        public void Rectangle(double x, double y, double width, double height)
-        {
-            BeginSubpath();
-            var lowerLeft = CurrentTransformationMatrix.Transform(new PdfPoint(x, y));
-            var upperRight = CurrentTransformationMatrix.Transform(new PdfPoint(x + width, y + height));
-
-            CurrentSubpath.Rectangle(lowerLeft.X, lowerLeft.Y, upperRight.X - lowerLeft.X, upperRight.Y - lowerLeft.Y);
-            AddCurrentSubpath();
-        }
-
-        public void EndPath()
-        {
-            if (CurrentPath == null)
-            {
-                return;
-            }
-
-            AddCurrentSubpath();
-
-            if (CurrentPath.IsClipping)
-            {
-                if (!parsingOptions.ClipPaths)
-                {
-                    // if we don't clip paths, add clipping path to paths
-                    paths.Add(CurrentPath);
-                    markedContentStack.AddPath(CurrentPath);
-                }
-                CurrentPath = null;
-                return;
-            }
-
-            paths.Add(CurrentPath);
-            markedContentStack.AddPath(CurrentPath);
-            CurrentPath = null;
-        }
-
-        public void ClosePath()
-        {
-            AddCurrentSubpath();
-
-            if (CurrentPath.IsClipping)
-            {
-                EndPath();
-                return;
-            }
-
-            var currentState = GetCurrentState();
-            if (CurrentPath.IsStroked)
-            {
-                CurrentPath.LineDashPattern = currentState.LineDashPattern;
-                CurrentPath.StrokeColor = currentState.CurrentStrokingColor;
-                CurrentPath.LineWidth = currentState.LineWidth;
-                CurrentPath.LineCapStyle = currentState.CapStyle;
-                CurrentPath.LineJoinStyle = currentState.JoinStyle;
-            }
-
-            if (CurrentPath.IsFilled)
-            {
-                CurrentPath.FillColor = currentState.CurrentNonStrokingColor;
-            }
-
-            if (parsingOptions.ClipPaths)
-            {
-                var clippedPath = currentState.CurrentClippingPath.Clip(CurrentPath, parsingOptions.Logger);
-                if (clippedPath != null)
-                {
-                    paths.Add(clippedPath);
-                    markedContentStack.AddPath(clippedPath);
-                }
-            }
-            else
-            {
-                paths.Add(CurrentPath);
-                markedContentStack.AddPath(CurrentPath);
-            }
-
-            CurrentPath = null;
-        }
-
-        public void ModifyClippingIntersect(FillingRule clippingRule)
-        {
-            if (CurrentPath == null)
-            {
-                return;
-            }
-
-            AddCurrentSubpath();
-            CurrentPath.SetClipping(clippingRule);
-
-            if (parsingOptions.ClipPaths)
-            {
-                var currentClipping = GetCurrentState().CurrentClippingPath;
-                currentClipping.SetClipping(clippingRule);
-
-                var newClippings = CurrentPath.Clip(currentClipping, parsingOptions.Logger);
-                if (newClippings == null)
-                {
-                    parsingOptions.Logger.Warn("Empty clipping path found. Clipping path not updated.");
-                }
-                else
-                {
-                    GetCurrentState().CurrentClippingPath = newClippings;
-                }
-            }
-        }
-
+        /// <inheritdoc/>
         public void SetNamedGraphicsState(NameToken stateName)
         {
             var currentGraphicsState = GetCurrentState();
@@ -857,16 +663,26 @@
 
             if (state.TryGet(NameToken.Ais, pdfScanner, out BooleanToken aisToken))
             {
+                // Page 223
                 // The alpha source flag (“alpha is shape”), specifying
                 // whether the current soft mask and alpha constant are to be interpreted as
                 // shape values (true) or opacity values (false).
                 currentGraphicsState.AlphaSource = aisToken.Data;
             }
 
+            if (state.TryGet(NameToken.Bm, pdfScanner, out NameToken bmNameToken))
+            {
+                // Page 223
+                // (Optional; PDF 1.4) The current blend mode to be used in the transparent
+                // imaging model (see Sections 7.2.4, “Blend Mode,” and 7.5.2, “Specifying
+                // Blending Color Space and Blend Mode”).
+                //SetBlendModeFromToken(bmNameToken);
+            }
+
             if (state.TryGet(NameToken.Ca, pdfScanner, out NumericToken caToken))
             {
-                // (Optional; PDF 1.4) The current stroking alpha constant, specifying the constant
-                // shape or constant opacity value to be used for stroking operations in the
+                // Page 223
+                // (Optional; PDF 1.4) The current stroking alpha constant, specifying the constant shape or constant opacity value to be used for stroking operations in the
                 // transparent imaging model (see “Source Shape and Opacity” on page 526 and
                 // “Constant Shape and Opacity” on page 551).
                 currentGraphicsState.AlphaConstantStroking = caToken.Data;
@@ -874,8 +690,8 @@
 
             if (state.TryGet(NameToken.CaNs, pdfScanner, out NumericToken cansToken))
             {
-                // (Optional; PDF 1.4) The current stroking alpha constant, specifying the constant
-                // shape or constant opacity value to be used for NON-stroking operations in the
+                // Page 223
+                // (Optional; PDF 1.4) The current stroking alpha constant, specifying the constant shape or constant opacity value to be used for NON-stroking operations in the
                 // transparent imaging model (see “Source Shape and Opacity” on page 526 and
                 // “Constant Shape and Opacity” on page 551).
                 currentGraphicsState.AlphaConstantNonStroking = cansToken.Data;
@@ -883,38 +699,142 @@
 
             if (state.TryGet(NameToken.Op, pdfScanner, out BooleanToken OPToken))
             {
+                // Page 223
                 // (Optional) A flag specifying whether to apply overprint (see Section 4.5.6,
                 // “Overprint Control”). In PDF 1.2 and earlier, there is a single overprint
                 // parameter that applies to all painting operations. Beginning with PDF 1.3,
                 // there are two separate overprint parameters: one for stroking and one for all
-                // other painting operations. Specifying an OP entry sets both parameters unless there
-                // is also an op entry in the same graphics state parameter dictionary,
+                // other painting operations. Specifying an OP entry sets both parameters unless there is also an op entry in the same graphics state parameter dictionary,
                 // in which case the OP entry sets only the overprint parameter for stroking.
                 currentGraphicsState.Overprint = OPToken.Data;
             }
 
             if (state.TryGet(NameToken.OpNs, pdfScanner, out BooleanToken opToken))
             {
+                // Page 223
                 // (Optional; PDF 1.3) A flag specifying whether to apply overprint (see Section
                 // 4.5.6, “Overprint Control”) for painting operations other than stroking. If
                 // this entry is absent, the OP entry, if any, sets this parameter.
+                //
+                // Page 284
                 currentGraphicsState.NonStrokingOverprint = opToken.Data;
             }
 
             if (state.TryGet(NameToken.Opm, pdfScanner, out NumericToken opmToken))
             {
+                // Page 223
                 // (Optional; PDF 1.3) The overprint mode (see Section 4.5.6, “Overprint Control”).
+                //
+                // Page 284
                 currentGraphicsState.OverprintMode = opmToken.Data;
             }
 
             if (state.TryGet(NameToken.Sa, pdfScanner, out BooleanToken saToken))
             {
+                // Page 223
                 // (Optional) A flag specifying whether to apply automatic stroke adjustment
                 // (see Section 6.5.4, “Automatic Stroke Adjustment”).
                 currentGraphicsState.StrokeAdjustment = saToken.Data;
             }
+
+            if (state.TryGet(NameToken.Smask, pdfScanner, out NameToken smaskToken))
+            {
+                // Page 223
+                // (Optional; PDF 1.4) The current soft mask, specifying the mask shape or
+                // mask opacity values to be used in the transparent imaging model (see
+                // “Source Shape and Opacity” on page 526 and “Mask Shape and Opacity” on
+                // page 550).
+                if (smaskToken.Data == NameToken.None.Data)
+                {
+                    // TODO: Replace soft mask with nothing.
+                }
+            }
         }
 
+        /*
+        private void SetBlendModeFromToken(NameToken bmNameToken)
+        {
+            var currentGraphicsState = GetCurrentState();
+
+            // Standard separable blend modes -  1.7 - Page 520
+            if (bmNameToken == NameToken.Normal || bmNameToken == NameToken.Compatible)
+            {
+                currentGraphicsState.BlendMode = BlendMode.Normal;
+            }
+            else if (bmNameToken == NameToken.Multiply)
+            {
+                currentGraphicsState.BlendMode = BlendMode.Multiply;
+            }
+            else if (bmNameToken == NameToken.Screen)
+            {
+                currentGraphicsState.BlendMode = BlendMode.Screen;
+            }
+            else if (bmNameToken == NameToken.Overlay)
+            {
+                currentGraphicsState.BlendMode = BlendMode.Overlay;
+            }
+            else if (bmNameToken == NameToken.Darken)
+            {
+                currentGraphicsState.BlendMode = BlendMode.Darken;
+            }
+            else if (bmNameToken == NameToken.Lighten)
+            {
+                currentGraphicsState.BlendMode = BlendMode.Lighten;
+            }
+            else if (bmNameToken == NameToken.ColorDodge)
+            {
+                currentGraphicsState.BlendMode = BlendMode.ColorDodge;
+            }
+            else if (bmNameToken == NameToken.ColorBurn)
+            {
+                currentGraphicsState.BlendMode = BlendMode.ColorBurn;
+            }
+            else if (bmNameToken == NameToken.HardLight)
+            {
+                currentGraphicsState.BlendMode = BlendMode.HardLight;
+            }
+            else if (bmNameToken == NameToken.SoftLight)
+            {
+                currentGraphicsState.BlendMode = BlendMode.SoftLight;
+            }
+            else if (bmNameToken == NameToken.Difference)
+            {
+                currentGraphicsState.BlendMode = BlendMode.Difference;
+            }
+            else if (bmNameToken == NameToken.Exclusion)
+            {
+                currentGraphicsState.BlendMode = BlendMode.Exclusion;
+            }
+
+            // Standard nonseparable blend modes - Page 524
+            //if (bmNameToken.Data == NameToken.Normal)
+            //{
+            //    // TODO
+            //}
+            else if (bmNameToken == "Hue")
+            {
+                currentGraphicsState.BlendMode = BlendMode.Hue;
+            }
+            else if (bmNameToken == "Saturation")
+            {
+                currentGraphicsState.BlendMode = BlendMode.Saturation;
+            }
+            else if (bmNameToken == "Color")
+            {
+                currentGraphicsState.BlendMode = BlendMode.Color;
+            }
+            else if (bmNameToken == "Luminosity")
+            {
+                currentGraphicsState.BlendMode = BlendMode.Luminosity;
+            }
+            else
+            {
+                throw new NotImplementedException($"Blend mode '{bmNameToken.Data}'.");
+            }
+        }
+        */
+
+        /// <inheritdoc/>
         public void BeginInlineImage()
         {
             if (inlineImageBuilder != null)
@@ -925,6 +845,7 @@
             inlineImageBuilder = new InlineImageBuilder();
         }
 
+        /// <inheritdoc/>
         public void SetInlineImageProperties(IReadOnlyDictionary<NameToken, IToken> properties)
         {
             if (inlineImageBuilder == null)
@@ -936,6 +857,7 @@
             inlineImageBuilder.Properties = properties;
         }
 
+        /// <inheritdoc/>
         public void EndInlineImage(IReadOnlyList<byte> bytes)
         {
             if (inlineImageBuilder == null)
@@ -948,80 +870,79 @@
 
             var image = inlineImageBuilder.CreateInlineImage(CurrentTransformationMatrix, filterProvider, pdfScanner, GetCurrentState().RenderingIntent, resourceStore);
 
-            images.Add(Union<XObjectContentRecord, InlineImage>.Two(image));
-
-            markedContentStack.AddImage(image);
+            RenderInlineImage(image);
 
             inlineImageBuilder = null;
         }
 
-        public void BeginMarkedContent(NameToken name, NameToken propertyDictionaryName, DictionaryToken properties)
-        {
-            if (propertyDictionaryName != null)
-            {
-                var actual = resourceStore.GetMarkedContentPropertiesDictionary(propertyDictionaryName);
+        /// <summary>
+        /// TODO
+        /// </summary>
+        /// <param name="inlineImage"></param>
+        public abstract void RenderInlineImage(InlineImage inlineImage);
 
-                properties = actual ?? properties;
-            }
+        /// <inheritdoc/>
+        public abstract void BeginMarkedContent(NameToken name, NameToken propertyDictionaryName, DictionaryToken properties);
 
-            markedContentStack.Push(name, properties);
-        }
+        /// <inheritdoc/>
+        public abstract void EndMarkedContent();
 
-        public void EndMarkedContent()
-        {
-            if (markedContentStack.CanPop)
-            {
-                var mc = markedContentStack.Pop(pdfScanner);
-                if (mc != null)
-                {
-                    markedContents.Add(mc);
-                }
-            }
-        }
+        /// <inheritdoc/>
+        public abstract void ApplyShading(NameToken shading);
 
-        private void AdjustTextMatrix(double tx, double ty)
+        /// <summary>
+        /// TODO
+        /// </summary>
+        protected void AdjustTextMatrix(double tx, double ty)
         {
             var matrix = TransformationMatrix.GetTranslationMatrix(tx, ty);
-
             TextMatrices.TextMatrix = matrix.Multiply(TextMatrices.TextMatrix);
         }
 
+        /// <inheritdoc/>
         public void SetFlatnessTolerance(decimal tolerance)
         {
             GetCurrentState().Flatness = tolerance;
         }
 
+        /// <inheritdoc/>
         public void SetLineCap(LineCapStyle cap)
         {
             GetCurrentState().CapStyle = cap;
         }
 
+        /// <inheritdoc/>
         public void SetLineDashPattern(LineDashPattern pattern)
         {
             GetCurrentState().LineDashPattern = pattern;
         }
 
+        /// <inheritdoc/>
         public void SetLineJoin(LineJoinStyle join)
         {
             GetCurrentState().JoinStyle = join;
         }
 
+        /// <inheritdoc/>
         public void SetLineWidth(decimal width)
         {
             GetCurrentState().LineWidth = width;
         }
 
+        /// <inheritdoc/>
         public void SetMiterLimit(decimal limit)
         {
             GetCurrentState().MiterLimit = limit;
         }
 
+        /// <inheritdoc/>
         public void MoveToNextLineWithOffset()
         {
             var tdOperation = new MoveToNextLineWithOffset(0, -1 * (decimal)GetCurrentState().FontState.Leading);
             tdOperation.Run(this);
         }
 
+        /// <inheritdoc/>
         public void SetFontAndSize(NameToken font, double size)
         {
             var currentState = GetCurrentState();
@@ -1029,37 +950,44 @@
             currentState.FontState.FontName = font;
         }
 
+        /// <inheritdoc/>
         public void SetHorizontalScaling(double scale)
         {
             GetCurrentState().FontState.HorizontalScaling = scale;
         }
 
+        /// <inheritdoc/>
         public void SetTextLeading(double leading)
         {
             GetCurrentState().FontState.Leading = leading;
         }
 
+        /// <inheritdoc/>
         public void SetTextRenderingMode(TextRenderingMode mode)
         {
             GetCurrentState().FontState.TextRenderingMode = mode;
         }
 
+        /// <inheritdoc/>
         public void SetTextRise(double rise)
         {
             GetCurrentState().FontState.Rise = rise;
         }
 
+        /// <inheritdoc/>
         public void SetWordSpacing(double spacing)
         {
             GetCurrentState().FontState.WordSpacing = spacing;
         }
 
+        /// <inheritdoc/>
         public void ModifyCurrentTransformationMatrix(double[] value)
         {
             var ctm = GetCurrentState().CurrentTransformationMatrix;
             GetCurrentState().CurrentTransformationMatrix = TransformationMatrix.FromArray(value).Multiply(ctm);
         }
 
+        /// <inheritdoc/>
         public void SetCharacterSpacing(double spacing)
         {
             GetCurrentState().FontState.CharacterSpacing = spacing;

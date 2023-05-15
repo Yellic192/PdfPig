@@ -70,8 +70,10 @@
         /// </summary>
         protected static byte ConvertToByte(double componentValue)
         {
-            var rounded = Math.Round(componentValue * 255, MidpointRounding.AwayFromZero);
-            return (byte)rounded;
+            //var rounded = Math.Round(componentValue * 255, MidpointRounding.AwayFromZero);
+            //return (byte)rounded;
+
+            return Convert.ToByte(componentValue * 255);
         }
     }
 
@@ -509,7 +511,7 @@
         /// <inheritdoc/>
         internal override double[] Process(params double[] values)
         {
-            var evaled = TintFunction.Eval(values[0]);
+            var evaled = TintFunction.Eval(values);
             return AlternateColorSpaceDetails.Process(evaled);
         }
 
@@ -546,8 +548,30 @@
                     transformed.Add(ConvertToByte(colors[c]));
                 }
             }
-
             return transformed;
+
+
+            /*
+            int outputCount = Process(Enumerable.Repeat(1.0, NumberOfColorComponents).ToArray()).Length;
+            int outputSize = (int)(decoded.Count * outputCount / (double)NumberOfColorComponents);
+            var transformed = new byte[outputSize];
+
+            for (var i = 0; i < decoded.Count / NumberOfColorComponents; i++)
+            {
+                double[] comps = new double[NumberOfColorComponents];
+                for (int n = 0; n < NumberOfColorComponents; n++)
+                {
+                    comps[n] = decoded[i * NumberOfColorComponents + n] / 255.0;
+                }
+
+                var colors = Process(comps);
+                for (int c = 0; c < outputCount; c++)
+                {
+                    transformed[i * outputCount + c] = ConvertToByte(colors[c]);
+                }
+            }
+            return transformed;
+            */
         }
 
         /// <inheritdoc/>

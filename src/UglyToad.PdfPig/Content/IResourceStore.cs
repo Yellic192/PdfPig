@@ -4,8 +4,14 @@
     using PdfFonts;
     using Tokens;
 
-    internal interface IResourceStore
+    /// <summary>
+    /// TODO
+    /// </summary>
+    public interface IResourceStore
     {
+        /// <summary>
+        /// TODO
+        /// </summary>
         void LoadResourceDictionary(DictionaryToken resourceDictionary, InternalParsingOptions parsingOptions);
 
         /// <summary>
@@ -14,18 +20,39 @@
         /// </summary>
         void UnloadResourceDictionary();
 
+        /// <summary>
+        /// TODO
+        /// </summary>
         IFont GetFont(NameToken name);
 
+        /// <summary>
+        /// TODO
+        /// </summary>
         StreamToken GetXObject(NameToken name);
 
+        /// <summary>
+        /// TODO
+        /// </summary>
         DictionaryToken GetExtendedGraphicsStateDictionary(NameToken name);
 
+        /// <summary>
+        /// TODO
+        /// </summary>
         IFont GetFontDirectly(IndirectReferenceToken fontReferenceToken);
 
+        /// <summary>
+        /// TODO
+        /// </summary>
         bool TryGetNamedColorSpace(NameToken name, out ResourceColorSpace namedColorSpace);
 
+        /// <summary>
+        /// TODO
+        /// </summary>
         ColorSpaceDetails GetColorSpaceDetails(NameToken name, DictionaryToken dictionary);
 
+        /// <summary>
+        /// TODO
+        /// </summary>
         DictionaryToken GetMarkedContentPropertiesDictionary(NameToken name);
     }
 }
