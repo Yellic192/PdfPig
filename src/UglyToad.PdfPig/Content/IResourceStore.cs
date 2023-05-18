@@ -56,8 +56,14 @@
         /// </summary>
         DictionaryToken GetMarkedContentPropertiesDictionary(NameToken name);
 
+        /// <summary>
+        /// TODO
+        /// </summary>
         IReadOnlyDictionary<NameToken, PatternColor> GetPatterns();
 
+        /// <summary>
+        /// TODO
+        /// </summary>
         Shading GetShading(NameToken name);
     }
 }

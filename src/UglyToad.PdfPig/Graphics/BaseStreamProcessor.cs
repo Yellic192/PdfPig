@@ -887,9 +887,6 @@
         /// <inheritdoc/>
         public abstract void EndMarkedContent();
 
-        /// <inheritdoc/>
-        public abstract void ApplyShading(NameToken shading);
-
         /// <summary>
         /// TODO
         /// </summary>
@@ -992,5 +989,8 @@
         {
             GetCurrentState().FontState.CharacterSpacing = spacing;
         }
+
+        /// <inheritdoc/>
+        public abstract void PaintShading(NameToken shading);
     }
 }
