@@ -58,8 +58,8 @@
             Cells = cells.ToList();
             BoundingBox = new PdfRectangle(cells.Min(c => c.BoundingBox.BottomLeft.X), cells.Min(c => c.BoundingBox.BottomLeft.Y),
                                            cells.Max(c => c.BoundingBox.TopRight.X), cells.Max(c => c.BoundingBox.TopRight.Y));
-            Rows = cells.Select(c => c.RowSpan.End).Max();
-            Columns = cells.Select(c => c.ColumnSpan.End).Max();
+            Rows = cells.Select(c => c.RowSpan.End).Max() + 1;
+            Columns = cells.Select(c => c.ColumnSpan.End).Max() + 1;
         }
     }
 
