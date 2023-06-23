@@ -61,15 +61,14 @@
                 int[] shouldMerge = Enumerable.Repeat(-1, cells.Count).ToArray();
                 for (var b = 0; b < cells.Count; b++)
                 {
-                    var current1 = cells[b];
-                    var centroid = current1.BoundingBox.Centroid;
+                    var box1 = cells[b].BoundingBox;
 
                     for (var c = 0; c < cells.Count; c++)
                     {
-                        if (b == c) continue;
-                        var current2 = cells[c];
+                        if (b == c || shouldMerge[c] == b) continue;
+                        var box2 = cells[c].BoundingBox;
 
-                        if (Math.Abs(centroid.Y - current2.BoundingBox.Centroid.Y) < 1e-5 && shouldMerge[c] != b)
+                        if (Math.Abs(box1.Top - box2.Top) < 1e-5)
                         {
                             shouldMerge[b] = c;
                             break;
@@ -91,15 +90,14 @@
                 shouldMerge = Enumerable.Repeat(-1, cells.Count).ToArray();
                 for (var b = 0; b < cells.Count; b++)
                 {
-                    var current1 = cells[b];
-                    var centroid = current1.BoundingBox.Centroid;
+                    var box1 = cells[b].BoundingBox;
 
                     for (var c = 0; c < cells.Count; c++)
                     {
-                        if (b == c) continue;
-                        var current2 = cells[c];
+                        if (b == c || shouldMerge[c] == b) continue;
+                        var box2 = cells[c].BoundingBox;
 
-                        if (Math.Abs(centroid.X - current2.BoundingBox.Centroid.X) < 1e-5 && shouldMerge[c] != b)
+                        if (Math.Abs(box1.Left - box2.Left) < 1e-5)
                         {
                             shouldMerge[b] = c;
                             break;
@@ -235,7 +233,7 @@
 
                         if (!subPath.Commands.Any(c => c is Close)) // does not contain a close command
                         {
-                            if (!(subPath.Commands[subPath.Commands.Count -1] is Line line))
+                            if (!(subPath.Commands[subPath.Commands.Count - 1] is Line line))
                             {
                                 throw new Exception();
                                 // should not happen as we filtered out bezier curve and it cannot be a 'close' command
@@ -557,7 +555,7 @@
                         }
                     }
                 }
-                NextCrossingPoint:;
+            NextCrossingPoint:;
             }
             return foundRectangles;
         }
@@ -629,15 +627,15 @@
             return Distances.Euclidean(pivot.BottomLeft, candidate.BottomRight) <= distanceThreshold ||
                    Distances.Euclidean(pivot.BottomLeft, candidate.TopRight) <= distanceThreshold ||
                    Distances.Euclidean(pivot.BottomLeft, candidate.TopLeft) <= distanceThreshold ||
-                   
+
                    Distances.Euclidean(pivot.BottomRight, candidate.BottomLeft) <= distanceThreshold ||
                    Distances.Euclidean(pivot.BottomRight, candidate.TopRight) <= distanceThreshold ||
                    Distances.Euclidean(pivot.BottomRight, candidate.TopLeft) <= distanceThreshold ||
-                   
+
                    Distances.Euclidean(pivot.TopLeft, candidate.BottomLeft) <= distanceThreshold ||
                    Distances.Euclidean(pivot.TopLeft, candidate.BottomRight) <= distanceThreshold ||
                    Distances.Euclidean(pivot.TopLeft, candidate.TopRight) <= distanceThreshold ||
-                   
+
                    Distances.Euclidean(pivot.TopRight, candidate.BottomRight) <= distanceThreshold ||
                    Distances.Euclidean(pivot.TopRight, candidate.BottomLeft) <= distanceThreshold ||
                    Distances.Euclidean(pivot.TopRight, candidate.TopLeft) <= distanceThreshold;
